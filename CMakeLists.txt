@@ -8,10 +8,12 @@ ${CMAKE_SOURCE_DIR}/src/include/defs.h
 ${CMAKE_SOURCE_DIR}/src/include/data_transceiver.h
 ${CMAKE_SOURCE_DIR}/src/include/video_receiver.h
 ${CMAKE_SOURCE_DIR}/src/include/video_renderer.h
+${CMAKE_SOURCE_DIR}/src/include/logger.h
 
 ${CMAKE_SOURCE_DIR}/src/core/data_transceiver.c
 ${CMAKE_SOURCE_DIR}/src/core/video_receiver.c
 ${CMAKE_SOURCE_DIR}/src/core/video_renderer.c
+${CMAKE_SOURCE_DIR}/src/core/logger.c
 
 ${CMAKE_SOURCE_DIR}/src/main/main.c
 )
