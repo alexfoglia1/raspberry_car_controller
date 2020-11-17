@@ -3,9 +3,19 @@
 #include <sys/time.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
-void writelog(FILE* file, char* prompt)
+char* fname;
+
+void configure(char* logfile)
 {
+    fname = logfile;
+}
+
+void writelog(char* prompt)
+{
+    FILE* file = fopen(fname, "a");
+    file = file ? file : stdout;
     if(file)
     {
         struct timeval tv;
@@ -16,4 +26,5 @@ void writelog(FILE* file, char* prompt)
         timestamp[strlen(timestamp) - 1] = (timestamp[strlen(timestamp) - 1] == '\n') ? '\0' : timestamp[strlen(timestamp) - 1];
         fprintf(file, "[%s] %s\n", timestamp, prompt);
     }
+    fclose(file);
 }

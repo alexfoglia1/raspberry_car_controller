@@ -1,7 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
-#include <stdio.h>
 
-void writelog(FILE* file, char* prompt);
+void configure(char* fname);
+void writelog(char* prompt);
 
-#endif // LOGGER_H
+#endif //LOGGER_H

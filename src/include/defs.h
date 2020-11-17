@@ -9,15 +9,17 @@
 #define ERR_CREATESOCKVIDEO "Could not create video socket"
 #define ERR_BINDSOCKVIDEO "Could not bind video socket"
 #define ERR_RECVSOCKVIDEO "Could not receive from video socket"
+#define ERR_UNINITIALIZED_SOCKET "Cannot receive: socket uninitialized"
 
-#define OK_CAN_RECEIVE_DATA "Waiting for data"
-#define OK_CAN_RECEIVE_VIDEO "Waiting for video"
 #define OK_CREATESOCKDATA "Data server socket was successfully created"
 #define OK_BINDSOCKDATA "Data server socket was successfully binded"
 #define OK_CREATESOCKVIDEO "Video server socket was successfully created"
 #define OK_BINDSOCKVIDEO "Video server socket was successfully binded"
+#define OK_CAN_RECEIVE_DATA "Waiting for data"
+#define OK_CAN_RECEIVE_VIDEO "Waiting for video"
+#define OK_RECVSOCKDATA "Received data from data socket"
+#define OK_RECVVIDEODATA "Received data from video socket"
 
-#define ERR_UNINITIALIZED_SOCKET "Cannot receive: socket uninitialized"
 #define ERR_UNKNOWN_SOURCE "Received message from unknown source"
 #define OK_IMU "Received IMU msg"
 #define OK_SPEED "Received SPEED msg"
@@ -26,6 +28,10 @@
 
 #define DATPORT 1234
 #define VIDPORT 4321
+#define IMUPORT 7777
+#define VELPORT 8888
+#define ATTPORT 9999
+#define RADPORT 3636
 #define BOARD_ADDRESS "192.168.1.123"
 
 #define IMU_MSG_ID       0

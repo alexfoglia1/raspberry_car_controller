@@ -4,9 +4,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+
 #include <stdio.h>
 #include <string.h>
-
 
 int server_sock;
 struct sockaddr_in saddr;
@@ -26,64 +26,17 @@ bool bind_server_sock()
     {
         retval = false;
         perror(ERR_BINDSOCKDATA);
-        writelog(stderr, ERR_BINDSOCKDATA);
+        writelog(ERR_BINDSOCKDATA);
     }
     else
     {
-        writelog(stdout, OK_BINDSOCKDATA);
+        writelog(OK_BINDSOCKDATA);
         retval = true;
     }
 
     return retval;
 }
 
-bool recvfrom_wrapper(char* msg, size_t maximum_len)
-{
-    bool retval;
-
-    char buffer[maximum_len];
-    socklen_t len;
-    ssize_t sock_recv = recvfrom(server_sock, buffer, maximum_len, 0, (struct sockaddr*)&saddr, &len);
-    if(!sock_recv)
-    {
-        retval = false;
-        perror(ERR_RECVSOCKDATA);
-    }
-    else
-    {
-        msg_header* header_ptr = (msg_header*)(buffer);
-        switch(header_ptr->msg_id)
-        {
-        case IMU_MSG_ID:
-            memcpy((imu_msg*) msg, (imu_msg*) buffer, sizeof(imu_msg));
-            retval = true;
-            writelog(stdout, OK_IMU);
-            break;
-        case SPEED_MSG_ID:
-            memcpy((speed_msg*) msg, (speed_msg*) buffer, sizeof(speed_msg));
-            retval = true;
-            writelog(stdout, OK_SPEED);
-            break;
-        case ATTITUDE_MSG_ID:
-            memcpy((attitude_msg*) msg, (attitude_msg*) buffer, sizeof(attitude_msg));
-            retval = true;
-            writelog(stdout, OK_ATTITUDE);
-            break;
-        case RADIATION_MSG_ID:
-            memcpy((radiation_msg*) msg, (radiation_msg*) buffer, sizeof(radiation_msg));
-            retval = true;
-            writelog(stdout, OK_RADIATION);
-            break;
-        default:
-            retval = false;
-            writelog(stderr, ERR_UNKNOWN_SOURCE);
-            break;
-
-        }
-    }
-
-    return retval;
-}
 
 bool init_dataserver()
 {
@@ -94,11 +47,11 @@ bool init_dataserver()
     {
         retval = false;
         perror(ERR_CREATESOCKDATA);
-        writelog(stderr, ERR_CREATESOCKDATA);
+        writelog(ERR_CREATESOCKDATA);
     }
     else
     {
-        writelog(stdout, OK_CREATESOCKDATA);
+        writelog(OK_CREATESOCKDATA);
         server_sock = sock_creation;
         retval = bind_server_sock();
     }
@@ -112,14 +65,23 @@ bool recv_data_from_board(char* msg)
 
     if(!server_sock)
     {
-        writelog(stderr, ERR_UNINITIALIZED_SOCKET);
+        writelog(ERR_UNINITIALIZED_SOCKET);
         retval = false;
     }
     else
     {
-        writelog(stdout, OK_CAN_RECEIVE_DATA);
+        writelog(OK_CAN_RECEIVE_DATA);
         size_t maximum_len = sizeof(imu_msg);
-        retval = recvfrom_wrapper(msg, maximum_len);
+        socklen_t len;
+        retval = recvfrom(server_sock, msg, maximum_len, 0, (struct sockaddr*)&saddr, &len);
+        if(!retval)
+        {
+            writelog(ERR_RECVSOCKDATA);
+        }
+        else
+        {
+            writelog(OK_RECVSOCKDATA);
+        }
     }
 
     return retval;

@@ -1,1 +1,4 @@
+#ifndef VIDEO_RECEIVER_H
+#define VIDEO_RECEIVER_H
 
+#endif //VIDEO_RECEIVER_H
