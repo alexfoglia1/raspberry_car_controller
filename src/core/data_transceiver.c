@@ -8,20 +8,20 @@
 #include <stdio.h>
 #include <string.h>
 
-int server_sock;
-struct sockaddr_in saddr;
+int data_server_sock;
+struct sockaddr_in data_saddr;
 
 
-bool bind_server_sock()
+bool bind_data_server_sock()
 {
     bool retval;
 
-    memset(&saddr, 0x00, sizeof(struct sockaddr_in));
-    saddr.sin_family = AF_INET;
-    saddr.sin_port   = htons(DATPORT);
-    saddr.sin_addr.s_addr = INADDR_ANY;
+    memset(&data_saddr, 0x00, sizeof(struct sockaddr_in));
+    data_saddr.sin_family = AF_INET;
+    data_saddr.sin_port   = htons(DATPORT);
+    data_saddr.sin_addr.s_addr = INADDR_ANY;
 
-    int sock_bind  = bind(server_sock, (const struct sockaddr*)&saddr, sizeof(saddr));
+    int sock_bind = bind(data_server_sock, (const struct sockaddr*)&data_saddr, sizeof(data_saddr));
     if(sock_bind)
     {
         retval = false;
@@ -52,8 +52,9 @@ bool init_dataserver()
     else
     {
         writelog(OK_CREATESOCKDATA);
-        server_sock = sock_creation;
-        retval = bind_server_sock();
+        data_server_sock = sock_creation;
+        setsockopt(data_server_sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+        retval = bind_data_server_sock();
     }
 
     return retval;
@@ -63,7 +64,7 @@ bool recv_data_from_board(char* msg)
 {
     bool retval;
 
-    if(!server_sock)
+    if(!data_server_sock)
     {
         writelog(ERR_UNINITIALIZED_SOCKET);
         retval = false;
@@ -73,7 +74,7 @@ bool recv_data_from_board(char* msg)
         writelog(OK_CAN_RECEIVE_DATA);
         size_t maximum_len = sizeof(imu_msg);
         socklen_t len;
-        retval = recvfrom(server_sock, msg, maximum_len, 0, (struct sockaddr*)&saddr, &len);
+        retval = recvfrom(data_server_sock, msg, maximum_len, 0, (struct sockaddr*)&data_saddr, &len);
         if(!retval)
         {
             writelog(ERR_RECVSOCKDATA);

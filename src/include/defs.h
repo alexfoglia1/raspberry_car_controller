@@ -18,13 +18,14 @@
 #define OK_CAN_RECEIVE_DATA "Waiting for data"
 #define OK_CAN_RECEIVE_VIDEO "Waiting for video"
 #define OK_RECVSOCKDATA "Received data from data socket"
-#define OK_RECVVIDEODATA "Received data from video socket"
+#define OK_RECVSOCKVIDEO "Received data from video socket"
 
 #define ERR_UNKNOWN_SOURCE "Received message from unknown source"
 #define OK_IMU "Received IMU msg"
 #define OK_SPEED "Received SPEED msg"
 #define OK_ATTITUDE "Received ATTITUDE msg"
 #define OK_RADIATION "Received RADIATION msg"
+#define OK_IMAGE "Received IMAGE msg"
 
 #define DATPORT 1234
 #define VIDPORT 4321
@@ -32,6 +33,8 @@
 #define VELPORT 8888
 #define ATTPORT 9999
 #define RADPORT 3636
+#define RENPORT 4444
+
 #define BOARD_ADDRESS "192.168.1.123"
 
 #define IMU_MSG_ID       0
@@ -39,8 +42,12 @@
 #define ATTITUDE_MSG_ID  2
 #define RADIATION_MSG_ID 3
 
+#define SCREEN_ROWS 255
+#define SCREEN_COLS 255
+
 #include <stdint.h>
 #include <sys/time.h>
+
 
 typedef struct timeval timeval;
 typedef struct
@@ -85,5 +92,10 @@ typedef struct
     double CPM;
     double uSv_h;
 } radiation_msg;
+
+typedef struct
+{
+    uint8_t image[SCREEN_ROWS][SCREEN_COLS][3];
+} image_msg;
 
 #endif //DEFS_H

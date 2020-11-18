@@ -42,11 +42,26 @@ int main()
 {
     srand(time(NULL));
     int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    struct sockaddr_in daddr;
+    struct sockaddr_in daddr, vaddr;
     memset(&daddr, 0x00, sizeof(struct sockaddr_in));
+    memset(&vaddr, 0x00, sizeof(struct sockaddr_in));
     daddr.sin_family = AF_INET;
     daddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    daddr.sin_port = htons(1234);
+    daddr.sin_port = htons(DATPORT);
+    vaddr.sin_family = AF_INET;
+    vaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    vaddr.sin_port = htons(VIDPORT);
+    
+    image_msg video_out;
+    for(int i = 0; i < SCREEN_ROWS; i++)
+    {
+        for(int j = 0; j < SCREEN_COLS; j++)
+        {
+            video_out.image[i][j][0] = 25;
+            video_out.image[i][j][1] = 50;
+            video_out.image[i][j][2] = 75;
+        }
+    }
     
     while(1)
     {
@@ -82,7 +97,13 @@ int main()
         rad.header.msg_id = RADIATION_MSG_ID;
         rad.CPM = 7518.2 + random_unif(-10.0, 10.0, 10);
         rad.uSv_h = 45.1 + random_unif(-5.0, 5.0, 10);
-
+        
+        for(int i = 0; i < sizeof(image_msg); i+=1024)
+        {
+            char* pBuf = (char*)&video_out;
+            sendto(sock, pBuf + i, 1024, 0, (struct sockaddr*)&vaddr, sizeof(vaddr));
+            perror("sendto video");
+        }
         sendto(sock, (char*)&imu, sizeof(imu_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         sendto(sock, (char*)&speed, sizeof(speed_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         sendto(sock, (char*)&attitude, sizeof(attitude_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));

@@ -1,5 +1,122 @@
 #include "video_renderer.h"
+#include "defs.h"
+
 #include <stdio.h>
+#include <GL/gl.h>
+#include <GL/glut.h>
+#include <GL/freeglut.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+PFNGLWINDOWPOS2IPROC glWindowPos2i;
+
+#define ACC_POS 13, SCREEN_ROWS - 13
+#define GYRO_POS 13, SCREEN_ROWS - 26
+#define MAGN_POS 13, SCREEN_ROWS - 39
+#define SPEED_POS 5 * SCREEN_COLS/7, SCREEN_ROWS - 13
+#define ATT_POS 13, 13
+#define RAD_POS 5 * SCREEN_COLS/7, 13
+
+char acc_display[256];
+char gyro_display[256];
+char magn_display[256];
+char speed_display[256];
+char att_display[256];
+char rad_display[256];
+
+int imu_socket, speed_socket, attitude_socket, radiation_socket, image_socket;
+struct sockaddr_in imu_saddr, speed_saddr, attitude_saddr, radiation_saddr, image_saddr;
+
+uint8_t to_renderize[SCREEN_ROWS][SCREEN_COLS][3];
+
+void print_bitmap_string(void* font, char* s)
+{
+   if (s && strlen(s))
+   {
+      while (*s)
+      {
+         glutBitmapCharacter(font, *s);
+         s++;
+      }
+   }
+}
+
+
+void init_localsock(int* localsocket, struct sockaddr_in* localaddr, int port)
+{
+    *localsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    struct timeval read_timeout;
+    read_timeout.tv_sec = 0;
+    read_timeout.tv_usec = 10;
+    setsockopt(*localsocket, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
+
+    memset(localaddr, 0x00, sizeof(struct sockaddr_in));
+    localaddr->sin_family = AF_INET;
+    localaddr->sin_port = htons(port);
+    localaddr->sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    bind(*localsocket, (struct sockaddr*)localaddr, sizeof(struct sockaddr));
+}
+
+void imu_task()
+{
+    imu_msg recv;
+    socklen_t len;
+    ssize_t bytes_recv = recvfrom(imu_socket, &recv, sizeof(imu_msg), 0, (struct sockaddr*)&imu_saddr, &len);
+    if(bytes_recv > 0)
+    {
+        update_imu(recv);
+    }
+}
+
+void image_task()
+{
+    image_msg recv;
+    socklen_t len;
+    ssize_t bytes_recv = recvfrom(image_socket, &recv, sizeof(image_msg), 0, (struct sockaddr*)&image_saddr, &len);
+    if(bytes_recv > 0)
+    {
+        update_image(recv);
+    }
+}
+
+void speed_task()
+{
+    speed_msg recv;
+    socklen_t len;
+    ssize_t bytes_recv = recvfrom(speed_socket, &recv, sizeof(speed_msg), 0, (struct sockaddr*)&speed_saddr, &len);
+    if(bytes_recv > 0)
+    {
+        update_speed(recv);
+    }
+}
+
+void attitude_task()
+{
+    attitude_msg recv;
+    socklen_t len;
+    ssize_t bytes_recv = recvfrom(attitude_socket, &recv, sizeof(attitude_msg), 0, (struct sockaddr*)&attitude_saddr, &len);
+    if(bytes_recv > 0)
+    {
+        update_attitude(recv);
+    }
+}
+
+void radiation_task()
+{
+    radiation_msg recv;
+    socklen_t len;
+    ssize_t bytes_recv = recvfrom(radiation_socket, &recv, sizeof(radiation_msg), 0, (struct sockaddr*)&radiation_saddr, &len);
+    if(bytes_recv > 0)
+    {
+        update_radiation(recv);
+    }
+}
 
 void print_header(msg_header header)
 {
@@ -9,37 +126,97 @@ void print_header(msg_header header)
 
 void update_imu(imu_msg imu)
 {
-    print_header(imu.header);
-    printf("acc x: %f\n", imu.ax);
-    printf("acc y: %f\n", imu.ay);
-    printf("acc z: %f\n", imu.az);
-    printf("gyro x: %f\n", imu.gyrox);
-    printf("gyro y: %f\n", imu.gyroy);
-    printf("gyro z: %f\n", imu.gyroz);
-    printf("magn x: %f\n", imu.magnx);
-    printf("magn y: %f\n", imu.magny);
-    printf("magn z: %f\n\n", imu.magnz);
+    sprintf(acc_display, "Acc : %f %f %f", imu.ax, imu.ay, imu.az);
+    sprintf(gyro_display, "Gyro: %f %f %f", imu.gyrox, imu.gyroy, imu.gyroz);
+    sprintf(magn_display, "Magn: %f %f %f", imu.magnx, imu.magny, imu.magnz);
+}
+
+void update_image(image_msg image)
+{
+    memcpy(to_renderize, image.image, sizeof(image_msg));
 }
 
 void update_speed(speed_msg speed)
 {
-    print_header(speed.header);
-    printf("speed x: %f\n", speed.vx);
-    printf("speed y: %f\n", speed.vy);
-    printf("speed z: %f\n\n", speed.vz);
+    sprintf(speed_display, "Speed: %f %f %f", speed.vx, speed.vy, speed.vz);
 }
 
 void update_attitude(attitude_msg attitude)
 {
-    print_header(attitude.header);
-    printf("roll: %f\n", attitude.roll);
-    printf("pitch: %f\n", attitude.pitch);
-    printf("yaw: %f\n\n", attitude.yaw);
+    sprintf(att_display, "Roll: %f Pitch: %f Yaw: %f", attitude.roll, attitude.pitch, attitude.yaw);
 }
 
 void update_radiation(radiation_msg radiation)
 {
-    print_header(radiation.header);
-    printf("CPM: %f\n", radiation.CPM);
-    printf("Absorbed dose: %f uSv/h\n\n", radiation.uSv_h);
+    sprintf(rad_display, "CPM: %f uSv/h: %f", radiation.CPM, radiation.uSv_h);
+}
+
+void render_window()
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glDrawPixels(SCREEN_COLS, SCREEN_ROWS, GL_RGB, GL_UNSIGNED_BYTE, (void *)to_renderize);
+
+    glWindowPos2i(ACC_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, acc_display);
+    glWindowPos2i(GYRO_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, gyro_display);
+    glWindowPos2i(MAGN_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, magn_display);
+
+    glWindowPos2i(ATT_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, att_display);
+
+    glWindowPos2i(SPEED_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, speed_display);
+
+    glWindowPos2i(RAD_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, rad_display);
+
+    glutSwapBuffers();
+}
+
+void main_loop()
+{
+    image_task();
+    imu_task();
+    speed_task();
+    attitude_task();
+    radiation_task();
+    render_window();
+}
+
+void init_window(int argc, char** argv)
+{
+    init_localsock(&imu_socket, &imu_saddr, IMUPORT);
+    init_localsock(&speed_socket, &speed_saddr, VELPORT);
+    init_localsock(&attitude_socket, &attitude_saddr, ATTPORT);
+    init_localsock(&radiation_socket, &radiation_saddr, RADPORT);
+    init_localsock(&image_socket, &image_saddr, RENPORT);
+
+    sprintf(acc_display, "Acc : %f %f %f", 0., 0., 0.);
+    sprintf(gyro_display, "Gyro: %f %f %f", 0., 0., 0.);
+    sprintf(magn_display, "Magn: %f %f %f", 0., 0., 0.);
+    sprintf(speed_display, "Speed: %f %f %f", 0., 0., 0.);
+    sprintf(att_display, "Roll: %f Pitch: %f Yaw: %f", 0., 0., 0.);
+    sprintf(rad_display, "CPM: %f uSv/h: %f", 0., 0.);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glutInit(&argc, argv); //passo a opengl eventuali argomenti da tastiera
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); //modo standard per inizializzare un display mode che va bene quasi sempre
+
+    glutInitWindowSize(SCREEN_COLS, SCREEN_ROWS); //creo una finestra SCREEN_COLS * SCREEN_ROWS
+    glutInitWindowPosition(0, 0); //piazzo la finestra in alto a sx
+    glutCreateWindow(PROJNAME); //visualizza la finestra con un titolo
+    glutDisplayFunc(render_window); //assegno renderChip8 alla displayFunc ossia la funzione che viene chiamata per renderizzare la memorya di chip8 (credo che questa debba essere eseguita ogni volta che drawFlag = true)
+    glutIdleFunc(main_loop);
+
+    glWindowPos2i =  (PFNGLWINDOWPOS2IPROC) glutGetProcAddress("glWindowPos2i");
+
+}
+
+void show_window()
+{
+    glutMainLoop();
 }
