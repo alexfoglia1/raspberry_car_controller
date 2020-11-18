@@ -26,8 +26,6 @@ void video_task()
     while(true)
     {
          bool ret = recv_video_from_board(buffer);
-           FILE* f = fopen("diocane", "w");
-           exit(0);
          if(ret)
          {
              sendto(sock_to_parent, buffer, sizeof(image_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));

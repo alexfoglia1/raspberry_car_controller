@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 PFNGLWINDOWPOS2IPROC glWindowPos2i;
 
@@ -21,6 +22,7 @@ PFNGLWINDOWPOS2IPROC glWindowPos2i;
 #define SPEED_POS 5 * SCREEN_COLS/7, SCREEN_ROWS - 13
 #define ATT_POS 13, 13
 #define RAD_POS 5 * SCREEN_COLS/7, 13
+#define VIDEO_POS SCREEN_COLS/4, SCREEN_ROWS/6
 
 char acc_display[256];
 char gyro_display[256];
@@ -62,6 +64,34 @@ void init_localsock(int* localsocket, struct sockaddr_in* localaddr, int port)
 
     bind(*localsocket, (struct sockaddr*)localaddr, sizeof(struct sockaddr));
 }
+
+void render_window()
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glWindowPos2i(VIDEO_POS);
+    glDrawPixels(SCREEN_COLS, SCREEN_ROWS, GL_RGB, GL_UNSIGNED_BYTE, (void *)to_renderize);
+
+    glWindowPos2i(ACC_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, acc_display);
+    glWindowPos2i(GYRO_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, gyro_display);
+    glWindowPos2i(MAGN_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, magn_display);
+
+    glWindowPos2i(ATT_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, att_display);
+
+    glWindowPos2i(SPEED_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, speed_display);
+
+    glWindowPos2i(RAD_POS);
+    print_bitmap_string(GLUT_BITMAP_8_BY_13, rad_display);
+
+    glutSwapBuffers();
+}
+
 
 void imu_task()
 {
@@ -124,16 +154,26 @@ void print_header(msg_header header)
     printf("sse: %f s\n", (double)header.msg_timestamp.tv_sec + 1e-6 * (double)header.msg_timestamp.tv_usec);
 }
 
+void update_image(image_msg image)
+{
+    uint32_t row = image.row;
+    uint32_t col = image.col;
+    for(uint32_t i = 0; i < BLOCK_ROWS; i++)
+    {
+        for(uint32_t j = 0; j < BLOCK_COLS; j++)
+        {
+            to_renderize[row + i][col + j][0] = image.data[i][j][0];
+            to_renderize[row + i][col + j][1] = image.data[i][j][2];
+            to_renderize[row + i][col + j][2] = image.data[i][j][2];
+        }
+    }
+}
+
 void update_imu(imu_msg imu)
 {
     sprintf(acc_display, "Acc : %f %f %f", imu.ax, imu.ay, imu.az);
     sprintf(gyro_display, "Gyro: %f %f %f", imu.gyrox, imu.gyroy, imu.gyroz);
     sprintf(magn_display, "Magn: %f %f %f", imu.magnx, imu.magny, imu.magnz);
-}
-
-void update_image(image_msg image)
-{
-    memcpy(to_renderize, image.image, sizeof(image_msg));
 }
 
 void update_speed(speed_msg speed)
@@ -151,40 +191,16 @@ void update_radiation(radiation_msg radiation)
     sprintf(rad_display, "CPM: %f uSv/h: %f", radiation.CPM, radiation.uSv_h);
 }
 
-void render_window()
-{
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glDrawPixels(SCREEN_COLS, SCREEN_ROWS, GL_RGB, GL_UNSIGNED_BYTE, (void *)to_renderize);
-
-    glWindowPos2i(ACC_POS);
-    print_bitmap_string(GLUT_BITMAP_8_BY_13, acc_display);
-    glWindowPos2i(GYRO_POS);
-    print_bitmap_string(GLUT_BITMAP_8_BY_13, gyro_display);
-    glWindowPos2i(MAGN_POS);
-    print_bitmap_string(GLUT_BITMAP_8_BY_13, magn_display);
-
-    glWindowPos2i(ATT_POS);
-    print_bitmap_string(GLUT_BITMAP_8_BY_13, att_display);
-
-    glWindowPos2i(SPEED_POS);
-    print_bitmap_string(GLUT_BITMAP_8_BY_13, speed_display);
-
-    glWindowPos2i(RAD_POS);
-    print_bitmap_string(GLUT_BITMAP_8_BY_13, rad_display);
-
-    glutSwapBuffers();
-}
-
 void main_loop()
 {
-    image_task();
     imu_task();
     speed_task();
     attitude_task();
     radiation_task();
+    image_task();
     render_window();
+
+    usleep(1e4);
 }
 
 void init_window(int argc, char** argv)
@@ -212,7 +228,7 @@ void init_window(int argc, char** argv)
     glutDisplayFunc(render_window); //assegno renderChip8 alla displayFunc ossia la funzione che viene chiamata per renderizzare la memorya di chip8 (credo che questa debba essere eseguita ogni volta che drawFlag = true)
     glutIdleFunc(main_loop);
 
-    glWindowPos2i =  (PFNGLWINDOWPOS2IPROC) glutGetProcAddress("glWindowPos2i");
+    glWindowPos2i = (PFNGLWINDOWPOS2IPROC) glutGetProcAddress("glWindowPos2i");
 
 }
 

@@ -42,8 +42,13 @@
 #define ATTITUDE_MSG_ID  2
 #define RADIATION_MSG_ID 3
 
-#define SCREEN_ROWS 255
-#define SCREEN_COLS 255
+#define SCREEN_ROWS 640
+#define SCREEN_COLS 1024
+#define IMAGE_ROWS 435
+#define IMAGE_COLS 435
+#define BLOCK_ROWS 145
+#define BLOCK_COLS 145
+
 
 #include <stdint.h>
 #include <sys/time.h>
@@ -95,7 +100,9 @@ typedef struct
 
 typedef struct
 {
-    uint8_t image[SCREEN_ROWS][SCREEN_COLS][3];
+    uint32_t row;
+    uint32_t col;
+    uint8_t data[BLOCK_ROWS][BLOCK_COLS][3];
 } image_msg;
 
 #endif //DEFS_H
