@@ -53,7 +53,9 @@ bool init_dataserver()
     {
         writelog(OK_CREATESOCKDATA);
         data_server_sock = sock_creation;
-        setsockopt(data_server_sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+
+        const int optval[1] = {1};
+        setsockopt(data_server_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
         retval = bind_data_server_sock();
     }
 
@@ -90,5 +92,5 @@ bool recv_data_from_board(char* msg)
 
 bool send_data_to_board(char* msg)
 {
-
+    return false;
 }

@@ -51,7 +51,8 @@ bool init_videoserver()
     {
         writelog(OK_CREATESOCKVIDEO);
         video_server_sock = sock_creation;
-        setsockopt(video_server_sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+        const int optval[1] = {1};
+        setsockopt(video_server_sock, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
         retval = bind_video_server_sock();
     }
 

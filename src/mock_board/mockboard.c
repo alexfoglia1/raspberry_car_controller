@@ -63,20 +63,7 @@ int main()
     while(1)
     {
         rep++;
-        uint8_t imagedata[IMAGE_ROWS][IMAGE_COLS][3];
-        FILE* f = fopen("/dev/video0", "rb");
-        /**
-        image_msg video_out;
-        for(int i = 0; i < IMAGE_ROWS; i++)
-        {
-            for(int j = 0; j < IMAGE_COLS; j++)
-            {
-                imagedata[i][j][0] = rep%2? r1 : r2;
-                imagedata[i][j][1] = rep%2? g1 : g2;
-                imagedata[i][j][2] = rep%2? b1 : b2;
-            }
-        }
-        **/
+        
         imu_msg imu;
         gettimeofday(&imu.header.msg_timestamp, NULL);
         imu.header.msg_id = IMU_MSG_ID;
@@ -110,31 +97,19 @@ int main()
         rad.CPM = 7518.2 + random_unif(-10.0, 10.0, 10);
         rad.uSv_h = 45.1 + random_unif(-5.0, 5.0, 10);
         
-        for(int i = 0; i < IMAGE_ROWS; i += BLOCK_ROWS)
+        image_msg imagemsg;
+        imagemsg.len = 1000;
+        for(int i = 0; i < 1000; i++)
         {
-            for(int j = 0; j < IMAGE_COLS; j += BLOCK_COLS)
-            {
-                video_out.row = i;
-                video_out.col = j;
-                for(int k = 0; k < BLOCK_ROWS; k++)
-                {
-                    for(int l = 0; l < BLOCK_COLS; l++)
-                    {
-                        video_out.data[k][l][0] = imagedata[i + k][j + l][0];
-                        video_out.data[k][l][1] = imagedata[i + k][j + l][1];
-                        video_out.data[k][l][2] = imagedata[i + k][j + l][2];
-                    }
-                    
-                }
-                sendto(sock, (char*)(&video_out), sizeof(image_msg), 0, (struct sockaddr*)&vaddr, sizeof(vaddr));
-            }
+            imagemsg.data[i] = i & 0xFF;
         }
-         //   sendto(sock, NULL, 1024, 0, (struct sockaddr*)&vaddr, sizeof(vaddr));
+        //sendto(sock, (char*)&imagemsg, sizeof(imagemsg), 0, (struct sockaddr*)&vaddr, sizeof(vaddr));
             
         sendto(sock, (char*)&imu, sizeof(imu_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         sendto(sock, (char*)&speed, sizeof(speed_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         sendto(sock, (char*)&attitude, sizeof(attitude_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         sendto(sock, (char*)&rad, sizeof(radiation_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
+        usleep(1e5);
     }
     
     return 0;

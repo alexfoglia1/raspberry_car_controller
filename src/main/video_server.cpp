@@ -22,7 +22,7 @@ void video_task()
     daddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     daddr.sin_port = htons(RENPORT);
 
-    char* buffer = malloc(sizeof(image_msg));
+    char* buffer = (char*) malloc(sizeof(image_msg));
     while(true)
     {
          bool ret = recv_video_from_board(buffer);

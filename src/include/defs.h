@@ -35,24 +35,17 @@
 #define RADPORT 3636
 #define RENPORT 4444
 
-#define BOARD_ADDRESS "192.168.1.123"
+#define BOARD_ADDRESS "192.168.1.13"
 
 #define IMU_MSG_ID       0
 #define SPEED_MSG_ID     1
 #define ATTITUDE_MSG_ID  2
 #define RADIATION_MSG_ID 3
 
-#define SCREEN_ROWS 640
-#define SCREEN_COLS 1024
-#define IMAGE_ROWS 435
-#define IMAGE_COLS 435
-#define BLOCK_ROWS 145
-#define BLOCK_COLS 145
-
+#define MAX_IMAGESIZE 40090
 
 #include <stdint.h>
 #include <sys/time.h>
-
 
 typedef struct timeval timeval;
 typedef struct
@@ -100,9 +93,8 @@ typedef struct
 
 typedef struct
 {
-    uint32_t row;
-    uint32_t col;
-    uint8_t data[BLOCK_ROWS][BLOCK_COLS][3];
+    uint16_t len;
+    uint8_t data[MAX_IMAGESIZE];
 } image_msg;
 
 #endif //DEFS_H

@@ -8,12 +8,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int main(int argc, char** argv)
+#include <stdio.h>
+
+int main()
 {
     printf("%s\n", PROJNAME);
 
     /** configure logfile **/
-    char* logfile = "log.txt";
+    const char* logfile = "log.txt";
     FILE* f = fopen(logfile, "w");
     fclose(f);
     //configure(logfile);
@@ -35,9 +37,7 @@ int main(int argc, char** argv)
     }
     writelog("Servers running");
 
-    /** setup opengl **/
-    init_window(argc, argv);
-    show_window();
-
+    init_window();
+    main_loop();
     return 0;
 }

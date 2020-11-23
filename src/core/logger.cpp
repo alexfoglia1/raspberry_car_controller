@@ -12,7 +12,7 @@ void configure(char* logfile)
     fname = logfile;
 }
 
-void writelog(char* prompt)
+void writelog(const char* prompt)
 {
     FILE* file = fopen(fname, "a");
     file = file ? file : stdout;

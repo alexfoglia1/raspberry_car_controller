@@ -1,7 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-void configure(char* fname);
-void writelog(char* prompt);
+void configure(const char* fname);
+void writelog(const char* prompt);
 
 #endif //LOGGER_H
