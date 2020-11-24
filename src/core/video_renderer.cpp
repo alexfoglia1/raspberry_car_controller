@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "logger.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
@@ -45,7 +46,7 @@ void init_localsock(int* localsocket, struct sockaddr_in* localaddr, int port)
     *localsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     struct timeval read_timeout;
     read_timeout.tv_sec = 0;
-    read_timeout.tv_usec = 10;
+    read_timeout.tv_usec = 1;
     setsockopt(*localsocket, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
 
     memset(localaddr, 0x00, sizeof(struct sockaddr_in));
@@ -64,32 +65,34 @@ void update_image(image_msg image)
 
 void update_imu(imu_msg imu)
 {
-    sprintf(acc_display,  "Acc. : %f %f %f", imu.ax, imu.ay, imu.az);
-    sprintf(gyro_display, "Gyro.: %f %f %f", imu.gyrox, imu.gyroy, imu.gyroz);
-    sprintf(magn_display, "Magn.: %f %f %f", imu.magnx, imu.magny, imu.magnz);
+
+    sprintf(acc_display,  "Acc. : %.6f %.6f %.6f", imu.ax, imu.ay, imu.az);
+    writelog(acc_display);
+    sprintf(gyro_display, "Gyro.: %.6f %.6f %.6f", imu.gyrox, imu.gyroy, imu.gyroz);
+    sprintf(magn_display, "Magn.: %.6f %.6f %.6f", imu.magnx, imu.magny, imu.magnz);
 }
 
 void update_speed(speed_msg speed)
 {
-    sprintf(speed_display, "Speed: %f %f %f", speed.vx, speed.vy, speed.vz);
+    sprintf(speed_display, "Speed: %.6f %.6f %.6f", speed.vx, speed.vy, speed.vz);
 }
 
 void update_attitude(attitude_msg attitude)
 {
-    sprintf(roll_display, "Roll: %f", attitude.roll);
-    sprintf(pitch_display, "Pitch: %f", attitude.pitch);
-    sprintf(yaw_display, "Yaw: %f", attitude.yaw);
+    sprintf(roll_display, "Roll: %.6f", attitude.roll);
+    sprintf(pitch_display, "Pitch: %.6f", attitude.pitch);
+    sprintf(yaw_display, "Yaw: %.6f", attitude.yaw);
 }
 
 void update_radiation(radiation_msg radiation)
 {
-    sprintf(rad_display, "CPM: %f uSv/h: %f", radiation.CPM, radiation.uSv_h);
+    sprintf(rad_display, "CPM: %.6f uSv/h: %.6f", radiation.CPM, radiation.uSv_h);
 }
 
 void update_throttle(uint8_t th_state)
 {
     char th_progress[100];
-    double perc = ((double)th_state / 255.0) * 100.0;
+    float perc = ((float)th_state / 255.0) * 100.0;
 
     for(uint8_t i = 0; i < 100; i++)
     {
@@ -114,16 +117,16 @@ void render_window()
     std::string text_command(cmd_display);
     std::string text_throttle(throttle_display);
 
-    cv::putText(*imagewindow, text_acc, cv::Point2d(2U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_gyro, cv::Point2d(2U, 40U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_magn, cv::Point2d(2U, 60U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_speed, cv::Point2d(2U, 80U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_roll, cv::Point2d(2U, size.height/2 - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_pitch, cv::Point2d(2U, size.height/2), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_yaw, cv::Point2d(2U, size.height/2 + 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_radiation, cv::Point2d(2U, size.height - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_command, cv::Point2d(size.width - 120U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
-    cv::putText(*imagewindow, text_throttle, cv::Point2d(size.width/2, size.height - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.175, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_acc, cv::Point2d(2U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_gyro, cv::Point2d(2U, 40U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_magn, cv::Point2d(2U, 60U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_speed, cv::Point2d(2U, 80U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_roll, cv::Point2d(2U, size.height/2 - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_pitch, cv::Point2d(2U, size.height/2), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_yaw, cv::Point2d(2U, size.height/2 + 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_radiation, cv::Point2d(2U, size.height - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_command, cv::Point2d(size.width - 120U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_throttle, cv::Point2d(size.width/2, size.height - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.175, cv::Scalar(255,0,0), 1, cv::LINE_AA);
 
     cv::imshow(PROJNAME, *imagewindow);
 }
@@ -132,7 +135,7 @@ static uint8_t th_state;
 
 void cmd_out_task()
 {
-    int key = cv::waitKey(1);
+    int key = cv::waitKey(10);
     if(key != -1)
     {
         bool error;
@@ -140,7 +143,6 @@ void cmd_out_task()
         sprintf(cmd_display, "OUT: %s", getNameOfKey(key));
         if(!error)
         {
-            gettimeofday(&cmd_out.header.msg_timestamp, nullptr);
             send_data_to_board(reinterpret_cast<char*>(&cmd_out));
             th_state = cmd_out.throttle_add == 0x70 ? 0:
                        cmd_out.throttle_add == 0x7F ? 0xFF:
@@ -158,6 +160,7 @@ void imu_task()
     ssize_t bytes_recv = recvfrom(imu_socket, &recv, sizeof(imu_msg), 0, (struct sockaddr*)&imu_saddr, &len);
     if(bytes_recv > 0)
     {
+        writelog("!!LOCAL RECEIVED IMU!!\n");
         update_imu(recv);
     }
 }
@@ -223,11 +226,12 @@ void main_loop()
         attitude_task();
         radiation_task();
 
-        cmd_out_task();
         throttle_task();
 
         image_task();
         render_window();
+
+        cmd_out_task();
     }
 }
 
@@ -240,14 +244,14 @@ void init_window()
     init_localsock(&radiation_socket, &radiation_saddr, RADPORT);
     init_localsock(&image_socket, &image_saddr, RENPORT);
 
-    sprintf(acc_display,   "Acc. : %f %f %f", 0., 0., 0.);
-    sprintf(gyro_display,  "Gyro.: %f %f %f", 0., 0., 0.);
-    sprintf(magn_display,  "Magn.: %f %f %f", 0., 0., 0.);
-    sprintf(speed_display, "Speed: %f %f %f", 0., 0., 0.);
-    sprintf(roll_display, "Roll: %f", 0.);
-    sprintf(pitch_display, "Pitch: %f", 0.);
-    sprintf(yaw_display, "Yaw: %f", 0.);
-    sprintf(rad_display,   "CPM: %f uSv/h: %f", 0., 0.);
+    sprintf(acc_display,   "Acc. : %.6f %.6f %.6f", 0., 0., 0.);
+    sprintf(gyro_display,  "Gyro.: %.6f %.6f %.6f", 0., 0., 0.);
+    sprintf(magn_display,  "Magn.: %.6f %.6f %.6f", 0., 0., 0.);
+    sprintf(speed_display, "Speed: %.6f %.6f %.6f", 0., 0., 0.);
+    sprintf(roll_display, "Roll: %.6f", 0.);
+    sprintf(pitch_display, "Pitch: %.6f", 0.);
+    sprintf(yaw_display, "Yaw: %.6f", 0.);
+    sprintf(rad_display,   "CPM: %.6f uSv/h: %.6f", 0., 0.);
     sprintf(cmd_display, "OUT: NONE");
     sprintf(throttle_display, "[                                                                                                    ]");
     imagewindow = new cv::Mat(600, 600, CV_8UC3, cv::Scalar(0, 0, 0));

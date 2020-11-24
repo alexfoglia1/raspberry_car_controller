@@ -1,16 +1,16 @@
 #include <opencv2/opencv.hpp>
 #include "keymap.h"
 
-command_msg cmd_fwd = {{{}, COMMAND_MSG_ID}, DIR_FWD, 0};
-command_msg cmd_bwd = {{{}, COMMAND_MSG_ID}, DIR_BWD, 0};
-command_msg cmd_lft = {{{}, COMMAND_MSG_ID}, DIR_LFT, 0};
-command_msg cmd_rgt = {{{}, COMMAND_MSG_ID}, DIR_RGT, 0};
-command_msg cmd_td01 = {{{}, COMMAND_MSG_ID}, DIR_NONE, -1};
-command_msg cmd_td10 = {{{}, COMMAND_MSG_ID}, DIR_NONE, -10};
-command_msg cmd_tu01 = {{{}, COMMAND_MSG_ID}, DIR_NONE, 1};
-command_msg cmd_tu10 = {{{}, COMMAND_MSG_ID}, DIR_NONE, 10};
-command_msg cmd_tmax = {{{}, COMMAND_MSG_ID}, DIR_NONE, 0x7F};
-command_msg cmd_tmin = {{{}, COMMAND_MSG_ID}, DIR_NONE, 0x70};
+command_msg cmd_fwd = {{COMMAND_MSG_ID}, DIR_FWD, 0};
+command_msg cmd_bwd = {{COMMAND_MSG_ID}, DIR_BWD, 0};
+command_msg cmd_lft = {{COMMAND_MSG_ID}, DIR_LFT, 0};
+command_msg cmd_rgt = {{COMMAND_MSG_ID}, DIR_RGT, 0};
+command_msg cmd_td01 = {{COMMAND_MSG_ID}, DIR_NONE, -1};
+command_msg cmd_td10 = {{COMMAND_MSG_ID}, DIR_NONE, -10};
+command_msg cmd_tu01 = {{COMMAND_MSG_ID}, DIR_NONE, 1};
+command_msg cmd_tu10 = {{COMMAND_MSG_ID}, DIR_NONE, 10};
+command_msg cmd_tmax = {{COMMAND_MSG_ID}, DIR_NONE, 0x7F};
+command_msg cmd_tmin = {{COMMAND_MSG_ID}, DIR_NONE, 0x70};
 command_msg cmd_none = NO_COMMAND;
 
 command_msg getCommandOfKey(int key, bool* error)

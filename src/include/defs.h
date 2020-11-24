@@ -49,50 +49,47 @@
 #define MAX_IMAGESIZE 40090
 
 #include <stdint.h>
-#include <sys/time.h>
 
-typedef struct timeval timeval;
 typedef struct
 {
-    timeval  msg_timestamp;
     uint32_t msg_id;
 } msg_header;
 
 typedef struct
 {
     msg_header header;
-    double ax;
-    double ay;
-    double az;
-    double gyrox;
-    double gyroy;
-    double gyroz;
-    double magnx;
-    double magny;
-    double magnz;
+    float ax;
+    float ay;
+    float az;
+    float gyrox;
+    float gyroy;
+    float gyroz;
+    float magnx;
+    float magny;
+    float magnz;
 } imu_msg;
 
 typedef struct
 {
     msg_header header;
-    double vx;
-    double vy;
-    double vz;
+    float vx;
+    float vy;
+    float vz;
 } speed_msg;
 
 typedef struct
 {
     msg_header header;
-    double pitch;
-    double roll;
-    double yaw;
+    float pitch;
+    float roll;
+    float yaw;
 } attitude_msg;
 
 typedef struct
 {
     msg_header header;
-    double CPM;
-    double uSv_h;
+    float CPM;
+    float uSv_h;
 } radiation_msg;
 
 typedef struct
@@ -117,6 +114,6 @@ typedef struct
     int8_t throttle_add;
 } command_msg;
 
-#define NO_COMMAND {{{}, 0}, DIR_NONE, 0x00}
+#define NO_COMMAND {{0}, DIR_NONE, 0x00}
 
 #endif //DEFS_H
