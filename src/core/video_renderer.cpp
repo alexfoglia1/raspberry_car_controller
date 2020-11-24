@@ -74,7 +74,7 @@ void update_speed(speed_msg speed)
 void update_attitude(attitude_msg attitude)
 {
     sprintf(roll_display, "Roll: %f", attitude.roll);
-    sprintf(pitch_display, "Pitch:%f", attitude.pitch);
+    sprintf(pitch_display, "Pitch: %f", attitude.pitch);
     sprintf(yaw_display, "Yaw: %f", attitude.yaw);
 }
 
@@ -193,11 +193,11 @@ void init_window()
     sprintf(magn_display,  "Magn.: %f %f %f", 0., 0., 0.);
     sprintf(speed_display, "Speed: %f %f %f", 0., 0., 0.);
     sprintf(roll_display, "Roll: %f", 0.);
-    sprintf(pitch_display, "Pitch:%f", 0.);
+    sprintf(pitch_display, "Pitch: %f", 0.);
     sprintf(yaw_display, "Yaw: %f", 0.);
     sprintf(rad_display,   "CPM: %f uSv/h: %f", 0., 0.);
 
-    imagewindow = new cv::Mat(1, 1, CV_8UC3, cv::Scalar(0, 0, 0));
+    imagewindow = new cv::Mat(600, 600, CV_8UC3, cv::Scalar(0, 0, 0));
     cv::imshow(PROJNAME, *imagewindow);
 }
 
