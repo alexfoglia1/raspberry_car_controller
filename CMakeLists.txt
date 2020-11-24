@@ -14,6 +14,7 @@ ${CMAKE_SOURCE_DIR}/src/include/video_receiver.h
 ${CMAKE_SOURCE_DIR}/src/include/video_server.h
 ${CMAKE_SOURCE_DIR}/src/include/video_renderer.h
 ${CMAKE_SOURCE_DIR}/src/include/logger.h
+${CMAKE_SOURCE_DIR}/src/include/keymap.h
 
 ${CMAKE_SOURCE_DIR}/src/core/data_transceiver.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_receiver.cpp
@@ -22,6 +23,7 @@ ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
 
 ${CMAKE_SOURCE_DIR}/src/main/data_server.cpp
 ${CMAKE_SOURCE_DIR}/src/main/video_server.cpp
+${CMAKE_SOURCE_DIR}/src/core/keymap.cpp
 ${CMAKE_SOURCE_DIR}/src/main/main.cpp
 )
 

@@ -18,7 +18,7 @@ int main()
     const char* logfile = "log.txt";
     FILE* f = fopen(logfile, "w");
     fclose(f);
-    //configure(logfile);
+    configure(logfile);
 
     int pid = fork();
     if(pid == 0)

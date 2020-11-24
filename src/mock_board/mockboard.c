@@ -110,6 +110,7 @@ int main()
         sendto(sock, (char*)&attitude, sizeof(attitude_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         sendto(sock, (char*)&rad, sizeof(radiation_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
         usleep(1e5);
+        printf("send\n");
     }
     
     return 0;

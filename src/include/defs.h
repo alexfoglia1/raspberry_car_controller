@@ -10,7 +10,10 @@
 #define ERR_BINDSOCKVIDEO "Could not bind video socket"
 #define ERR_RECVSOCKVIDEO "Could not receive from video socket"
 #define ERR_UNINITIALIZED_SOCKET "Cannot receive: socket uninitialized"
+#define ERR_SENDDATA "Cannot send command"
 
+#define OK_CANSENDDATA "Ready to send data"
+#define OK_SENDDATA "Command successfully sent"
 #define OK_CREATESOCKDATA "Data server socket was successfully created"
 #define OK_BINDSOCKDATA "Data server socket was successfully binded"
 #define OK_CREATESOCKVIDEO "Video server socket was successfully created"
@@ -41,6 +44,7 @@
 #define SPEED_MSG_ID     1
 #define ATTITUDE_MSG_ID  2
 #define RADIATION_MSG_ID 3
+#define COMMAND_MSG_ID   4
 
 #define MAX_IMAGESIZE 40090
 
@@ -96,5 +100,23 @@ typedef struct
     uint16_t len;
     uint8_t data[MAX_IMAGESIZE];
 } image_msg;
+
+typedef enum
+{
+    DIR_FWD,
+    DIR_LFT,
+    DIR_RGT,
+    DIR_BWD,
+    DIR_NONE
+} dir_t;
+
+typedef struct
+{
+    msg_header header;
+    dir_t direction;
+    int8_t throttle_add;
+} command_msg;
+
+#define NO_COMMAND {{{}, 0}, DIR_NONE, 0x00}
 
 #endif //DEFS_H

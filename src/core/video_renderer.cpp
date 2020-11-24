@@ -1,5 +1,7 @@
-#include "video_renderer.h"
 #include "defs.h"
+#include "video_renderer.h"
+#include "data_transceiver.h"
+#include "keymap.h"
 
 #include <stdio.h>
 #include <stdio.h>
@@ -31,6 +33,8 @@ char roll_display[256];
 char pitch_display[256];
 char yaw_display[256];
 char rad_display[256];
+char cmd_display[256];
+char throttle_display[256];
 
 int imu_socket, speed_socket, attitude_socket, radiation_socket, image_socket;
 struct sockaddr_in imu_saddr, speed_saddr, attitude_saddr, radiation_saddr, image_saddr;
@@ -55,7 +59,6 @@ void init_localsock(int* localsocket, struct sockaddr_in* localaddr, int port)
 void update_image(image_msg image)
 {
     std::vector<char> data(image.data, image.data + image.len);
-
     *imagewindow = cv::imdecode(cv::Mat(data), 1);
 }
 
@@ -83,9 +86,23 @@ void update_radiation(radiation_msg radiation)
     sprintf(rad_display, "CPM: %f uSv/h: %f", radiation.CPM, radiation.uSv_h);
 }
 
+void update_throttle(uint8_t th_state)
+{
+    char th_progress[100];
+    double perc = ((double)th_state / 255.0) * 100.0;
+
+    for(uint8_t i = 0; i < 100; i++)
+    {
+        th_progress[i] = (i < perc) ? '*' : ' ';
+    }
+
+    sprintf(throttle_display, "[%s]", th_progress);
+}
 
 void render_window()
 {
+    cv::Size size = imagewindow->size();
+
     std::string text_acc(acc_display);
     std::string text_gyro(gyro_display);
     std::string text_magn(magn_display);
@@ -94,19 +111,43 @@ void render_window()
     std::string text_pitch(pitch_display);
     std::string text_yaw(yaw_display);
     std::string text_radiation(rad_display);
+    std::string text_command(cmd_display);
+    std::string text_throttle(throttle_display);
 
-    cv::Size size = imagewindow->size();
-    cv::putText(*imagewindow, text_acc, cv::Point2d(2U, 20U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_gyro, cv::Point2d(2U, 40U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_magn, cv::Point2d(2U, 60U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_speed, cv::Point2d(2U, 80U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_roll, cv::Point2d(2U, size.height/2 - 20U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_pitch, cv::Point2d(2U, size.height/2), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_yaw, cv::Point2d(2U, size.height/2 + 20U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
-    cv::putText(*imagewindow, text_radiation, cv::Point2d(2U, size.height - 20U), cv::FONT_HERSHEY_PLAIN, 1.0, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+    cv::putText(*imagewindow, text_acc, cv::Point2d(2U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_gyro, cv::Point2d(2U, 40U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_magn, cv::Point2d(2U, 60U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_speed, cv::Point2d(2U, 80U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_roll, cv::Point2d(2U, size.height/2 - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_pitch, cv::Point2d(2U, size.height/2), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_yaw, cv::Point2d(2U, size.height/2 + 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_radiation, cv::Point2d(2U, size.height - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_command, cv::Point2d(size.width - 120U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_4);
+    cv::putText(*imagewindow, text_throttle, cv::Point2d(size.width/2, size.height - 20U), cv::FONT_HERSHEY_SIMPLEX, 0.175, cv::Scalar(255,0,0), 1, cv::LINE_4);
 
     cv::imshow(PROJNAME, *imagewindow);
-    cv::waitKey(1);
+}
+
+static uint8_t th_state;
+
+void cmd_out_task()
+{
+    int key = cv::waitKey(1);
+    if(key != -1)
+    {
+        bool error;
+        command_msg cmd_out = getCommandOfKey(key, &error);
+        sprintf(cmd_display, "OUT: %s", getNameOfKey(key));
+        if(!error)
+        {
+            gettimeofday(&cmd_out.header.msg_timestamp, nullptr);
+            send_data_to_board(reinterpret_cast<char*>(&cmd_out));
+            th_state = cmd_out.throttle_add == 0x70 ? 0:
+                       cmd_out.throttle_add == 0x7F ? 0xFF:
+                       th_state + cmd_out.throttle_add;
+            update_throttle(th_state); //TODO: remove th_state and receive it remotely
+        }
+    }
 }
 
 
@@ -123,6 +164,8 @@ void imu_task()
 
 void image_task()
 {
+    memset(imagewindow->data, 0x00, imagewindow->dataend - imagewindow->data);
+
     image_msg recv;
     socklen_t len;
     ssize_t bytes_recv = recvfrom(image_socket, &recv, sizeof(image_msg), 0, (struct sockaddr*)&image_saddr, &len);
@@ -165,6 +208,12 @@ void radiation_task()
     }
 }
 
+void throttle_task()
+{
+    //recv_th_state
+    //update_throttle(rand()&0xFF);
+}
+
 void main_loop()
 {
     while(true)
@@ -173,8 +222,11 @@ void main_loop()
         speed_task();
         attitude_task();
         radiation_task();
-        image_task();
 
+        cmd_out_task();
+        throttle_task();
+
+        image_task();
         render_window();
     }
 }
@@ -196,8 +248,10 @@ void init_window()
     sprintf(pitch_display, "Pitch: %f", 0.);
     sprintf(yaw_display, "Yaw: %f", 0.);
     sprintf(rad_display,   "CPM: %f uSv/h: %f", 0., 0.);
-
+    sprintf(cmd_display, "OUT: NONE");
+    sprintf(throttle_display, "[                                                                                                    ]");
     imagewindow = new cv::Mat(600, 600, CV_8UC3, cv::Scalar(0, 0, 0));
+
     cv::imshow(PROJNAME, *imagewindow);
 }
 
