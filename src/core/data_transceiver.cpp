@@ -27,7 +27,7 @@ bool bind_data_server_sock()
     memset(&data_daddr, 0x00, sizeof(struct sockaddr_in));
     data_daddr.sin_family = AF_INET;
     data_daddr.sin_port   = htons(DATPORT);
-    data_saddr.sin_addr.s_addr = inet_addr(BOARD_ADDRESS);
+    data_daddr.sin_addr.s_addr = inet_addr(BOARD_ADDRESS);
 
     int sock_bind = bind(data_server_sock, (const struct sockaddr*)&data_saddr, sizeof(data_saddr));
     if(sock_bind)
