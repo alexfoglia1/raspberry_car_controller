@@ -51,6 +51,11 @@ void data_task()
                  sendto(sock_to_parent, buffer, sizeof(speed_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
                  writelog(OK_RADIATION);
                  break;
+             case COMMAND_MSG_ID:
+                 daddr.sin_port = htons(THRPORT);
+                 sendto(sock_to_parent, buffer, sizeof(throttle_msg), 0, (struct sockaddr*)&daddr, sizeof(daddr));
+                 writelog(OK_THROTTLE);
+                 break;
              default:
                  writelog(ERR_UNKNOWN_SOURCE);
                  break;

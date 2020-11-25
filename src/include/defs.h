@@ -28,6 +28,7 @@
 #define OK_SPEED "Received SPEED msg"
 #define OK_ATTITUDE "Received ATTITUDE msg"
 #define OK_RADIATION "Received RADIATION msg"
+#define OK_THROTTLE "Received THROTTLE STATE msg"
 #define OK_IMAGE "Received IMAGE msg"
 
 #define DATPORT 1234
@@ -37,6 +38,7 @@
 #define ATTPORT 9999
 #define RADPORT 3636
 #define RENPORT 4444
+#define THRPORT 5555
 
 #define BOARD_ADDRESS "192.168.1.13"
 
@@ -113,6 +115,12 @@ typedef struct
     dir_t direction;
     int8_t throttle_add;
 } command_msg;
+
+typedef struct
+{
+    msg_header header;
+    uint8_t throttle_state;
+} throttle_msg;
 
 #define NO_COMMAND {{0}, DIR_NONE, 0x00}
 

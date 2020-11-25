@@ -37,8 +37,8 @@ char rad_display[256];
 char cmd_display[256];
 char throttle_display[256];
 
-int imu_socket, speed_socket, attitude_socket, radiation_socket, image_socket;
-struct sockaddr_in imu_saddr, speed_saddr, attitude_saddr, radiation_saddr, image_saddr;
+int imu_socket, speed_socket, attitude_socket, radiation_socket, throttle_socket, image_socket;
+struct sockaddr_in imu_saddr, speed_saddr, attitude_saddr, radiation_saddr, throttle_saddr, image_saddr;
 cv::Mat* imagewindow;
 
 void init_localsock(int* localsocket, struct sockaddr_in* localaddr, int port)
@@ -131,23 +131,19 @@ void render_window()
     cv::imshow(PROJNAME, *imagewindow);
 }
 
-static uint8_t th_state;
-
 void cmd_out_task()
 {
-    int key = cv::waitKey(10);
+    int key = cv::waitKey(1);
     if(key != -1)
     {
         bool error;
         command_msg cmd_out = getCommandOfKey(key, &error);
+        writelog("Button press event");
         sprintf(cmd_display, "OUT: %s", getNameOfKey(key));
         if(!error)
         {
+            writelog("Send command to board");
             send_data_to_board(reinterpret_cast<char*>(&cmd_out));
-            th_state = cmd_out.throttle_add == 0x70 ? 0:
-                       cmd_out.throttle_add == 0x7F ? 0xFF:
-                       th_state + cmd_out.throttle_add;
-            update_throttle(th_state); //TODO: remove th_state and receive it remotely
         }
     }
 }
@@ -160,7 +156,6 @@ void imu_task()
     ssize_t bytes_recv = recvfrom(imu_socket, &recv, sizeof(imu_msg), 0, (struct sockaddr*)&imu_saddr, &len);
     if(bytes_recv > 0)
     {
-        writelog("!!LOCAL RECEIVED IMU!!\n");
         update_imu(recv);
     }
 }
@@ -213,8 +208,13 @@ void radiation_task()
 
 void throttle_task()
 {
-    //recv_th_state
-    //update_throttle(rand()&0xFF);
+    throttle_msg recv;
+    socklen_t len;
+    ssize_t bytes_recv = recvfrom(throttle_socket, &recv, sizeof(throttle_msg), 0, (struct sockaddr*)&throttle_saddr, &len);
+    if(bytes_recv > 0)
+    {
+        update_throttle(recv.throttle_state);
+    }
 }
 
 void main_loop()
@@ -242,6 +242,7 @@ void init_window()
     init_localsock(&speed_socket, &speed_saddr, VELPORT);
     init_localsock(&attitude_socket, &attitude_saddr, ATTPORT);
     init_localsock(&radiation_socket, &radiation_saddr, RADPORT);
+    init_localsock(&throttle_socket, &throttle_saddr, THRPORT);
     init_localsock(&image_socket, &image_saddr, RENPORT);
 
     sprintf(acc_display,   "Acc. : %.6f %.6f %.6f", 0., 0., 0.);
