@@ -11,7 +11,7 @@ command_msg cmd_tu01 = {{COMMAND_MSG_ID}, DIR_NONE, 1};
 command_msg cmd_tu10 = {{COMMAND_MSG_ID}, DIR_NONE, 10};
 command_msg cmd_tmax = {{COMMAND_MSG_ID}, DIR_NONE, 0x7F};
 command_msg cmd_tmin = {{COMMAND_MSG_ID}, DIR_NONE, 0x70};
-command_msg cmd_none = NO_COMMAND;
+command_msg cmd_none = {{0},              DIR_NONE, 0x00};
 
 command_msg getCommandOfKey(int key, bool* error)
 {

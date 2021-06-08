@@ -70,7 +70,6 @@ bool recv_video_from_board(char* msg)
     }
     else
     {
-
         writelog(OK_CAN_RECEIVE_VIDEO);
         size_t maximum_len = sizeof(image_msg);
         socklen_t len;

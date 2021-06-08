@@ -15,11 +15,15 @@ ${CMAKE_SOURCE_DIR}/src/include/video_server.h
 ${CMAKE_SOURCE_DIR}/src/include/video_renderer.h
 ${CMAKE_SOURCE_DIR}/src/include/logger.h
 ${CMAKE_SOURCE_DIR}/src/include/keymap.h
+${CMAKE_SOURCE_DIR}/src/include/joystick.h
+${CMAKE_SOURCE_DIR}/src/include/health_status.h
 
 ${CMAKE_SOURCE_DIR}/src/core/data_transceiver.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_receiver.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_renderer.cpp
 ${CMAKE_SOURCE_DIR}/src/core/logger.cpp
+${CMAKE_SOURCE_DIR}/src/core/joystick.cpp
+${CMAKE_SOURCE_DIR}/src/core/health_status.cpp
 
 ${CMAKE_SOURCE_DIR}/src/main/data_server.cpp
 ${CMAKE_SOURCE_DIR}/src/main/video_server.cpp

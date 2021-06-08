@@ -92,27 +92,29 @@ bool recv_data_from_board(char* msg)
     return retval;
 }
 
-bool send_data_to_board(char* msg)
+bool send_data_to_board(char* msg, const char* board_address)
 {
     bool retval;
     int data_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    struct sockaddr_in data_daddr;
-
-    memset(&data_daddr, 0x00, sizeof(struct sockaddr_in));
-    data_daddr.sin_family = AF_INET;
-    data_daddr.sin_port   = htons(DATPORT);
-    data_daddr.sin_addr.s_addr = inet_addr(BOARD_ADDRESS);
 
     if(!data_client_sock)
     {
-        writelog(ERR_UNINITIALIZED_SOCKET);
+        writelog(ERR_UNINITIALIZED_SOCKET_OUT);
         retval = false;
     }
     else
     {
         writelog(OK_CANSENDDATA);
+
+        struct sockaddr_in data_daddr;
+        memset(&data_daddr, 0x00, sizeof(struct sockaddr_in));
+        data_daddr.sin_family = AF_INET;
+        data_daddr.sin_port   = htons(DATPORT);
+        data_daddr.sin_addr.s_addr = inet_addr(board_address);
+
         size_t maximum_len = sizeof(command_msg);
         ssize_t send_res = sendto(data_client_sock, msg, maximum_len, 0, reinterpret_cast<struct sockaddr*>(&data_daddr), sizeof(struct sockaddr));
+
         if(send_res > 0)
         {
             writelog(OK_SENDDATA);
@@ -123,8 +125,9 @@ bool send_data_to_board(char* msg)
             writelog(ERR_SENDDATA);
             retval = false;
         }
+
+        close(data_client_sock);
     }
 
-    close(data_client_sock);
     return retval;
 }
