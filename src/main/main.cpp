@@ -61,8 +61,11 @@ int main(int argc, char** argv)
 
     init_window();
 
+#ifdef MACHINE_LEARNING
     cv::dnn::Net net = cv::dnn::readNetFromDarknet("/home/alex/darknet/cfg/yolov2.cfg", "/home/alex/darknet/yolo.weights");
-
+#else
+    cv::dnn::Net net;
+#endif
     main_loop(argc == 1 ? "192.168.43.83" : argv[1], net);
 
     return 0;
