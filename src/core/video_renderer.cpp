@@ -73,6 +73,13 @@ private:
 };
 #endif  // CV_CXX11
 
+float act_yaw_deg = 0.0;
+float act_pitch_deg = 0.0;
+float act_roll_deg = 0.0;
+
+const int H_FOV_DEG = 53;
+const int los_ray = 50;
+
 const float confThreshold = 0.25f;
 const float nmsThreshold = 0.4f;
 std::vector<std::string> classes;
@@ -289,6 +296,7 @@ void update_image(image_msg image, cv::dnn::Net vNet)
     std::vector<char> data(image.data, image.data + image.len);
 
     *imagewindow = cv::imdecode(cv::Mat(data), 1);
+    cv::resize(*imagewindow, *imagewindow, cv::Size(1200,650));
 #ifdef MACHINE_LEARNING
 
     cv::Mat frame = cv::imdecode(cv::Mat(data), 1);
@@ -343,6 +351,7 @@ void update_speed(speed_msg speed)
     sprintf(speed_display, "Speed: %.1f %.1f %.1f", speed.vx, speed.vy, speed.vz);
 }
 
+
 void update_attitude(attitude_msg attitude)
 {
 
@@ -350,6 +359,9 @@ void update_attitude(attitude_msg attitude)
     sprintf(pitch_display, "Pitch: %.1f", normalizeAngle(toRadians(attitude.pitch)));
     sprintf(yaw_display, "Yaw: %.1f", normalizeAngle(toRadians(attitude.yaw)));
 
+    act_yaw_deg = -normalizeAngle(toRadians(attitude.yaw));
+    act_pitch_deg = -normalizeAngle(toRadians(attitude.pitch));
+    act_roll_deg = -normalizeAngle(toRadians(attitude.roll));
 }
 
 void update_radiation(radiation_msg radiation)
@@ -385,6 +397,22 @@ void render_window()
     std::string text_command(cmd_display);
     std::string text_throttle(throttle_display);
 
+    double left_bound_deg = normalizeAngle(toRadians((act_yaw_deg - H_FOV_DEG / 2)));
+    double right_bound_deg = normalizeAngle(toRadians((act_yaw_deg + H_FOV_DEG / 2)));
+    double pitch90 = -asin(sin((atan2(sin(act_pitch_deg * 3.14/180.0), cos(act_pitch_deg * 3.14/180.0)) * 180.0/3.14) * 3.14/180.0)) * 180.0/3.14;
+    double elevPercentage = pitch90 / 90;
+
+    cv::Point2d losCenter(size.width - 60U, size.height/2);
+    cv::Point2d losLeft(losCenter.x + los_ray * cos(toRadians(left_bound_deg - 90)), losCenter.y + los_ray * sin(toRadians(left_bound_deg - 90)));
+    cv::Point2d losRight(losCenter.x + los_ray * cos(toRadians(right_bound_deg - 90)), losCenter.y + los_ray * sin(toRadians(right_bound_deg - 90)));
+    cv::Point2d losElev(losCenter.x, losCenter.y + elevPercentage * los_ray);
+    cv::Point2d losRollLeft(losCenter.x + los_ray * cos(toRadians(act_roll_deg)), losCenter.y + los_ray * sin(toRadians(act_roll_deg)));
+    cv::Point2d losRollRight(losCenter.x - los_ray * cos(toRadians(act_roll_deg)), losCenter.y - los_ray * sin(toRadians(act_roll_deg)));
+    cv::ellipse(*imagewindow, losCenter, cv::Size(los_ray, los_ray), 15, 0, 360, cv::Scalar(0, 255, 0), 1);
+    cv::drawMarker(*imagewindow,losElev, cv::Scalar(0, 255, 0));
+    cv::line(*imagewindow, losCenter, losLeft, cv::Scalar(0, 255, 0), 1);
+    cv::line(*imagewindow, losCenter, losRight, cv::Scalar(0, 255, 0), 1);
+    cv::line(*imagewindow, losRollLeft, losRollRight, cv::Scalar(0, 255, 0), 1);
     cv::putText(*imagewindow, text_acc, cv::Point2d(2U, 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
     cv::putText(*imagewindow, text_gyro, cv::Point2d(2U, 40U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);
     cv::putText(*imagewindow, text_magn, cv::Point2d(2U, 60U), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,0,0), 1, cv::LINE_AA);

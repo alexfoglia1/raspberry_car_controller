@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-
+const char* DEFAULT_RASPBY_ADDR = "127.0.0.1";
 
 int main(int argc, char** argv)
 {
@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     if (argc == 1)
     {
         printf("USAGE: %s [raspberry_address]\n", argv[0]);
-    printf("%s\n\n", "Trying to use 192.168.43.83");
+        printf("Trying to use %s\n\n", DEFAULT_RASPBY_ADDR);
     }
 
     /** configure logfile **/
@@ -47,14 +47,14 @@ int main(int argc, char** argv)
     if(pid == 0)
     {
         /** child process joystick **/
-        joystick_task(argc == 1 ? "192.168.43.83" : argv[1]);
+        joystick_task(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
         exit(EXIT_SUCCESS);
     }
     pid = fork();
     if(pid == 0)
     {
         /** child process health_status **/
-        health_status(argc == 1 ? "192.168.43.83" : argv[1]);
+        health_status(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
         exit(EXIT_SUCCESS);
     }
     writelog("Servers running");
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 #else
     cv::dnn::Net net;
 #endif
-    main_loop(argc == 1 ? "192.168.43.83" : argv[1], net);
+    main_loop(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], net);
 
     return 0;
 }
