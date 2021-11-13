@@ -198,11 +198,12 @@ int joystick_task(const char* board_address)
         {
             throttle_msg emergency_break_msg;
 
-            memset(&emergency_break_msg, 0x00, sizeof(throttle_msg));
-            emergency_break_msg.header.msg_id = COMMAND_MSG_ID;
-            emergency_break_msg.throttle_state = 0x00;
+            //memset(&emergency_break_msg, 0x00, sizeof(throttle_msg));
+            //emergency_break_msg.header.msg_id = COMMAND_MSG_ID;
+            //emergency_break_msg.throttle_state = 0x01;
 
-            sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+            //sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+            xdo_send_keysequence_window(x, CURRENTWINDOW, (const char*)'8',0);
         }
         else
         {

@@ -325,7 +325,6 @@ void widgets::systemstatus::init()
     att_status = false;
     vid_status = false;
     js_status = false;
-    arduino_status = false;
     motor_voltage_in = 0.f;
     motor_voltage_out = 0.f;
     duty_cycle = 0.f;
