@@ -4,6 +4,6 @@
 #include <opencv2/dnn/dnn.hpp>
 
 void init_window();
-void main_loop(const char* board_address, cv::dnn::Net net);
+void main_loop(const char* board_address);
 
 #endif //VIDEO_RENDERER_H

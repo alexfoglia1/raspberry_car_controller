@@ -20,12 +20,22 @@
 #include <stdint.h>
 #include <limits>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
 
 #include "defs.h"
-#include "data_transceiver.h"
+#include "joystick.h"
+#include "keymap.h"
+
+extern "C" {
+    #include <xdo.h>
+}
 
 const int min_js_axis_value = -32767;
 const int max_js_axis_value = 32767;
+
+bool btn_state[100];
 
 int8_t map_js_axis_value_int8(int js_axis_value)
 {
@@ -44,6 +54,7 @@ uint8_t map_js_axis_value_uint8(int js_axis_value)
 }
 
 static int js;
+static bool joystick_failure = true;
 
 /**
  * Reads a joystick event from the joystick device.
@@ -58,9 +69,8 @@ int read_event(int fd, struct js_event *event)
 
     if (bytes == sizeof(*event))
         return 0;
-
-    /* Error, could not read full event. */
-    return -1;
+    else
+        return -1;
 }
 
 /**
@@ -119,16 +129,21 @@ size_t get_axis_state(struct js_event *event, struct axis_state axes[3])
     return axis;
 }
 
-bool init_joystick()
+
+
+int init_joystick()
 {
     js = open("/dev/input/js0", O_RDONLY);
-    printf("open joystick: %d\n", js);
-    return js > 0;
+    if (js > 0) return 0;
+    else return -1;
 }
 
 int joystick_task(const char* board_address)
 {
-    init_joystick();
+    for (int i = 0; i < 100; i++)
+    {
+        btn_state[i] = false;
+    }
 
     struct js_event event;
     struct axis_state axes[3];
@@ -138,50 +153,111 @@ int joystick_task(const char* board_address)
     joystick_xy_msg out_xy;
     joystick_throttle_msg out_throttle;
     joystick_break_msg out_break;
+    cbit_msg joystick_cbit;
+    int cbit_sock, board_sock;
+    struct sockaddr_in cbit_addr, board_addr;
+
+    memset(&joystick_cbit, 0x00, sizeof(cbit_msg));
+    memset(&cbit_addr, 0x00, sizeof(struct sockaddr_in));
     memset(&out_xy, 0x00, sizeof(joystick_xy_msg));
     memset(&out_throttle, 0x00, sizeof(joystick_throttle_msg));
     memset(&out_break, 0x00, sizeof(joystick_break_msg));
+
     out_break.header.msg_id = JS_BR_MSG_ID;
     out_xy.header.msg_id = JS_XY_MSG_ID;
     out_throttle.header.msg_id = JS_TH_MSG_ID;
 
-    /* This loop will exit if the controller is unplugged. */
-    while (read_event(js, &event) == 0)
+    joystick_cbit.header.msg_id = CBIT_MSG_ID;
+    joystick_cbit.component = comp_t::JOYSTICK;
+
+    cbit_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    cbit_addr.sin_family = AF_INET;
+    cbit_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    cbit_addr.sin_port = htons(BITPORT);
+
+    board_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    memset(&board_addr, 0x00, sizeof(struct sockaddr_in));
+    board_addr.sin_family = AF_INET;
+    board_addr.sin_port = htons(THRPORT);
+    board_addr.sin_addr.s_addr = inet_addr(board_address);
+
+    xdo_t * x = xdo_new(":0.0");
+    while (true)
     {
-        switch (event.type)
+        while(joystick_failure)
         {
-            case JS_EVENT_BUTTON:
-                break;
+            sleep(1);
+            joystick_failure = init_joystick() < 0;
 
-            case JS_EVENT_AXIS:
-                axis = get_axis_state(&event, axes);
-
-                if (axis == 0)
-                {
-                    printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_int8(axes[axis].x), map_js_axis_value_int8(axes[axis].y));
-                    out_xy.x_axis = map_js_axis_value_int8(axes[axis].x);
-                    out_xy.y_axis = map_js_axis_value_int8(axes[axis].y);
-                    send_data_to_board(reinterpret_cast<char*>(&out_xy), board_address);
-                }
-                else if(axis == 1)
-                {
-                    printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_uint8(axes[axis].x), map_js_axis_value_uint8(axes[axis].y));
-                    out_break.backward = map_js_axis_value_uint8(axes[axis].x);
-                    printf("sent backward(%d)\n", out_break.backward);
-                    send_data_to_board(reinterpret_cast<char*>(&out_break), board_address);
-                }
-                else if(axis != 0 && axis != 1 && event.number == 5)
-                {
-                    printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_uint8(axes[axis].x), map_js_axis_value_uint8(axes[axis].y));
-                    out_throttle.throttle_state = map_js_axis_value_uint8(axes[axis].y);
-                    send_data_to_board(reinterpret_cast<char*>(&out_throttle), board_address);
-                }
-                break;
-            default:
-                /* Ignore init events. */
-                break;
+            joystick_cbit.is_failure = joystick_failure;
+            sendto(cbit_sock, reinterpret_cast<char*>(&joystick_cbit), sizeof(cbit_msg), 0, reinterpret_cast<struct sockaddr*>(&cbit_addr), sizeof(struct sockaddr_in));
         }
-        
+
+        joystick_failure = read_event(js, &event) < 0;
+        if (joystick_failure)
+        {
+            throttle_msg emergency_break_msg;
+
+            memset(&emergency_break_msg, 0x00, sizeof(throttle_msg));
+            emergency_break_msg.header.msg_id = COMMAND_MSG_ID;
+            emergency_break_msg.throttle_state = 0x00;
+
+            sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+        }
+        else
+        {
+            int keyToSimulate;
+            char keySequence[2];
+            switch (event.type)
+            {
+                case JS_EVENT_BUTTON:
+                    printf("button: %d\n", event.number);
+                    btn_state[event.number] = !btn_state[event.number];
+                    if (btn_state[event.number])
+                    {
+                        keyToSimulate = jsToKeyboardMap(event.number);
+                        if (keyToSimulate != 0)
+                        {
+                            sprintf(keySequence, "%c", (char)keyToSimulate);
+                            xdo_send_keysequence_window(x, CURRENTWINDOW, (const char*)keySequence, 0);
+                        }
+                    }
+                break;
+                case JS_EVENT_AXIS:
+                    axis = get_axis_state(&event, axes);
+
+                    if (axis == 0 && !btn_state[event.number])
+                    {
+
+                        printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_int8(axes[axis].x), map_js_axis_value_int8(axes[axis].y));
+                        out_xy.x_axis = map_js_axis_value_int8(axes[axis].x);
+                        out_xy.y_axis = map_js_axis_value_int8(axes[axis].y);
+
+                        sendto(board_sock, reinterpret_cast<char*>(&out_xy), sizeof(joystick_xy_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+
+                    }
+                    else if(axis == 1 && !btn_state[event.number])
+                    {
+                        printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_uint8(axes[axis].x), map_js_axis_value_uint8(axes[axis].y));
+                        out_break.backward = map_js_axis_value_uint8(axes[axis].x);
+                        printf("sent backward(%d)\n", out_break.backward);
+
+                        sendto(board_sock, reinterpret_cast<char*>(&out_break), sizeof(joystick_break_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+                    }
+                    else if(axis != 0 && axis != 1 && event.number == 5 && !btn_state[event.number])
+                    {
+                        printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_uint8(axes[axis].x), map_js_axis_value_uint8(axes[axis].y));
+                        out_throttle.throttle_state = map_js_axis_value_uint8(axes[axis].y);
+
+                        sendto(board_sock, reinterpret_cast<char*>(&out_throttle), sizeof(joystick_throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+                    }
+                    break;
+                default:
+                    /* Ignore init events. */
+                    break;
+            }
+        }
+
         fflush(stdout);
     }
 

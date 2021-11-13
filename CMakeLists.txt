@@ -4,29 +4,25 @@ project(raspberry_car_controller CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+message("Cmake prefix path = ${CMAKE_PREFIX_PATH}")
+
 add_executable(
 raspberry_car_controller
 
 ${CMAKE_SOURCE_DIR}/src/include/defs.h
-${CMAKE_SOURCE_DIR}/src/include/data_transceiver.h
-${CMAKE_SOURCE_DIR}/src/include/data_server.h
-${CMAKE_SOURCE_DIR}/src/include/video_receiver.h
-${CMAKE_SOURCE_DIR}/src/include/video_server.h
 ${CMAKE_SOURCE_DIR}/src/include/video_renderer.h
-${CMAKE_SOURCE_DIR}/src/include/logger.h
 ${CMAKE_SOURCE_DIR}/src/include/keymap.h
 ${CMAKE_SOURCE_DIR}/src/include/joystick.h
-${CMAKE_SOURCE_DIR}/src/include/health_status.h
+${CMAKE_SOURCE_DIR}/src/include/widgets.h
+${CMAKE_SOURCE_DIR}/src/include/utils.h
+${CMAKE_SOURCE_DIR}/src/include/cbit.h
 
-${CMAKE_SOURCE_DIR}/src/core/data_transceiver.cpp
-${CMAKE_SOURCE_DIR}/src/core/video_receiver.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_renderer.cpp
-${CMAKE_SOURCE_DIR}/src/core/logger.cpp
 ${CMAKE_SOURCE_DIR}/src/core/joystick.cpp
-${CMAKE_SOURCE_DIR}/src/core/health_status.cpp
+${CMAKE_SOURCE_DIR}/src/core/widgets.cpp
+${CMAKE_SOURCE_DIR}/src/core/utils.cpp
+${CMAKE_SOURCE_DIR}/src/core/cbit.cpp
 
-${CMAKE_SOURCE_DIR}/src/main/data_server.cpp
-${CMAKE_SOURCE_DIR}/src/main/video_server.cpp
 ${CMAKE_SOURCE_DIR}/src/core/keymap.cpp
 ${CMAKE_SOURCE_DIR}/src/main/main.cpp
 )
@@ -39,4 +35,4 @@ find_package(Threads REQUIRED)
 
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
-target_link_libraries(raspberry_car_controller ${OpenCV_LIBS})
+target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} stdc++fs xdo pthread)

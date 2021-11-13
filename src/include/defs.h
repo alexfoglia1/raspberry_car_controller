@@ -1,4 +1,3 @@
-
 #ifndef DEFS_H
 #define DEFS_H
 
@@ -26,45 +25,49 @@
 #define OK_RECVSOCKVIDEO "Received data from video socket"
 
 #define ERR_UNKNOWN_SOURCE "Received message from unknown source"
-#define OK_IMU "Received IMU msg"
 #define OK_SPEED "Received SPEED msg"
 #define OK_ATTITUDE "Received ATTITUDE msg"
-#define OK_RADIATION "Received RADIATION msg"
 #define OK_THROTTLE "Received THROTTLE STATE msg"
+#define OK_TARGET "Received TARGET msg"
 #define OK_IMAGE "Received IMAGE msg"
 
-#define DATPORT 1234
-#define VIDPORT 4321
-#define IMUPORT 7777
-#define VELPORT 8888
-#define ATTPORT 9999
-#define RADPORT 3636
-#define RENPORT 4444
-#define THRPORT 5555
-#define HLTPORT 1111
+#define ATTPORT 1111
+#define RENPORT 2222
+#define THRPORT 3333
+#define TGTPORT 4444
+#define VLTPORT 5555
 
-#define IMU_MSG_ID       0
-#define SPEED_MSG_ID     1
+#define BITPORT 7788
+#define BITRESPORT 8877
+
+#define VOLTAGE_MSG_ID   1
 #define ATTITUDE_MSG_ID  2
-#define RADIATION_MSG_ID 3
 #define COMMAND_MSG_ID   4
-#define HLT_MSG_ID       5
 #define JS_XY_MSG_ID     6
 #define JS_TH_MSG_ID     7
 #define JS_BR_MSG_ID     8
+#define TARGET_MSG_ID	 9
+#define CBIT_MSG_ID     10
+#define CBITRES_MSG_ID  11
 
-#define MAX_IMAGESIZE 40090
+#define MAX_IMAGESIZE 60000
+#define IMAGE_ROWS    650
+#define IMAGE_COLS    1200
 
 #define THROTTLE_STATE_MAX 0x7F
-#define THROTTLE_STATE_MIN
 
-#define HEALTH_STATUS_RATE 10.0f
-
-#define WHOAMI_RP 0x00
-#define WHOAMI_PC 0x01
-#define WHOAMI_PH 0x02
+#define MAX_TARGETS 10
 
 #include <stdint.h>
+
+enum class comp_t
+{
+    RASPBERRY_PI = 0,
+    ATTITUDE = 1,
+    VIDEO = 2,
+    JOYSTICK = 3,
+    ARDUINO = 4
+};
 
 typedef struct
 {
@@ -73,26 +76,42 @@ typedef struct
 
 typedef struct __attribute__((packed))
 {
-    msg_header header;
-    double timestamp;
-    double ax;
-    double ay;
-    double az;
-    double gyrox;
-    double gyroy;
-    double gyroz;
-    double magnx;
-    double magny;
-    double magnz;
-} __attribute__((packed)) imu_msg;
+    uint32_t msg_id;
+    float motor_voltage;
+} voltage_msg;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     msg_header header;
-    double vx;
-    double vy;
-    double vz;
-} __attribute__((packed)) speed_msg;
+    comp_t component;
+    uint8_t is_failure;
+} cbit_msg;
+
+typedef struct __attribute__((packed))
+{
+    msg_header header;
+    uint8_t rpi_failure;
+    uint8_t att_failure;
+    uint8_t vid_failure;
+    uint8_t arduino_failure;
+    uint8_t js_failure;
+} cbit_result_msg;
+
+typedef struct __attribute__((packed))
+{
+    uint32_t x_pos;
+    uint32_t y_pos;
+    uint32_t width;
+    uint32_t height;
+    char description[100];
+} target_data;
+
+typedef struct __attribute__((packed))
+{
+    msg_header header;
+    uint8_t n_targets;
+    target_data data[MAX_TARGETS];
+} target_msg;
 
 typedef struct
 {
@@ -101,13 +120,6 @@ typedef struct
     double roll;
     double yaw;
 } __attribute__((packed)) attitude_msg;
-
-typedef struct
-{
-    msg_header header;
-    double CPM;
-    double uSv_h;
-} __attribute__((packed)) radiation_msg;
 
 typedef struct
 {
@@ -156,10 +168,5 @@ typedef struct
     uint8_t backward;
 } __attribute__((packed)) joystick_break_msg;
 
-typedef struct
-{
-    msg_header header;
-    uint8_t whoami;
-} __attribute__((packed)) health_status_msg;
 
 #endif //DEFS_H
