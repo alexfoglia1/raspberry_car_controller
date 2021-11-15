@@ -8,16 +8,15 @@
 #include <stdio.h>
 #include <string.h>
 
-const int widgets::ATTITUDE = 0;
-const int widgets::THROTTLESTATE = 1;
-const int widgets::LOS = 2;
-const int widgets::COMMANDS_OUT = 3;
-const int widgets::TARGETS = 4;
-const int widgets::MENU = 5;
-const int widgets::VIDEO_REC = 6;
-const int widgets::SYSTEM_STATUS = 7;
-const int widgets::JS_MENU = 8;
-const int widgets::DEVELOPER_MODE = 9;
+const int widgets::THROTTLESTATE = 0;
+const int widgets::LOS = 1;
+const int widgets::COMMANDS_OUT = 2;
+const int widgets::TARGETS = 3;
+const int widgets::MENU = 4;
+const int widgets::VIDEO_REC = 5;
+const int widgets::SYSTEM_STATUS = 6;
+const int widgets::JS_MENU = 7;
+const int widgets::DEVELOPER_MODE = 8;
 const int widgets::DEV_ATTITUDE_TAB = 0;
 const int widgets::DEV_VOLTAGE_TAB = 1;
 const int widgets::DEV_SPEEDTEST_TAB = 2;
@@ -28,6 +27,7 @@ const cv::Scalar green(0, 255, 0);
 const cv::Scalar red(0, 0, 255);
 const cv::Scalar yellow(0, 255, 255);
 const cv::Scalar gray(200, 200, 200);
+const cv::Scalar black(0, 0, 0);
 
 const cv::Scalar bgCol = blue;
 const cv::Scalar fgCol = gray;
@@ -39,52 +39,8 @@ const cv::Scalar voltageOutCol = green;
 const cv::Scalar rollCol = red;
 const cv::Scalar pitchCol = green;
 const cv::Scalar yawCol = yellow;
-
-const double width_txt_ratio = 150 / 17;
-                                        /*att  spd   los   cmd   tgt   help    vrec   stat  js    DEV_MODE*/
-bool* widgets::is_enabled = new bool[10] {true, true, true, true, true, false, false, true, false, false};
-
-/** ATTIUDE WIDGET **/
-char* widgets::attitude::roll_display = new char[256];
-char* widgets::attitude::pitch_display = new char[256];
-char* widgets::attitude::yaw_display = new char[256];
-
-void widgets::attitude::init()
-{
-    sprintf(roll_display, "ROLL: %.1f", 0.);
-    sprintf(pitch_display, "PITCH: %.1f", 0.);
-    sprintf(yaw_display, "YAW: %.1f", 0.);
-}
-
-void widgets::attitude::update(attitude_msg attitude)
-{
-    float act_yaw_deg = normalizeAngle((attitude.yaw));
-    float act_pitch_deg = normalizeAngle((attitude.pitch));
-    float act_roll_deg = normalizeAngle((attitude.roll));
-
-    sprintf(roll_display, "ROLL: %.1f", act_roll_deg);
-    sprintf(pitch_display, "PITCH: %.1f", act_pitch_deg);
-    sprintf(yaw_display, "YAW: %.1f", act_yaw_deg);
-}
-
-void widgets::attitude::draw(cv::Mat* imagewindow, int x, int y)
-{
-    if (is_enabled[ATTITUDE])
-    {
-        std::string text_roll(roll_display);
-        std::string text_pitch(pitch_display);
-        std::string text_yaw(yaw_display);
-
-        int maxlen = std::max<int>(std::max<int>(strlen(roll_display), strlen(pitch_display)), strlen(yaw_display));
-        int recwidth = (int)((double)maxlen * width_txt_ratio);
-        int recheight = 60U;
-        filledRoundedRectangle(*imagewindow, cv::Point(x, y), cv::Size(recwidth, recheight), bgCol, cv::LINE_AA, 1, 0.1f);
-
-        cv::putText(*imagewindow, text_roll, cv::Point2d(x + 5U, y + 15U), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, text_pitch, cv::Point2d(x + 5U, y + 15U + 20U), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, text_yaw, cv::Point2d(x + 5U, y + 15U + 40U), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-    }
-}
+                                        /*spd   los   cmd   tgt   help    vrec   stat   js    DEV_MODE*/
+bool* widgets::is_enabled = new bool[9] {true, true, true, true, false, false, true, false, false};
 
 /** COMMANDS OUT WIDGET **/
 char* widgets::commands_out::cmd_display = new char[256];
@@ -161,7 +117,7 @@ void widgets::throttlestate::draw(cv::Mat* imagewindow, int x, int y)
 
 /** LOS WIDGET **/
 int widgets::los::H_FOV_DEG = 53;
-int widgets::los::LOS_RAY = 50;
+int widgets::los::LOS_RAY = 125;
 
 float widgets::los::act_yaw_deg;
 float widgets::los::act_pitch_deg;
@@ -190,12 +146,9 @@ void widgets::los::draw(cv::Mat* imagewindow, int x, int y)
         int r_brown = 115;
         int g_brown = 51;
         int b_brown = 8;
-        int r_lightblue = 4;
-        int g_lightblue = 162;
-        int b_lightblue =  166;
 
-        filledRoundedRectangle(*imagewindow, cv::Point(x - LOS_RAY, y - LOS_RAY), cv::Size(recwidth, recheight), cv::Scalar(b_lightblue, g_lightblue, r_lightblue), cv::LINE_AA, 1, 0.1f);
-        filledRoundedRectangle(*imagewindow, cv::Point(x - LOS_RAY, y), cv::Size(recwidth, recheight), cv::Scalar(b_brown, g_brown, r_brown), cv::LINE_AA, 1, 0.1f);
+        filledRoundedRectangle(*imagewindow, cv::Point(x - LOS_RAY, y - LOS_RAY), cv::Size(recwidth, recheight), bgCol, cv::LINE_AA, 1, 0.001f);
+        filledRoundedRectangle(*imagewindow, cv::Point(x - LOS_RAY, y), cv::Size(recwidth, recheight), cv::Scalar(b_brown, g_brown, r_brown), cv::LINE_AA, 1, 0.001f);
 
         double left_bound_deg = normalizeAngle(toRadians((act_yaw_deg - H_FOV_DEG / 2)));
         double right_bound_deg = normalizeAngle(toRadians((act_yaw_deg + H_FOV_DEG / 2)));
@@ -206,13 +159,82 @@ void widgets::los::draw(cv::Mat* imagewindow, int x, int y)
         cv::Point2d losLeft(losCenter.x + LOS_RAY * cos(toRadians(left_bound_deg - 90)), losCenter.y + LOS_RAY * sin(toRadians(left_bound_deg - 90)));
         cv::Point2d losRight(losCenter.x + LOS_RAY * cos(toRadians(right_bound_deg - 90)), losCenter.y + LOS_RAY * sin(toRadians(right_bound_deg - 90)));
         cv::Point2d losElev(losCenter.x, losCenter.y + elevPercentage * LOS_RAY);
-        cv::Point2d losRollLeft(losCenter.x + LOS_RAY * cos(toRadians(act_roll_deg)), losCenter.y + LOS_RAY * sin(toRadians(act_roll_deg)));
-        cv::Point2d losRollRight(losCenter.x - LOS_RAY * cos(toRadians(act_roll_deg)), losCenter.y - LOS_RAY * sin(toRadians(act_roll_deg)));
-        cv::ellipse(*imagewindow, losCenter, cv::Size(LOS_RAY, LOS_RAY), 15, 0, 360, cv::Scalar(0, 255, 0), 2);
-        cv::drawMarker(*imagewindow,losElev, cv::Scalar(0, 255, 0), cv::MARKER_CROSS, 20, 2, cv::LINE_AA);
-        cv::line(*imagewindow, losCenter, losLeft, cv::Scalar(0, 255, 0), 2);
-        cv::line(*imagewindow, losCenter, losRight, cv::Scalar(0, 255, 0), 2);
-        cv::line(*imagewindow, losRollLeft, losRollRight, cv::Scalar(0, 255, 0), 2);
+        cv::Point2d losRollRight(losCenter.x + (2 * LOS_RAY / 3) * cos(toRadians(act_roll_deg)), losCenter.y + (2 * LOS_RAY / 3) * sin(toRadians(act_roll_deg)));
+        cv::Point2d losRollLeft(losCenter.x - (2 * LOS_RAY / 3) * cos(toRadians(act_roll_deg)), losCenter.y - (2 * LOS_RAY / 3) * sin(toRadians(act_roll_deg)));
+
+        /** Plot actual attitude **/
+        cv::line(*imagewindow, losCenter, losLeft, green, 1);
+        cv::line(*imagewindow, losCenter, losRight, green, 1);
+        cv::line(*imagewindow, losRollLeft, losRollRight, green, 1);
+        cv::drawMarker(*imagewindow, losElev, green, cv::MARKER_CROSS, 20, 1, cv::LINE_AA);
+
+        /** Scales **/
+        /** External ellipse: for yaw **/
+        cv::ellipse(*imagewindow, losCenter, cv::Size(LOS_RAY, LOS_RAY), 15, 0, 360, fgCol, 1);
+        double grad_scale_yaw_deg = 0.0;
+        while (grad_scale_yaw_deg < 360)
+        {
+            char buf[64];
+            sprintf(buf, "%.1f", grad_scale_yaw_deg);
+            double notch_start_x = losCenter.x + LOS_RAY * cos(toRadians(grad_scale_yaw_deg - 90));
+            double notch_start_y = losCenter.y + LOS_RAY * sin(toRadians(grad_scale_yaw_deg - 90));
+            double notch_end_x = losCenter.x + (LOS_RAY - 10) * cos(toRadians(grad_scale_yaw_deg - 90));
+            double notch_end_y = losCenter.y + (LOS_RAY - 10) * sin(toRadians(grad_scale_yaw_deg - 90));
+            double txt_x = losCenter.x + (LOS_RAY - 20) * cos(toRadians(grad_scale_yaw_deg - 90)) - 10;
+            double txt_y = losCenter.y + (LOS_RAY - 20) * sin(toRadians(grad_scale_yaw_deg - 90));
+            cv::Point2d notch_start(notch_start_x, notch_start_y);
+            cv::Point2d notch_end(notch_end_x, notch_end_y);
+
+            cv::line(*imagewindow, notch_start, notch_end, fgCol, 1);
+            cv::putText(*imagewindow, cv::String(buf), cv::Point2d(txt_x, txt_y), cv::FONT_HERSHEY_SIMPLEX, 0.25, fgCol, 1, cv::LINE_AA);
+
+            grad_scale_yaw_deg += 45.0/2;
+        }
+        /** Internal ellipse: for roll **/
+        cv::ellipse(*imagewindow, losCenter, cv::Size(2 * LOS_RAY / 3, 2 * LOS_RAY / 3), 15, 0, 360, fgCol, 1);
+        double grad_scale_roll_deg = 0.0;
+        while (grad_scale_roll_deg < 360)
+        {
+            char buf[64];
+            if (grad_scale_roll_deg < 180)
+            {
+                sprintf(buf, "%.1f", grad_scale_roll_deg);
+            }
+            else
+            {
+                sprintf(buf, "%.1f", grad_scale_roll_deg - 180);
+            }
+            double notch_start_x = losCenter.x + (2 * LOS_RAY / 3) * cos(toRadians(grad_scale_roll_deg));
+            double notch_start_y = losCenter.y + (2 * LOS_RAY / 3) * sin(toRadians(grad_scale_roll_deg));
+            double notch_end_x = losCenter.x + (2 * LOS_RAY / 3 - 10) * cos(toRadians(grad_scale_roll_deg));
+            double notch_end_y = losCenter.y + (2 * LOS_RAY / 3 - 10) * sin(toRadians(grad_scale_roll_deg));
+            double txt_x = losCenter.x + (2 * LOS_RAY / 3 - 20) * cos(toRadians(grad_scale_roll_deg)) - 10;
+            double txt_y = losCenter.y + (2 * LOS_RAY / 3 - 20) * sin(toRadians(grad_scale_roll_deg));
+            cv::Point2d notch_start(notch_start_x, notch_start_y);
+            cv::Point2d notch_end(notch_end_x, notch_end_y);
+
+            cv::line(*imagewindow, notch_start, notch_end, fgCol, 1);
+            cv::putText(*imagewindow, cv::String(buf), cv::Point2d(txt_x, txt_y), cv::FONT_HERSHEY_SIMPLEX, 0.25, fgCol, 1, cv::LINE_AA);
+
+            grad_scale_roll_deg += 45.0/2;
+        }
+
+        double grad_scale_pitch_deg = -90;
+        while (grad_scale_pitch_deg < 90)
+        {
+
+            double elevPercentage = grad_scale_pitch_deg / 90;
+            double notch_start_x = losCenter.x - 5;
+            double notch_start_y = losCenter.y + elevPercentage * LOS_RAY;
+            double notch_end_x = losCenter.x + 5;
+            double notch_end_y = losCenter.y + elevPercentage * LOS_RAY;
+
+            cv::Point2d notch_start(notch_start_x, notch_start_y);
+            cv::Point2d notch_end(notch_end_x, notch_end_y);
+            cv::line(*imagewindow, notch_start, notch_end, fgCol, 1);
+
+            grad_scale_pitch_deg += 45.0/2;
+        }
     }
 }
 
@@ -265,7 +287,7 @@ void widgets::menu::draw(cv::Mat* imagewindow, int x, int y)
         int lineSpacing = 20;
         int offsetX = 30;
         int width = 300;
-        int height = 22 * (lineSpacing + 2);
+        int height = 21 * (lineSpacing + 2);
         int centerx = x;
         int centery = y;
         int x0 = centerx - width/2;
@@ -286,16 +308,15 @@ void widgets::menu::draw(cv::Mat* imagewindow, int x, int y)
         cv::putText(*imagewindow, cv::String("THROTTLE DOWN 10 [q]"), cv::Point(x0 + 2 * offsetX, y0 + 11 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
 
         cv::putText(*imagewindow, cv::String("LOCAL COMMANDS"), cv::Point(x0 + offsetX, y0 + 12 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE ATTITUDE WIDGET [t]"), cv::Point(x0 + 2 * offsetX, y0 + 13 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE THROTTLE WIDGET [s]"), cv::Point(x0 + 2 * offsetX, y0 + 14 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE LOS WIDGET [l]"), cv::Point(x0 + 2 * offsetX, y0 + 15 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE COMMAND OUT WIDGET [c]"), cv::Point(x0 + 2 * offsetX, y0 + 16 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE TARGET WIDGET [m]"), cv::Point(x0 + 2 * offsetX, y0 + 17 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE HELP [h]"), cv::Point(x0 + 2 * offsetX, y0 + 18 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE JOYSTICK HELP [j / <select>]"), cv::Point(x0 + 2 * offsetX, y0 + 19 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE SYSTEM STATUS [y]"), cv::Point(x0 + 2 * offsetX, y0 + 20 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("VIDEO RECORD [v]"), cv::Point(x0 + 2 * offsetX, y0 + 21 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("ENTER DEVELOPMENT MODE [e]"), cv::Point(x0 + 2 * offsetX, y0 + 22 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE THROTTLE WIDGET [s]"), cv::Point(x0 + 2 * offsetX, y0 + 13 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE LOS WIDGET [l]"), cv::Point(x0 + 2 * offsetX, y0 + 14 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE COMMAND OUT WIDGET [c]"), cv::Point(x0 + 2 * offsetX, y0 + 15 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE TARGET WIDGET [m]"), cv::Point(x0 + 2 * offsetX, y0 + 16 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE HELP [h]"), cv::Point(x0 + 2 * offsetX, y0 + 17 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE JOYSTICK HELP [j / <select>]"), cv::Point(x0 + 2 * offsetX, y0 + 18 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE SYSTEM STATUS [y]"), cv::Point(x0 + 2 * offsetX, y0 + 19 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("VIDEO RECORD [v]"), cv::Point(x0 + 2 * offsetX, y0 + 20 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("ENTER DEVELOPMENT MODE [e]"), cv::Point(x0 + 2 * offsetX, y0 + 21 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
 
     }
 }
@@ -402,7 +423,7 @@ void widgets::js_menu::draw(cv::Mat* imagewindow, int x, int y)
         int lineSpacing = 20;
         int offsetX = 30;
         int width = 300;
-        int height = 13 * (lineSpacing + 2);
+        int height = 12 * (lineSpacing + 2);
         int centerx = x;
         int centery = y;
         int x0 = centerx - width/2;
@@ -419,8 +440,7 @@ void widgets::js_menu::draw(cv::Mat* imagewindow, int x, int y)
         cv::putText(*imagewindow, cv::String("TOGGLE SYSTEM STATUS [circle]"), cv::Point(x0 + 2 * offsetX, y0 + 9 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("TOGGLE COMMAND OUT WIDGET [triangle]"), cv::Point(x0 + 2 * offsetX, y0 + 10 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("TOGGLE LOS WIDGET [square]"), cv::Point(x0 + 2 * offsetX, y0 + 11 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE ATTITUDE WIDGET [L1]"), cv::Point(x0 + 2 * offsetX, y0 + 12 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("ENTER DEVELOPER MODE [R1]"), cv::Point(x0 + 2 * offsetX, y0 + 13 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("ENTER DEVELOPER MODE [R1]"), cv::Point(x0 + 2 * offsetX, y0 + 12 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
     }
 }
 

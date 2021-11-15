@@ -9,8 +9,8 @@ command_msg cmd_td01 = {{COMMAND_MSG_ID}, DIR_NONE, -1};
 command_msg cmd_td10 = {{COMMAND_MSG_ID}, DIR_NONE, -10};
 command_msg cmd_tu01 = {{COMMAND_MSG_ID}, DIR_NONE, 1};
 command_msg cmd_tu10 = {{COMMAND_MSG_ID}, DIR_NONE, 10};
-command_msg cmd_tmax = {{COMMAND_MSG_ID}, DIR_NONE, 0x7F};
-command_msg cmd_tmin = {{COMMAND_MSG_ID}, DIR_NONE, 0x70};
+command_msg cmd_tmax = {{COMMAND_MSG_ID}, DIR_NONE, THROTTLE_STATE_MAX};
+command_msg cmd_tmin = {{COMMAND_MSG_ID}, DIR_NONE, THROTTLE_EMERGENCY_BREAK};
 command_msg cmd_none = {{0},              DIR_NONE, 0x00};
 
 command_msg getCommandOfKey(int key, bool* error)
@@ -43,7 +43,6 @@ int jsToKeyboardMap(int js_key)
         case JS_KEY_TOGGLE_TH: return TOGGLE_SPEED;
         case JS_KEY_TOGGLE_CMD_OUT: return TOGGLE_CMD_OUT;
         case JS_KEY_TOGGLE_LOS: return TOGGLE_LOS;
-        case JS_KEY_TOGGLE_ATT: return TOGGLE_ATTITUDE;
         case JS_KEY_DEV_MODE: return DEV_MODE;
         case JS_KEY_DEV_TAB_LEFT : return DEV_TAB_LEFT;
         case JS_KEY_DEV_TAB_RIGHT: return DEV_TAB_RIGHT;

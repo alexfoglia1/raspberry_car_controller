@@ -196,14 +196,14 @@ int joystick_task(const char* board_address)
         joystick_failure = read_event(js, &event) < 0;
         if (joystick_failure)
         {
-            throttle_msg emergency_break_msg;
+            command_msg emergency_break_msg;
 
-            //memset(&emergency_break_msg, 0x00, sizeof(throttle_msg));
-            //emergency_break_msg.header.msg_id = COMMAND_MSG_ID;
-            //emergency_break_msg.throttle_state = 0x01;
-
-            //sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
-            xdo_send_keysequence_window(x, CURRENTWINDOW, (const char*)'8',0);
+            memset(&emergency_break_msg, 0x00, sizeof(command_msg));
+            emergency_break_msg.header.msg_id = COMMAND_MSG_ID;
+            emergency_break_msg.throttle_add = THROTTLE_EMERGENCY_BREAK;
+            emergency_break_msg.direction = DIR_NONE;
+            sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+            //xdo_send_keysequence_window(x, CURRENTWINDOW, (const char*)'8',0);
         }
         else
         {
@@ -212,7 +212,6 @@ int joystick_task(const char* board_address)
             switch (event.type)
             {
                 case JS_EVENT_BUTTON:
-                    printf("button: %d\n", event.number);
                     btn_state[event.number] = !btn_state[event.number];
                     if (btn_state[event.number])
                     {
@@ -229,8 +228,6 @@ int joystick_task(const char* board_address)
 
                     if (axis == 0 && !btn_state[event.number])
                     {
-
-                        printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_int8(axes[axis].x), map_js_axis_value_int8(axes[axis].y));
                         out_xy.x_axis = map_js_axis_value_int8(axes[axis].x);
                         out_xy.y_axis = map_js_axis_value_int8(axes[axis].y);
 
@@ -239,15 +236,12 @@ int joystick_task(const char* board_address)
                     }
                     else if(axis == 1 && !btn_state[event.number])
                     {
-                        printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_uint8(axes[axis].x), map_js_axis_value_uint8(axes[axis].y));
                         out_break.backward = map_js_axis_value_uint8(axes[axis].x);
-                        printf("sent backward(%d)\n", out_break.backward);
 
                         sendto(board_sock, reinterpret_cast<char*>(&out_break), sizeof(joystick_break_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
                     }
                     else if(axis != 0 && axis != 1 && event.number == 5 && !btn_state[event.number])
                     {
-                        printf("Axis %ld at (%d, %d)\n", axis, map_js_axis_value_uint8(axes[axis].x), map_js_axis_value_uint8(axes[axis].y));
                         out_throttle.throttle_state = map_js_axis_value_uint8(axes[axis].y);
 
                         sendto(board_sock, reinterpret_cast<char*>(&out_throttle), sizeof(joystick_throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));

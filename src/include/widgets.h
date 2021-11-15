@@ -12,7 +12,6 @@
 
 namespace widgets
 {
-    extern const int ATTITUDE;
     extern const int THROTTLESTATE;
     extern const int LOS;
     extern const int COMMANDS_OUT;
@@ -29,17 +28,6 @@ namespace widgets
     extern const int DEV_EDITPARAMS_TAB;
 
     extern bool* is_enabled;
-
-    namespace attitude
-    {
-        extern char* roll_display;
-        extern char* pitch_display;
-        extern char* yaw_display;
-
-        void init();
-        void update(attitude_msg attitude);
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
 
     namespace commands_out
     {

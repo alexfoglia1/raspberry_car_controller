@@ -91,9 +91,6 @@ void cmd_out_task(const char* board_address)
     {
         switch(key)
         {
-        case TOGGLE_ATTITUDE:
-            widgets::is_enabled[widgets::ATTITUDE] = !widgets::is_enabled[widgets::ATTITUDE];
-            break;
         case TOGGLE_SPEED: /** s keyboard or x joystick **/
             if (is_speed_test)
             {
@@ -250,7 +247,6 @@ void attitude_task()
     ssize_t bytes_recv = recv(attitude_socket, &rx, sizeof(attitude_msg), 0);
     if(bytes_recv > 0)
     {
-        widgets::attitude::update(rx);
         widgets::los::update(rx);
         widgets::devmode::updatePitch((float)rx.pitch);
         widgets::devmode::updateRoll((float)rx.roll);
@@ -342,9 +338,8 @@ void render_window()
     if (!widgets::is_enabled[widgets::DEVELOPER_MODE])
     {
         sem_wait(&semaphore);
-        widgets::attitude::draw(imagewindow, 20U, size.height - 70U);
         widgets::commands_out::draw(imagewindow, size.width - 120U, 20U);
-        widgets::los::draw(imagewindow, 3 * widgets::los::LOS_RAY / 2, 3 * widgets::los::LOS_RAY / 2);
+        widgets::los::draw(imagewindow, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
         widgets::throttlestate::draw(imagewindow, size.width - 320U, size.height - 30U);
         widgets::targets::draw(imagewindow);
         widgets::menu::draw(imagewindow, size.width/2, size.height/2);
@@ -475,7 +470,6 @@ void init_window()
     cbit_tx_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     cbit_tx_addr.sin_port = htons(BITPORT);
 
-    widgets::attitude::init();
     widgets::throttlestate::init();
     widgets::los::init();
     widgets::commands_out::init();

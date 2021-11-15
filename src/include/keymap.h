@@ -4,7 +4,6 @@
 #include "defs.h"
 
 /** Keys for local usage **/
-#define TOGGLE_ATTITUDE (int)'t'
 #define TOGGLE_SPEED (int)'s'
 #define TOGGLE_LOS (int)'l'
 #define TOGGLE_TGT (int)'m'
@@ -24,7 +23,7 @@
 #define JS_KEY_TOGGLE_SS 1
 #define JS_KEY_TOGGLE_CMD_OUT 2
 #define JS_KEY_TOGGLE_LOS 3
-#define JS_KEY_TOGGLE_ATT 4
+/* SQUARE UNUSED ATM (4) */
 #define JS_KEY_DEV_MODE 5
 #define JS_KEY_DEV_TAB_RIGHT 12
 #define JS_KEY_DEV_TAB_LEFT 11
