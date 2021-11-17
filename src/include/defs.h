@@ -63,7 +63,7 @@
 
 enum class comp_t
 {
-    RASPBERRY_PI = 0,
+    TEGRA = 0,
     ATTITUDE = 1,
     VIDEO = 2,
     JOYSTICK = 3,
@@ -91,7 +91,7 @@ typedef struct __attribute__((packed))
 typedef struct __attribute__((packed))
 {
     msg_header header;
-    uint8_t rpi_failure;
+    uint8_t tegra_failure;
     uint8_t att_failure;
     uint8_t vid_failure;
     uint8_t arduino_failure;
@@ -104,6 +104,7 @@ typedef struct __attribute__((packed))
     uint32_t y_pos;
     uint32_t width;
     uint32_t height;
+    float confidence;
     char description[100];
 } target_data;
 

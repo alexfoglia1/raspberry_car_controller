@@ -271,9 +271,9 @@ void widgets::targets::draw(cv::Mat* imagewindow)
            cv::rectangle(*imagewindow, target_rect, cv::Scalar(255,255,0));
 
            char name_and_prob[150];
-           sprintf(name_and_prob, "%s", target.description);
+           sprintf(name_and_prob, "%s %f", target.description, target.confidence);
 
-           cv::putText(*imagewindow, cv::String(name_and_prob), cv::Point(x0 + target_rect.width, y0), cv::FONT_HERSHEY_SIMPLEX, 0.35, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+           cv::putText(*imagewindow, cv::String(name_and_prob), cv::Point(x0 + 4.0*target_rect.width/5.0, y0 + 10), cv::FONT_HERSHEY_SIMPLEX, 0.35, cv::Scalar(255,0,0), 1, cv::LINE_AA);
         }
 
     }
@@ -331,7 +331,7 @@ void widgets::videorec::draw(cv::Mat* imagewindow, int x, int y)
 }
 
 /** SYSTEMSTATUS WIDGET **/
-bool widgets::systemstatus::rpi_status;
+bool widgets::systemstatus::tegra_status;
 bool widgets::systemstatus::att_status;
 bool widgets::systemstatus::vid_status;
 bool widgets::systemstatus::js_status;
@@ -342,7 +342,7 @@ float widgets::systemstatus::duty_cycle;
 
 void widgets::systemstatus::init()
 {
-    rpi_status = false;
+    tegra_status = false;
     att_status = false;
     vid_status = false;
     js_status = false;
@@ -353,7 +353,7 @@ void widgets::systemstatus::init()
 
 void widgets::systemstatus::updateCbit(cbit_result_msg msg)
 {
-    rpi_status = msg.rpi_failure == false;
+    tegra_status = msg.tegra_failure == false;
     att_status = msg.att_failure == false;
     vid_status = msg.vid_failure == false;
     js_status  = msg.js_failure  == false;
@@ -393,7 +393,7 @@ void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
         sprintf(prompt_motor_voltage_out, "%.1f V", motor_voltage_out);
 
         filledRoundedRectangle(*imagewindow, cv::Point(x0, y0), cv::Size(width, height), bgCol, cv::LINE_AA, 1, 0.1f);
-        cv::putText(*imagewindow, cv::String("RASPBERRY"), cv::Point(x0 + offsetX, y0 + 1 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TEGRA DETECTOR"), cv::Point(x0 + offsetX, y0 + 1 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("LSM9DS1 IMU"), cv::Point(x0 + offsetX, y0 + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("VIDEO CAMERA"), cv::Point(x0 + offsetX, y0 + 3 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("ARDUINO NANO"), cv::Point(x0 +  offsetX, y0 + 4 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
@@ -402,7 +402,7 @@ void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
         cv::putText(*imagewindow, cv::String("MOTOR VOLTAGE OUT"), cv::Point(x0 +  offsetX, y0 + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("JOYSTICK"), cv::Point(x0 +  offsetX, y0 + 5 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
 
-        filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 1 * lineSpacing - 9), cv::Size(15, 15), rpi_status ? green : red, cv::LINE_AA, 1, 0.5f);
+        filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 1 * lineSpacing - 9), cv::Size(15, 15), tegra_status ? green : red, cv::LINE_AA, 1, 0.5f);
         filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 2 * lineSpacing - 9), cv::Size(15, 15), att_status ? green : red, cv::LINE_AA, 1, 0.5f);
         filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 3 * lineSpacing - 9), cv::Size(15, 15), vid_status ? green : red, cv::LINE_AA, 1, 0.5f);
         filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 4 * lineSpacing - 9), cv::Size(15, 15), arduino_status  ? green : red, cv::LINE_AA, 1, 0.5f);

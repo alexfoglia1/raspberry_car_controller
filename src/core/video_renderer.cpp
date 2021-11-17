@@ -264,6 +264,8 @@ void target_task()
     {
         widgets::targets::update(rx);
     }
+
+    cbit_out(comp_t::TEGRA, bytes_recv > 0);
 }
 
 void throttle_task()

@@ -93,7 +93,7 @@ namespace widgets
 
     namespace systemstatus
     {
-        extern bool rpi_status;
+        extern bool tegra_status;
         extern bool att_status;
         extern bool vid_status;
         extern bool js_status;

@@ -10,10 +10,10 @@
 bool updated(cbit_result_msg m1, cbit_result_msg m2)
 {
     return
-            m1.js_failure  != m2.js_failure  ||
-            m1.att_failure != m2.att_failure ||
-            m1.rpi_failure != m2.rpi_failure ||
-            m1.vid_failure != m2.vid_failure;
+            m1.tegra_failure != m2.tegra_failure ||
+            m1.js_failure    != m2.js_failure    ||
+            m1.att_failure   != m2.att_failure   ||
+            m1.vid_failure   != m2.vid_failure;
 }
 
 void __attribute__((noreturn)) cbit_task()
@@ -47,6 +47,9 @@ void __attribute__((noreturn)) cbit_task()
         {
             switch(rx.component)
             {
+            case comp_t::TEGRA:
+                tx.tegra_failure = rx.is_failure;
+                break;
             case comp_t::ATTITUDE:
                 tx.att_failure = rx.is_failure;
                 break;
@@ -62,8 +65,6 @@ void __attribute__((noreturn)) cbit_task()
             default:
                 break;
             }
-
-            tx.rpi_failure = tx.att_failure && tx.vid_failure;
 
             if(updated(tx, last_tx))
             {
