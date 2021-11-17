@@ -19,8 +19,10 @@ const int widgets::JS_MENU = 7;
 const int widgets::DEVELOPER_MODE = 8;
 const int widgets::DEV_ATTITUDE_TAB = 0;
 const int widgets::DEV_VOLTAGE_TAB = 1;
-const int widgets::DEV_SPEEDTEST_TAB = 2;
-const int widgets::DEV_EDITPARAMS_TAB = 3;
+const int widgets::DEV_DETECTOR_TAB = 2;
+const int widgets::DEV_SPEEDTEST_TAB = 3;
+const int widgets::DEV_EDITPARAMS_TAB = 4;
+
 
 const cv::Scalar blue(255, 0, 0);
 const cv::Scalar green(0, 255, 0);
@@ -464,9 +466,9 @@ void widgets::devmode::init()
 {
     act_tab = DEV_ATTITUDE_TAB;
 
-    fps = 100;
-    rx_timeout_s = 5;
-    key_timeout_millis = 10;
+    fps = 30;
+    rx_timeout_s = 1;
+    key_timeout_millis = 1;
     paramToEdit = 0; /*FPS*/
 
     vin_values = new float[100];
@@ -622,15 +624,18 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
         int y0 = centery - height/2;
         int selection_x = act_tab == DEV_ATTITUDE_TAB ? 175 :
                           act_tab == DEV_VOLTAGE_TAB ? 275 :
-                          act_tab == DEV_SPEEDTEST_TAB ? 375 : 475;
+                          act_tab == DEV_DETECTOR_TAB ? 375 :
+                          act_tab == DEV_SPEEDTEST_TAB ? 475 : 575;
         int selection_y = y0 + lineSpacing / 2 - 28;
         int selection_width = act_tab == DEV_ATTITUDE_TAB ? 93:
                               act_tab == DEV_VOLTAGE_TAB ?  90 :
+                              act_tab == DEV_DETECTOR_TAB ? 80 :
                               act_tab == DEV_SPEEDTEST_TAB ? 77 : 120;
         int selection_height = 3 * lineSpacing / 5 + 3;
         float scale_x = width / 100.f;
         const cv::Scalar* fgColAttitudeTab = act_tab == DEV_ATTITUDE_TAB ? &bgCol : &fgCol;
         const cv::Scalar* fgColVoltageTab = act_tab == DEV_VOLTAGE_TAB ? &bgCol : &fgCol;
+        const cv::Scalar* fgColTargetTab = act_tab == DEV_DETECTOR_TAB ? &bgCol : &fgCol;
         const cv::Scalar* fgColSpeedTestTab = act_tab == DEV_SPEEDTEST_TAB ? &bgCol : &fgCol;
         const cv::Scalar* fgColEditParamsTab = act_tab == DEV_EDITPARAMS_TAB ? &bgCol : &fgCol;
         static double delta_t_test = 0.f;
@@ -649,8 +654,9 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
         filledRoundedRectangle(*imagewindow, cv::Point(selection_x, selection_y), cv::Size(selection_width, selection_height), fgCol, cv::LINE_AA, 1, 0.01f);
         cv::putText(*imagewindow, cv::String("ATTITUDE PLOT"), cv::Point(175, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColAttitudeTab, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("VOLTAGE PLOT"), cv::Point(275, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColVoltageTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SPEED TEST"), cv::Point(375, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColSpeedTestTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("EDIT PARAMETERS"), cv::Point(475, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColEditParamsTab, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TARGETS"), cv::Point(375, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColTargetTab, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("SPEED TEST"), cv::Point(475, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColSpeedTestTab, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("EDIT PARAMETERS"), cv::Point(575, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColEditParamsTab, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("NEXT TAB [g/<R3>] PREV. TAB [f/<L3>]"), cv::Point(width - x0, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
 
         /** Developer mode plot axis **/
@@ -743,6 +749,10 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
                 y2 = (height + y0) - duty_cycle * vin_values[i + 1] * scale_y;
                 cv::line(*imagewindow, cv::Point(x1, y1), cv::Point(x2, y2), voltageOutCol);
             }
+            break;
+        }
+        case DEV_DETECTOR_TAB:
+        {
             break;
         }
         case DEV_SPEEDTEST_TAB:

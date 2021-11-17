@@ -6,6 +6,17 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+
+bool is_quitting_cbit = false;
+int rxsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+int txsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+void SIGUSR_HANDLER_CBIT(int)
+{
+    is_quitting_cbit = true;
+    close(rxsock);
+}
 
 bool updated(cbit_result_msg m1, cbit_result_msg m2)
 {
@@ -16,10 +27,9 @@ bool updated(cbit_result_msg m1, cbit_result_msg m2)
             m1.vid_failure   != m2.vid_failure;
 }
 
-void __attribute__((noreturn)) cbit_task()
+void cbit_task()
 {
-    int rxsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    int txsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    signal(SIGUSR1, SIGUSR_HANDLER_CBIT);
 
     struct sockaddr_in saddr, daddr;
     memset(&saddr, 0x00, sizeof(struct sockaddr_in));
@@ -39,8 +49,7 @@ void __attribute__((noreturn)) cbit_task()
 
     cbit_result_msg last_tx;
     memcpy(&last_tx, &tx, sizeof(cbit_result_msg));
-
-    while (true)
+    while (!is_quitting_cbit)
     {
         cbit_msg rx;
         if (recv(rxsock, reinterpret_cast<char*>(&rx), sizeof(cbit_msg), 0) > 0)
@@ -73,4 +82,6 @@ void __attribute__((noreturn)) cbit_task()
             }
         }
     }
+
+    printf("Cbit sub-process exit\n");
 }

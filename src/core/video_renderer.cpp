@@ -13,16 +13,18 @@
 #include <math.h>
 #include <experimental/filesystem>
 #include <semaphore.h>
+#include <signal.h>
 
 int attitude_socket, throttle_socket, tgt_socket, image_socket, voltage_socket, cbit_rx_socket;
 struct sockaddr_in imu_saddr, speed_saddr, attitude_saddr, voltage_saddr, throttle_saddr, tgt_saddr, image_saddr, cbit_tx_addr, cbit_rx_addr;
 bool is_recording = false;
 bool is_speed_test = false;
 bool is_editparams = false;
+bool is_quitting_app = false;
 bool forward_measurements_to_speedtest = false;
-int fps = 100;
-int rx_timeout_s = 5;
-int key_timeout_millis = 10;
+int fps = 30;
+int rx_timeout_s = 1;
+int key_timeout_millis = 1;
 int cbit_tx_sock;
 cv::Mat* imagewindow;
 cv::VideoWriter* video;
@@ -91,6 +93,9 @@ void cmd_out_task(const char* board_address)
     {
         switch(key)
         {
+        case ESCAPE:
+            is_quitting_app = true;
+            break;
         case TOGGLE_SPEED: /** s keyboard or x joystick **/
             if (is_speed_test)
             {
@@ -184,12 +189,15 @@ void cmd_out_task(const char* board_address)
                         widgets::devmode::updateTab(widgets::DEV_VOLTAGE_TAB);
                         break;
                     case 1: //VOLTAGE TAB
+                        widgets::devmode::updateTab(widgets::DEV_DETECTOR_TAB);
+                        break;
+                    case 2: //DEV_DETECTOR_TAB
                         widgets::devmode::updateTab(widgets::DEV_SPEEDTEST_TAB);
                         break;
-                    case 2: //DEV_SPEEDTEST_TAB
+                    case 3: //DEV_SPEEDTEST_TAB
                         widgets::devmode::updateTab(widgets::DEV_EDITPARAMS_TAB);
                         break;
-                    case 3: //DEV_EDITPARAMS_TAB
+                    case 4: //DEV_EDITPARAMS_TAB
                         widgets::devmode::updateTab(widgets::DEV_ATTITUDE_TAB);
                         break;
                     default:
@@ -208,10 +216,13 @@ void cmd_out_task(const char* board_address)
                     case 1: //VOLTAGE TAB
                         widgets::devmode::updateTab(widgets::DEV_ATTITUDE_TAB);
                         break;
-                    case 2: //DEV_SPEEDTEST_TAB
+                    case 2: //DEV_DETECTOR_TAB
                         widgets::devmode::updateTab(widgets::DEV_VOLTAGE_TAB);
                         break;
-                    case 3: //DEV_EDITPARAMS_TAB
+                    case 3: //DEV_SPEEDTEST_TAB
+                        widgets::devmode::updateTab(widgets::DEV_DETECTOR_TAB);
+                        break;
+                    case 4: //DEV_EDITPARAMS_TAB
                         widgets::devmode::updateTab(widgets::DEV_SPEEDTEST_TAB);
                         break;
                     default:
@@ -375,32 +386,44 @@ void cbit_result_task()
 
 void* image_thread(void*)
 {
-    while (true) { image_task(); }
+    while (!is_quitting_app) { image_task(); }
+    printf("Image receiver thread exit\n");
+    return NULL;
 }
 
 void* attitude_thread(void*)
 {
-    while (true) { attitude_task();}
+    while (!is_quitting_app) { attitude_task(); }
+    printf("Attitude receiver thread exit\n");
+    return NULL;
 }
 
 void* throttle_thread(void*)
 {
-    while (true) { throttle_task();}
+    while (!is_quitting_app) { throttle_task(); }
+    printf("Throttle state receiver thread exit\n");
+    return NULL;
 }
 
 void* voltage_thread(void*)
 {
-    while (true) { voltage_task();}
+    while (!is_quitting_app) { voltage_task(); }
+    printf("Voltage receiver thread exit\n");
+    return NULL;
 }
 
 void* target_thread(void*)
 {
-    while (true) { target_task(); }
+    while (!is_quitting_app) { target_task(); }
+    printf("Targets receiver thread exit\n");
+    return NULL;
 }
 
 void* cbit_result_thread(void*)
 {
-    while (true) { cbit_result_task(); }
+    while (!is_quitting_app) { cbit_result_task(); }
+    printf("Cbit result receiver thread exit\n");
+    return NULL;
 }
 
 void main_loop(const char* board_address)
@@ -414,7 +437,7 @@ void main_loop(const char* board_address)
     pthread_create(&tid_target, NULL, target_thread, NULL);
     pthread_create(&tid_cbit, NULL, cbit_result_thread, NULL);
 
-    while(true)
+    while(!is_quitting_app)
     {
         /** Render window task **/
         render_window();
@@ -451,6 +474,22 @@ void main_loop(const char* board_address)
             forward_measurements_to_speedtest = false;
         }
     }
+
+    printf("Requested application exit\n");
+    pthread_join(tid_image, NULL);
+    pthread_join(tid_attitude, NULL);
+    pthread_join(tid_throttle, NULL);
+    pthread_join(tid_voltage, NULL);
+    pthread_join(tid_target, NULL);
+    pthread_join(tid_cbit, NULL);
+
+    close(attitude_socket);
+    close(throttle_socket);
+    close(tgt_socket);
+    close(image_socket);
+    close(voltage_socket);
+    close(cbit_rx_socket);
+    printf("Sockets closed\n");
 }
 
 void init_window()

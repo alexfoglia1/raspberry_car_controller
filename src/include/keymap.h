@@ -15,6 +15,7 @@
 #define DEV_MODE (int)'e'
 #define DEV_TAB_RIGHT (int)'g'
 #define DEV_TAB_LEFT (int)'f'
+#define ESCAPE 27
 
 /** Js jeys for local usage **/
 #define JS_KEY_TOGGLE_JS 8

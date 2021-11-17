@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "defs.h"
 #include "joystick.h"
@@ -32,9 +33,18 @@ extern "C" {
     #include <xdo.h>
 }
 
+int js;
+bool joystick_failure = true;
+bool is_quitting_js = false;
+void SIGUSR_HANDLER_JS(int)
+{
+    is_quitting_js = true;
+    close(js);
+}
+
+
 const int min_js_axis_value = -32767;
 const int max_js_axis_value = 32767;
-
 bool btn_state[100];
 
 int8_t map_js_axis_value_int8(int js_axis_value)
@@ -52,9 +62,6 @@ uint8_t map_js_axis_value_uint8(int js_axis_value)
 
     return std::numeric_limits<uint8_t>::min() + percentage * (std::numeric_limits<uint8_t>::max() - std::numeric_limits<uint8_t>::min());
 }
-
-static int js;
-static bool joystick_failure = true;
 
 /**
  * Reads a joystick event from the joystick device.
@@ -135,11 +142,13 @@ int init_joystick()
 {
     js = open("/dev/input/js0", O_RDONLY);
     if (js > 0) return 0;
+    else if(is_quitting_js) return 0;
     else return -1;
 }
 
-int joystick_task(const char* board_address)
+void joystick_task(const char* board_address)
 {
+    signal(SIGUSR1, SIGUSR_HANDLER_JS);
     for (int i = 0; i < 100; i++)
     {
         btn_state[i] = false;
@@ -182,7 +191,7 @@ int joystick_task(const char* board_address)
     board_addr.sin_addr.s_addr = inet_addr(board_address);
 
     xdo_t * x = xdo_new(":0.0");
-    while (true)
+    while (!is_quitting_js)
     {
         while(joystick_failure)
         {
@@ -257,6 +266,7 @@ int joystick_task(const char* board_address)
     }
 
     close(js);
-    return 0;
+
+    printf("Joystick sub-process exit\n");
 }
 

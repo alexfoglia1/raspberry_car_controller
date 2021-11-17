@@ -24,6 +24,7 @@ namespace widgets
 
     extern const int DEV_ATTITUDE_TAB;
     extern const int DEV_VOLTAGE_TAB;
+    extern const int DEV_DETECTOR_TAB;
     extern const int DEV_SPEEDTEST_TAB;
     extern const int DEV_EDITPARAMS_TAB;
 
@@ -125,6 +126,7 @@ namespace widgets
         extern double test_tf;
         extern std::list<float> voltagesIn;
         extern std::list<float> voltagesOut;
+        extern std::list<target_data> targets;
 
         void init();
         void updateVoltageIn(float v);
@@ -136,6 +138,7 @@ namespace widgets
         void signalStopSpeedTest();
         void signalResetTest();
         void updateSpeedTestVoltageIn(float v);
+        void updateTargets(target_data* targets, int n_targets);
         void updateTab(int tab);
         void signalSwitchCurrentParam(int delta);
         void editCurrentParamValue(int delta);

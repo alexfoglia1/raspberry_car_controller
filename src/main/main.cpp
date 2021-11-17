@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <wait.h>
 
+#include <signal.h>
 #include <sys/stat.h>
 #include <experimental/filesystem>
 
@@ -26,16 +28,16 @@ int main(int argc, char** argv)
     FILE* f = fopen("speedtest.csv", "w");
     fprintf(f, "dt, avg_vin, avg_vout\n");
     fclose(f);
-    int pid = fork();
-    if(pid == 0)
+    int js_pid = fork();
+    if(js_pid == 0)
     {
         /** child process joystick **/
         joystick_task(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
         exit(EXIT_SUCCESS);
     }
 
-    pid = fork();
-    if(pid == 0)
+    int cbit_pid = fork();
+    if(cbit_pid == 0)
     {
         /** child process cbit **/
         cbit_task();
@@ -46,5 +48,13 @@ int main(int argc, char** argv)
 
     main_loop(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
 
+    kill(js_pid, SIGUSR1);
+    kill(cbit_pid, SIGUSR1);
+
+    int canExit;
+    wait(&canExit);
+    wait(&canExit);
+
+    printf("Main process exit\n");
     return 0;
 }
