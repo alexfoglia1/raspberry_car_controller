@@ -36,3 +36,5 @@ find_package(Threads REQUIRED)
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} stdc++fs xdo pthread)
+
+install(TARGETS raspberry_car_controller DESTINATION bin)

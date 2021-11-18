@@ -56,8 +56,10 @@
 
 #define THROTTLE_STATE_MAX 0x7F
 #define THROTTLE_EMERGENCY_BREAK 0x70
+#define CONTROLLER_ALIVE 0xAD
+#define CONTROLLER_DEAD 0xDE
 
-#define MAX_TARGETS 10
+#define MAX_TARGETS 15
 
 #include <stdint.h>
 

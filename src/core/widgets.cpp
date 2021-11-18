@@ -461,6 +461,7 @@ double widgets::devmode::test_t0;
 double widgets::devmode::test_tf;
 std::list<float> widgets::devmode::voltagesIn;
 std::list<float> widgets::devmode::voltagesOut;
+std::list<target_data> widgets::devmode::targets;
 
 void widgets::devmode::init()
 {
@@ -547,6 +548,20 @@ void widgets::devmode::updateVoltageIn(float v)
 void widgets::devmode::updateVoltageOut(float dc)
 {
     duty_cycle = dc;
+}
+
+void widgets::devmode::updateTargets(target_data* p_targets, int n_targets)
+{
+    targets.clear();
+    if (n_targets > MAX_TARGETS)
+    {
+        n_targets = MAX_TARGETS;
+    }
+
+    for(int i = 0; i < n_targets; i++)
+    {
+        targets.push_back(p_targets[i]);
+    }
 }
 
 void widgets::devmode::updateTab(int tab)
@@ -753,6 +768,76 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
         }
         case DEV_DETECTOR_TAB:
         {
+            int n_targets = targets.size();
+            char buf[64];
+            sprintf(buf, "NUMBER OF TARGETS: %d", n_targets);
+            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 10, 30 + y0), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            float line_height = (float)height / (float)(2.f + MAX_TARGETS);
+
+            /** Table header: column names **/
+            cv::putText(*imagewindow, cv::String("INDEX"), cv::Point(x0 + 3 + 10, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("CLASS"), cv::Point(x0 + 3 +10 + 120, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("CONFIDENCE"), cv::Point(x0 + 3 + 10 + 240, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("X COORD."), cv::Point(x0 + 3 + 10 + 360, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("Y COORD."), cv::Point(x0 + 3 + 10 + 480, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("WIDTH"), cv::Point(x0 + 12 + 600, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("HEIGHT"), cv::Point(x0 + 12 + 720, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+
+            /** Table header: square **/
+            cv::line(*imagewindow, cv::Point(x0 + 7, 18 + y0 + line_height), cv::Point(x0 + 840, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 7, 38 + y0 + line_height), cv::Point(x0 + 840, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 7, 18 + y0 + line_height), cv::Point(x0 + 7, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 840, 18 + y0 + line_height), cv::Point(x0 + 840, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+
+            /** Table header: columns **/
+            cv::line(*imagewindow, cv::Point(x0 + 10 + 120, 18 + y0 + line_height), cv::Point(x0 + 10 + 120, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 10 + 240, 18 + y0 + line_height), cv::Point(x0 + 10 + 240, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 10 + 360, 18 + y0 + line_height), cv::Point(x0 + 10 + 360, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 10 + 480, 18 + y0 + line_height), cv::Point(x0 + 10 + 480, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 10 + 600, 18 + y0 + line_height), cv::Point(x0 + 10 + 600, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+            cv::line(*imagewindow, cv::Point(x0 + 10 + 720, 18 + y0 + line_height), cv::Point(x0 + 10 + 720, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+
+            int i = 1;
+            for(auto& target : targets)
+            {
+                char index[64];
+                sprintf(index, "%d", i++);
+                char class_[64];
+                sprintf(class_, "%s", target.description);
+                char conf[64];
+                sprintf(conf, "%f", target.confidence);
+                char x_coord[64];
+                sprintf(x_coord, "%d", target.x_pos);
+                char y_coord[64];
+                sprintf(y_coord, "%d", target.y_pos);
+                char tgtwidth[64];
+                sprintf(tgtwidth, "%d", target.width);
+                char tgtheight[64];
+                sprintf(tgtheight, "%d", target.height);
+
+                /** Table row: column values **/
+                cv::putText(*imagewindow, cv::String(index), cv::Point(x0 + 3 + 10, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String(class_), cv::Point(x0 + 3 +10 + 120, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String(conf), cv::Point(x0 + 3 + 10 + 240, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String(x_coord), cv::Point(x0 + 3 + 10 + 360, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String(y_coord), cv::Point(x0 + 3 + 10 + 480, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String(tgtwidth), cv::Point(x0 + 12 + 600, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String(tgtheight), cv::Point(x0 + 12 + 720, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+
+                /** Table row: horizontal delimiter bottom **/
+                cv::line(*imagewindow, cv::Point(x0 + 7, 28 + y0 + i * line_height), cv::Point(x0 + 840, 28 + y0 + i * line_height), fgCol, 1, cv::LINE_AA);
+
+                /** Table row: columns delimiter from bottom row to table top **/
+                cv::line(*imagewindow, cv::Point(x0 + 7, 28 + y0 + i * line_height), cv::Point(x0 + 7, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 10 + 120, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 120, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 10 + 240, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 240, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 10 + 360, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 360, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 10 + 480, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 480, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 10 + 600, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 600, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 10 + 720, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 720, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+                cv::line(*imagewindow, cv::Point(x0 + 840, 28 + y0 + i * line_height), cv::Point(x0 + 840, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
+
+            }
             break;
         }
         case DEV_SPEEDTEST_TAB:

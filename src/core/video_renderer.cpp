@@ -28,7 +28,7 @@ int key_timeout_millis = 1;
 int cbit_tx_sock;
 cv::Mat* imagewindow;
 cv::VideoWriter* video;
-sem_t semaphore;
+sem_t image_semaphore, tgt_semaphore;
 
 void start_videorec()
 {
@@ -273,7 +273,10 @@ void target_task()
     ssize_t bytes_recv = recv(tgt_socket, (char*)&rx, sizeof(target_msg), 0);
     if(bytes_recv > 0)
     {
+        sem_wait(&tgt_semaphore);
         widgets::targets::update(rx);
+        widgets::devmode::updateTargets(rx.data, rx.n_targets);
+        sem_post(&tgt_semaphore);
     }
 
     cbit_out(comp_t::TEGRA, bytes_recv > 0);
@@ -331,9 +334,9 @@ void image_task()
         if(bytes_recv > 0)
         {
             std::vector<char> data(rx.data, rx.data + rx.len);
-            sem_wait(&semaphore);
+            sem_wait(&image_semaphore);
             *imagewindow = cv::imdecode(cv::Mat(data), 1);
-            sem_post(&semaphore);
+            sem_post(&image_semaphore);
             cbit_out(comp_t::VIDEO, true);
         }
         else
@@ -350,20 +353,26 @@ void render_window()
     cv::Size size = imagewindow->size();
     if (!widgets::is_enabled[widgets::DEVELOPER_MODE])
     {
-        sem_wait(&semaphore);
+        sem_wait(&image_semaphore);
         widgets::commands_out::draw(imagewindow, size.width - 120U, 20U);
         widgets::los::draw(imagewindow, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
         widgets::throttlestate::draw(imagewindow, size.width - 320U, size.height - 30U);
+        sem_wait(&tgt_semaphore);
         widgets::targets::draw(imagewindow);
+        sem_post(&tgt_semaphore);
         widgets::menu::draw(imagewindow, size.width/2, size.height/2);
         widgets::js_menu::draw(imagewindow, size.width/2, size.height/2);
         widgets::videorec::draw(imagewindow, size.width - 40U, 50U);
         widgets::systemstatus::draw(imagewindow, size.width - 130U, size.height/2);
-        sem_post(&semaphore);
+        sem_post(&image_semaphore);
     }
     else
     {
+        sem_wait(&image_semaphore);
+        sem_wait(&tgt_semaphore);
         widgets::devmode::draw(imagewindow, size.width/2, size.height/2);
+        sem_post(&tgt_semaphore);
+        sem_post(&image_semaphore);
     }
     cv::imshow(PROJNAME, *imagewindow);
 
@@ -439,6 +448,7 @@ void main_loop(const char* board_address)
 
     while(!is_quitting_app)
     {
+
         /** Render window task **/
         render_window();
 
@@ -483,6 +493,19 @@ void main_loop(const char* board_address)
     pthread_join(tid_target, NULL);
     pthread_join(tid_cbit, NULL);
 
+    /** I'm exiting, send to board 0xDE **/
+    command_msg controller_off;
+    memset(&controller_off, 0x00, sizeof(throttle_msg));
+    controller_off.header.msg_id = COMMAND_MSG_ID;
+    controller_off.throttle_add = CONTROLLER_DEAD;
+    struct sockaddr_in daddr;
+    memset(&daddr, 0x00, sizeof(struct sockaddr_in));
+    daddr.sin_family = AF_INET;
+    daddr.sin_port = htons(THRPORT);
+    daddr.sin_addr.s_addr = inet_addr(board_address);
+    sendto(throttle_socket, reinterpret_cast<char*>(&controller_off), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
+    printf("Sent 0xDE to board\n");
+
     close(attitude_socket);
     close(throttle_socket);
     close(tgt_socket);
@@ -492,7 +515,7 @@ void main_loop(const char* board_address)
     printf("Sockets closed\n");
 }
 
-void init_window()
+void init_window(const char* board_address)
 {
     imagewindow = new cv::Mat(IMAGE_ROWS, IMAGE_COLS, CV_8UC3, cv::Scalar(0, 0, 0));
 
@@ -518,6 +541,20 @@ void init_window()
     widgets::systemstatus::init();
     widgets::devmode::init();
 
-    sem_init(&semaphore, 0, 1);
+    sem_init(&image_semaphore, 0, 1);
+    sem_init(&tgt_semaphore, 0, 1);
+
+    /** I'm ready, send to board 0xAD **/
+    command_msg controller_on;
+    memset(&controller_on, 0x00, sizeof(throttle_msg));
+    controller_on.header.msg_id = COMMAND_MSG_ID;
+    controller_on.throttle_add = CONTROLLER_ALIVE;
+    struct sockaddr_in daddr;
+    memset(&daddr, 0x00, sizeof(struct sockaddr_in));
+    daddr.sin_family = AF_INET;
+    daddr.sin_port = htons(THRPORT);
+    daddr.sin_addr.s_addr = inet_addr(board_address);
+    sendto(throttle_socket, reinterpret_cast<char*>(&controller_on), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
+    printf("Sent to board 0xAD\n");
 }
 

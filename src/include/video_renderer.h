@@ -3,7 +3,7 @@
 #include "defs.h"
 #include <opencv2/dnn/dnn.hpp>
 
-void init_window();
+void init_window(const char* board_address);
 void main_loop(const char* board_address);
 
 #endif //VIDEO_RENDERER_H

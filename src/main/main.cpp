@@ -44,7 +44,7 @@ int main(int argc, char** argv)
         exit(EXIT_SUCCESS);
     }
 
-    init_window();
+    init_window(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
 
     main_loop(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
 
