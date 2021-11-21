@@ -390,6 +390,14 @@ void cbit_result_task()
     if(bytes_recv > 0)
     {
         widgets::systemstatus::updateCbit(rx);
+
+        if (rx.tegra_failure)
+        {
+            target_msg empty;
+            memset(&empty, 0x00, sizeof(target_msg));
+            widgets::targets::update(empty);
+            widgets::devmode::updateTargets(empty.data, 0);
+        }
     }
 }
 
@@ -460,6 +468,7 @@ void main_loop(const char* board_address)
         is_editparams = (widgets::is_enabled[widgets::DEVELOPER_MODE]) && (widgets::devmode::act_tab == widgets::DEV_EDITPARAMS_TAB);
         fps = widgets::devmode::fps;
         key_timeout_millis = widgets::devmode::key_timeout_millis;
+
         if (rx_timeout_s != widgets::devmode::rx_timeout_s)
         {
             close(attitude_socket);
@@ -475,10 +484,10 @@ void main_loop(const char* board_address)
             init_localsock(&image_socket, &image_saddr, RENPORT);
             init_localsock(&voltage_socket, &voltage_saddr, VLTPORT);
             init_localsock(&cbit_rx_socket, &cbit_rx_addr, BITRESPORT);
-
-            rx_timeout_s = widgets::devmode::rx_timeout_s;
         }
+
         rx_timeout_s = widgets::devmode::rx_timeout_s;
+
         if (!is_speed_test)
         {
             forward_measurements_to_speedtest = false;
@@ -504,7 +513,6 @@ void main_loop(const char* board_address)
     daddr.sin_port = htons(THRPORT);
     daddr.sin_addr.s_addr = inet_addr(board_address);
     sendto(throttle_socket, reinterpret_cast<char*>(&controller_off), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
-    printf("Sent 0xDE to board\n");
 
     close(attitude_socket);
     close(throttle_socket);
@@ -555,6 +563,5 @@ void init_window(const char* board_address)
     daddr.sin_port = htons(THRPORT);
     daddr.sin_addr.s_addr = inet_addr(board_address);
     sendto(throttle_socket, reinterpret_cast<char*>(&controller_on), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
-    printf("Sent to board 0xAD\n");
 }
 

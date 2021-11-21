@@ -851,8 +851,8 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
                 avg_vin_test = 0.f;
                 avg_vout_test = 0.f;
 
-                cv::putText(*imagewindow, cv::String("STOP TEST"), cv::Point(x0 + 20, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String("[s/<cross>]"), cv::Point(x0 + 300, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String("STOP TEST"), cv::Point(x0 + 20, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String("[s/<cross>]"), cv::Point(x0 + 300, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
             }
             else if(test_t0 > 0 && test_tf > 0)
             {
@@ -870,23 +870,23 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
             else
             {
                 /** Test is not running **/
-                cv::putText(*imagewindow, cv::String("START TEST"), cv::Point(x0 + 20, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String("[s/<cross>]"), cv::Point(x0 + 300, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String("START TEST"), cv::Point(x0 + 20, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+                cv::putText(*imagewindow, cv::String("[s/<cross>]"), cv::Point(x0 + 300, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
             }
 
             char buf[64];
 
             sprintf(buf, "%f s", (delta_t_test));
-            cv::putText(*imagewindow, cv::String("DURATION"), cv::Point(x0 + 20, y), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("DURATION"), cv::Point(x0 + 20, y), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
 
             sprintf(buf, "%f V", avg_vin_test);
-            cv::putText(*imagewindow, cv::String("AVG VOLTAGE IN"), cv::Point(x0 + 20, y + 80), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y + 80), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("AVG VOLTAGE IN"), cv::Point(x0 + 20, y + 80), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y + 80), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
 
             sprintf(buf, "%f V", avg_vout_test);
-            cv::putText(*imagewindow, cv::String("AVG VOLTAGE OUT"), cv::Point(x0 + 20, y + 160), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y + 160), cv::FONT_HERSHEY_SIMPLEX, 0.8, fgCol, 2, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("AVG VOLTAGE OUT"), cv::Point(x0 + 20, y + 160), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y + 160), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
             break;
         }
         case DEV_EDITPARAMS_TAB:
