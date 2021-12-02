@@ -205,13 +205,8 @@ void joystick_task(const char* board_address)
         joystick_failure = read_event(js, &event) < 0;
         if (joystick_failure)
         {
-            command_msg emergency_break_msg;
-
-            memset(&emergency_break_msg, 0x00, sizeof(command_msg));
-            emergency_break_msg.header.msg_id = COMMAND_MSG_ID;
-            emergency_break_msg.throttle_add = THROTTLE_EMERGENCY_BREAK;
-            emergency_break_msg.direction = DIR_NONE;
-            sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(throttle_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
+            command_msg emergency_break_msg = {{COMMAND_MSG_ID}, DIR_NONE, THROTTLE_EMERGENCY_BREAK};
+            sendto(board_sock, reinterpret_cast<char*>(&emergency_break_msg), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&board_addr), sizeof(struct sockaddr_in));
             //xdo_send_keysequence_window(x, CURRENTWINDOW, (const char*)'8',0);
         }
         else
