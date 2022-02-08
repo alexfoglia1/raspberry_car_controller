@@ -127,8 +127,10 @@ namespace widgets
         extern std::list<float> voltagesIn;
         extern std::list<float> voltagesOut;
         extern std::list<target_data> targets;
+        extern char* board_address;
 
         void init();
+        void updateBoardAddress(const char* board_address);
         void updateVoltageIn(float v);
         void updateVoltageOut(float dc);
         void updateRoll(float r);

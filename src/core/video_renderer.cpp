@@ -454,6 +454,8 @@ void main_loop(const char* board_address)
     pthread_create(&tid_target, NULL, target_thread, NULL);
     pthread_create(&tid_cbit, NULL, cbit_result_thread, NULL);
 
+    widgets::devmode::updateBoardAddress(board_address);
+
     while(!is_quitting_app)
     {
 

@@ -40,15 +40,14 @@
 #define BITPORT 7788
 #define BITRESPORT 8877
 
-#define VOLTAGE_MSG_ID   1
-#define ATTITUDE_MSG_ID  2
-#define COMMAND_MSG_ID   4
-#define JS_XY_MSG_ID     6
-#define JS_TH_MSG_ID     7
-#define JS_BR_MSG_ID     8
-#define TARGET_MSG_ID	 9
-#define CBIT_MSG_ID     10
-#define CBITRES_MSG_ID  11
+#define VOLTAGE_MSG_ID          1
+#define ATTITUDE_MSG_ID         2
+#define ACTUATORS_STATE_MSG_ID  3
+#define JS_ACC_MSG_ID           7
+#define JS_BRK_MSG_ID           8
+#define TARGET_MSG_ID           9
+#define CBIT_MSG_ID             10
+#define CBITRES_MSG_ID          11
 
 #define MAX_IMAGESIZE 60000
 #define IMAGE_ROWS    650
@@ -131,46 +130,22 @@ typedef struct
     uint8_t data[MAX_IMAGESIZE];
 } __attribute__((packed)) image_msg;
 
-typedef enum
-{
-    DIR_FWD,
-    DIR_LFT,
-    DIR_RGT,
-    DIR_BWD,
-    DIR_NONE
-} dir_t;
-
-typedef struct
+typedef struct __attribute__((packed))
 {
     msg_header header;
-    dir_t direction;
-    int8_t throttle_add;
-} __attribute__((packed)) command_msg;
-
-typedef struct
-{
-    msg_header header;
+    uint8_t throttle_state;
     int8_t x_axis;
     int8_t y_axis;
-} __attribute__((packed)) joystick_xy_msg;
+    bool start_flag;
+    bool stop_flag;
+}  joystick_msg;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     msg_header header;
     uint8_t throttle_state;
-} __attribute__((packed)) joystick_throttle_msg;
-
-typedef struct
-{
-    msg_header header;
-    uint8_t throttle_state;
-} __attribute__((packed)) throttle_msg;
-
-typedef struct
-{
-    msg_header header;
-    uint8_t backward;
-} __attribute__((packed)) joystick_break_msg;
+    uint8_t system_state;
+} actuators_state_msg;
 
 
 #endif //DEFS_H

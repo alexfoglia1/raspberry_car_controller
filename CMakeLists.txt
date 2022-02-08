@@ -34,7 +34,8 @@ target_include_directories(raspberry_car_controller PRIVATE ${CMAKE_SOURCE_DIR}/
 find_package(Threads REQUIRED)
 
 find_package(OpenCV REQUIRED)
+find_package(libssh REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
-target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} stdc++fs xdo pthread)
+target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} stdc++fs xdo pthread ssh)
 
 install(TARGETS raspberry_car_controller DESTINATION bin)

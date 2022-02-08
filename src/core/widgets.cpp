@@ -447,6 +447,7 @@ void widgets::js_menu::draw(cv::Mat* imagewindow, int x, int y)
 }
 
 /** DEV MODE **/
+char* widgets::devmode::board_address = new char[256];
 int widgets::devmode::act_tab;
 float* widgets::devmode::vin_values;
 float* widgets::devmode::pitch_values;
@@ -483,6 +484,11 @@ void widgets::devmode::init()
 
     test_t0 = -1.0;
     test_tf = -1.0;
+}
+
+void widgets::devmode::updateBoardAddress(const char* addr)
+{
+    sprintf(board_address, "%s", addr);
 }
 
 void widgets::devmode::updatePitch(float p)
@@ -605,8 +611,70 @@ void widgets::devmode::updateSpeedTestVoltageIn(float v)
 void widgets::devmode::signalSwitchCurrentParam(int delta)
 {
     paramToEdit += delta;
-    if (paramToEdit > 2) paramToEdit = 0;
-    if (paramToEdit < 0) paramToEdit = 2;
+    if (paramToEdit > 3) paramToEdit = 0;
+    if (paramToEdit < 0) paramToEdit = 3;
+}
+
+#include <libssh/libssh.h>
+int run_ssh_command(char* board_address, const char* command)
+{
+    ssh_session session;
+      int rc;
+
+      // Open session and set options
+      session = ssh_new();
+      if (session == NULL)
+      {
+          printf("ssh_session null\n");
+          return SSH_ERROR;
+      }
+      ssh_options_set(session, SSH_OPTIONS_HOST, board_address);
+
+      // Connect to server
+      rc = ssh_connect(session);
+      if (rc != SSH_OK)
+      {
+        fprintf(stderr, "Error connecting to board: %s\n",
+                ssh_get_error(session));
+        ssh_free(session);
+        exit(-1);
+      }
+
+      // Authenticate ourselves
+
+      rc = ssh_userauth_password(session, "pi", "lamerome123");
+      if (rc != SSH_AUTH_SUCCESS)
+      {
+        fprintf(stderr, "Error authenticating with password: %s\n",
+                ssh_get_error(session));
+        ssh_disconnect(session);
+        ssh_free(session);
+        exit(-1);
+      }
+  ssh_channel channel;
+  char buffer[256];
+  int nbytes;
+
+  channel = ssh_channel_new(session);
+  if (channel == NULL)
+    return SSH_ERROR;
+
+  rc = ssh_channel_open_session(channel);
+  if (rc != SSH_OK)
+  {
+    ssh_channel_free(channel);
+    return rc;
+  }
+
+  rc = ssh_channel_request_exec(channel, command);
+
+  ssh_channel_send_eof(channel);
+  ssh_channel_close(channel);
+  ssh_channel_free(channel);
+
+  ssh_disconnect(session);
+  ssh_free(session);
+  return SSH_OK;
 }
 
 void widgets::devmode::editCurrentParamValue(int delta)
@@ -621,6 +689,17 @@ void widgets::devmode::editCurrentParamValue(int delta)
         break;
     case 2: /*WAIT KEY TIMEOUT*/
         if (key_timeout_millis + delta < 1) key_timeout_millis = 1; else key_timeout_millis += delta;
+        break;
+    case 3: /*RECALIBRATE IMU*/
+        if (delta)
+        {
+
+              run_ssh_command(board_address, "pkill -f imu_driver");
+              printf("after pkill\n");
+              run_ssh_command(board_address, "python3 /home/pi/git/imu_driver/imu_driver.py &");
+              printf("after python3\n");
+
+        }
         break;
     }
 }
@@ -893,16 +972,21 @@ void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
         {
             int selection_x = x0 + 10;
             int selection_y = paramToEdit == 0 ? /*FPS*/ y0 + 10 :
-                              paramToEdit == 1 ? /*RX TIMEOUT*/  y0 + 50 : /*WAITKEY TIMEOUT*/  y0 + 90;
+                              paramToEdit == 1 ? /*RX TIMEOUT*/  y0 + 50 :
+                              paramToEdit == 2 ? /*WAITKEY TIMEOUT*/  y0 + 90 : /*RECALIBRATE IMU*/ y0 + 130;
             int selection_width = paramToEdit == 0 ? /*FPS*/ 122:
-                                  paramToEdit == 1 ? /*RX TIMEOUT*/ 100 : /*WAITKEY TIMEOUT*/ 220;
+                                  paramToEdit == 1 ? /*RX TIMEOUT*/ 100 :
+                                  paramToEdit== 2 ? /*WAITKEY TIMEOUT*/ 220 : /*RECALIBRATE IMU*/ 200;
             const cv::Scalar* fgColFps = paramToEdit == 0 ? &bgCol : &fgCol;
             const cv::Scalar* fgColRxTimeout = paramToEdit == 1 ? &bgCol : &fgCol;
             const cv::Scalar* fgColWaitKeyTimeout = paramToEdit == 2 ? &bgCol : &fgCol;
+            const cv::Scalar* fgColImu = paramToEdit == 3 ? &bgCol : &fgCol;
+
             filledRoundedRectangle(*imagewindow, cv::Point(selection_x, selection_y), cv::Size(selection_width, selection_height), fgCol, cv::LINE_AA, 1, 0.01f);
             cv::putText(*imagewindow, cv::String("VIDEO RECORD FPS"), cv::Point(x0 + 10, y0 + 10 + selection_height - 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColFps, 1, cv::LINE_AA);
             cv::putText(*imagewindow, cv::String("RX TIMEOUT (s)"), cv::Point(x0 + 10, y0 + 50 + selection_height - 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColRxTimeout, 1, cv::LINE_AA);
             cv::putText(*imagewindow, cv::String("KEYBOARD INPUT TIMEOUT (millis)"), cv::Point(x0 + 10, y0 + 90 + selection_height - 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColWaitKeyTimeout, 1, cv::LINE_AA);
+            cv::putText(*imagewindow, cv::String("RECALIBRATE IMU DRIVER"), cv::Point(x0 + 10, y0 + 130 + selection_height -2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColImu, 1, cv::LINE_AA);
 
             char buf[64];
             sprintf(buf, "%d", fps);
