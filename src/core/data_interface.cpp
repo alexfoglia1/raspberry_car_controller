@@ -1,6 +1,7 @@
 #include "data_interface.h"
 
 #include <QByteArray>
+#include <QHostAddress>
 
 DataInterface::DataInterface()
 {
@@ -11,11 +12,11 @@ DataInterface::DataInterface()
 
 }
 
-void DataInterface::send_command(joystick_msg msg)
+void DataInterface::send_command(joystick_msg msg, QString remote_address)
 {
-
-    udp_socket.write(reinterpret_cast<const char*>(&msg), sizeof(joystick_msg));
-
+    QByteArray datagram(reinterpret_cast<char*>(&msg));
+    QHostAddress address(remote_address);
+    udp_socket.writeDatagram(datagram, address, UDP_PORT);
 }
 
 void DataInterface::receive_data()

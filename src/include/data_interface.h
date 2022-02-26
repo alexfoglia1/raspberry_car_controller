@@ -12,7 +12,7 @@ class DataInterface : public QObject
 public:
     DataInterface();
 
-    void send_command(joystick_msg msg);
+    void send_command(joystick_msg msg, QString remote_address);
 
 signals:
     void received_voltage(voltage_msg message);

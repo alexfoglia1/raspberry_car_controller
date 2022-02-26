@@ -58,3 +58,59 @@ gmake: *** [Makefile:140: cmTC_6f40b/fast] Error 2
 
 
 
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_c7073/fast"
+/usr/bin/make -f CMakeFiles/cmTC_c7073.dir/build.make CMakeFiles/cmTC_c7073.dir/build
+make[1]: Entering directory '/home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_c7073.dir/CheckSymbolExists.cxx.o
+/usr/bin/g++    -std=gnu++11 -o CMakeFiles/cmTC_c7073.dir/CheckSymbolExists.cxx.o -c /home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
+Linking CXX executable cmTC_c7073
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c7073.dir/link.txt --verbose=1
+/usr/bin/g++       CMakeFiles/cmTC_c7073.dir/CheckSymbolExists.cxx.o  -o cmTC_c7073 
+CMakeFiles/cmTC_c7073.dir/CheckSymbolExists.cxx.o: In function `main':
+CheckSymbolExists.cxx:(.text+0x14): undefined reference to `pthread_create'
+CheckSymbolExists.cxx:(.text+0x18): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_c7073.dir/build.make:97: recipe for target 'cmTC_c7073' failed
+make[1]: *** [cmTC_c7073] Error 1
+make[1]: Leaving directory '/home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_c7073/fast' failed
+make: *** [cmTC_c7073/fast] Error 2
+
+File /home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_53fc7/fast"
+/usr/bin/make -f CMakeFiles/cmTC_53fc7.dir/build.make CMakeFiles/cmTC_53fc7.dir/build
+make[1]: Entering directory '/home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_53fc7.dir/CheckFunctionExists.cxx.o
+/usr/bin/g++    -DCHECK_FUNCTION_EXISTS=pthread_create   -std=gnu++11 -o CMakeFiles/cmTC_53fc7.dir/CheckFunctionExists.cxx.o -c /home/alex/git/raspberry_car_controller/CMakeFiles/CheckLibraryExists/CheckFunctionExists.cxx
+Linking CXX executable cmTC_53fc7
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_53fc7.dir/link.txt --verbose=1
+/usr/bin/g++   -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_53fc7.dir/CheckFunctionExists.cxx.o  -o cmTC_53fc7 -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_53fc7.dir/build.make:97: recipe for target 'cmTC_53fc7' failed
+make[1]: *** [cmTC_53fc7] Error 1
+make[1]: Leaving directory '/home/alex/git/raspberry_car_controller/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_53fc7/fast' failed
+make: *** [cmTC_53fc7/fast] Error 2
+
+

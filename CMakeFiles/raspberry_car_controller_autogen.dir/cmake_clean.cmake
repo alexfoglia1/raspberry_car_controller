@@ -1,6 +1,7 @@
 file(REMOVE_RECURSE
+  "raspberry_car_controller_autogen"
+  "CMakeFiles/raspberry_car_controller_autogen.dir/AutogenOldSettings.cmake"
   "CMakeFiles/raspberry_car_controller_autogen"
-  "raspberry_car_controller_autogen/mocs_compilation.cpp"
 )
 
 # Per-language clean rules from dependency scanning.

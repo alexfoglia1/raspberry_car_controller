@@ -9,7 +9,7 @@
 #include "video_renderer.h"
 #include "joystick.h"
 
-const char* DEFAULT_RASPBY_ADDR = "192.168.1.13";
+const char* DEFAULT_RASPBY_ADDR = "192.168.1.20";
 
 int main(int argc, char** argv)
 {
@@ -56,6 +56,10 @@ int main(int argc, char** argv)
     /** Start renerer **/
     renderer->init_window();
     renderer->start();
+
+    /** Notify controller started **/
+    joystick_msg controller_on = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, true, false};
+    iface->send_command(controller_on, argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
 
     /** Launch Qt Application **/
     app.exec();
