@@ -97,6 +97,7 @@ void VideoRenderer::run()
     while (!stopped)
     {
         render_window();
+        cv::waitKey(1);
     }
 
     if (save_frame)

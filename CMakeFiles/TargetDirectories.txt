@@ -1,8 +1,0 @@
-/home/alex/git/raspberry_car_controller/CMakeFiles/install/strip.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/edit_cache.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/raspberry_car_controller.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/rebuild_cache.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/list_install_components.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/install/local.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/install.dir
-/home/alex/git/raspberry_car_controller/CMakeFiles/raspberry_car_controller_autogen.dir
