@@ -24,7 +24,8 @@ bool updated(cbit_result_msg m1, cbit_result_msg m2)
             m1.tegra_failure != m2.tegra_failure ||
             m1.js_failure    != m2.js_failure    ||
             m1.att_failure   != m2.att_failure   ||
-            m1.vid_failure   != m2.vid_failure;
+            m1.vid_failure   != m2.vid_failure   ||
+            m1.motor_failure != m2.motor_failure;
 }
 
 void cbit_task()
@@ -35,12 +36,12 @@ void cbit_task()
     memset(&saddr, 0x00, sizeof(struct sockaddr_in));
     saddr.sin_family = AF_INET;
     saddr.sin_addr.s_addr = INADDR_ANY;
-    saddr.sin_port = htons(BITPORT);
+    //saddr.sin_port = htons(BITPORT);
 
     memset(&daddr, 0x00, sizeof(struct sockaddr_in));
     daddr.sin_family = AF_INET;
     daddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    daddr.sin_port = htons(BITRESPORT);
+    //daddr.sin_port = htons(BITRESPORT);
 
     bind(rxsock, reinterpret_cast<struct sockaddr*>(&saddr), sizeof(struct sockaddr_in));
     cbit_result_msg tx;
@@ -71,6 +72,8 @@ void cbit_task()
             case comp_t::ARDUINO:
                 tx.arduino_failure = rx.is_failure;
                 break;
+            case comp_t::MOTORS:
+                tx.motor_failure = rx.is_failure;
             default:
                 break;
             }

@@ -4,6 +4,7 @@
 #include <opencv2/imgproc.hpp>
 #include <list>
 
+double micros_since_epoch();
 double toDegrees(double angle_deg);
 double toRadians(double angle_rad);
 double normalizeAngle(double angle_rad);

@@ -1,44 +1,10 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#define PROJNAME "Raspberry PI 4 Car Remote Controller v01.00"
+#define PROJNAME "Raspberry PI 4 Car Remote Controller v01.01"
 
-#define ERR_CREATESOCKDATA "Could not create data socket"
-#define ERR_BINDSOCKDATA "Could not bind data socket"
-#define ERR_RECVSOCKDATA "Could not receive from data socket"
-#define ERR_CREATESOCKVIDEO "Could not create video socket"
-#define ERR_BINDSOCKVIDEO "Could not bind video socket"
-#define ERR_RECVSOCKVIDEO "Could not receive from video socket"
-#define ERR_UNINITIALIZED_SOCKET "Cannot receive: socket uninitialized"
-#define ERR_UNINITIALIZED_SOCKET_OUT "Cannot send: socket unitialized"
-#define ERR_SENDDATA "Cannot send command"
-
-#define OK_CANSENDDATA "Ready to send data"
-#define OK_SENDDATA "Command successfully sent"
-#define OK_CREATESOCKDATA "Data server socket was successfully created"
-#define OK_BINDSOCKDATA "Data server socket was successfully binded"
-#define OK_CREATESOCKVIDEO "Video server socket was successfully created"
-#define OK_BINDSOCKVIDEO "Video server socket was successfully binded"
-#define OK_CAN_RECEIVE_DATA "Waiting for data"
-#define OK_CAN_RECEIVE_VIDEO "Waiting for video"
-#define OK_RECVSOCKDATA "Received data from data socket"
-#define OK_RECVSOCKVIDEO "Received data from video socket"
-
-#define ERR_UNKNOWN_SOURCE "Received message from unknown source"
-#define OK_SPEED "Received SPEED msg"
-#define OK_ATTITUDE "Received ATTITUDE msg"
-#define OK_THROTTLE "Received THROTTLE STATE msg"
-#define OK_TARGET "Received TARGET msg"
-#define OK_IMAGE "Received IMAGE msg"
-
-#define ATTPORT 1111
-#define RENPORT 2222
-#define THRPORT 3333
-#define TGTPORT 4444
-#define VLTPORT 5555
-
-#define BITPORT 7788
-#define BITRESPORT 8877
+#define UDP_PORT                8888
+#define UDP_PORT_VIDEO          2222
 
 #define VOLTAGE_MSG_ID          1
 #define ATTITUDE_MSG_ID         2
@@ -53,14 +19,10 @@
 #define IMAGE_ROWS    650
 #define IMAGE_COLS    1200
 
-#define THROTTLE_STATE_MAX 0x7F
-#define THROTTLE_EMERGENCY_BREAK 0x70
-#define CONTROLLER_ALIVE 0xAD
-#define CONTROLLER_DEAD 0xDE
-
 #define MAX_TARGETS 15
 
 #include <stdint.h>
+#include <QObject>
 
 enum class comp_t
 {
@@ -68,7 +30,8 @@ enum class comp_t
     ATTITUDE = 1,
     VIDEO = 2,
     JOYSTICK = 3,
-    ARDUINO = 4
+    ARDUINO = 4,
+    MOTORS = 5
 };
 
 typedef struct
@@ -97,6 +60,7 @@ typedef struct __attribute__((packed))
     uint8_t vid_failure;
     uint8_t arduino_failure;
     uint8_t js_failure;
+    uint8_t motor_failure;
 } cbit_result_msg;
 
 typedef struct __attribute__((packed))
@@ -147,5 +111,11 @@ typedef struct __attribute__((packed))
     uint8_t system_state;
 } actuators_state_msg;
 
-
+Q_DECLARE_METATYPE(attitude_msg)
+Q_DECLARE_METATYPE(target_msg)
+Q_DECLARE_METATYPE(actuators_state_msg)
+Q_DECLARE_METATYPE(joystick_msg)
+Q_DECLARE_METATYPE(voltage_msg)
+Q_DECLARE_METATYPE(cbit_result_msg)
+Q_DECLARE_METATYPE(image_msg)
 #endif //DEFS_H

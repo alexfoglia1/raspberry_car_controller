@@ -10,19 +10,12 @@
 
 const int widgets::THROTTLESTATE = 0;
 const int widgets::LOS = 1;
-const int widgets::COMMANDS_OUT = 2;
-const int widgets::TARGETS = 3;
-const int widgets::MENU = 4;
-const int widgets::VIDEO_REC = 5;
-const int widgets::SYSTEM_STATUS = 6;
-const int widgets::JS_MENU = 7;
-const int widgets::DEVELOPER_MODE = 8;
-const int widgets::DEV_ATTITUDE_TAB = 0;
-const int widgets::DEV_VOLTAGE_TAB = 1;
-const int widgets::DEV_DETECTOR_TAB = 2;
-const int widgets::DEV_SPEEDTEST_TAB = 3;
-const int widgets::DEV_EDITPARAMS_TAB = 4;
-
+const int widgets::TARGETS = 2;
+const int widgets::HELP = 3;
+const int widgets::VIDEO_REC = 4;
+const int widgets::SYSTEM_STATUS = 5;
+const int widgets::JS_HELP = 6;
+const int widgets::DEVELOPER_MODE = 7;
 
 const cv::Scalar blue(255, 0, 0);
 const cv::Scalar green(0, 255, 0);
@@ -41,32 +34,10 @@ const cv::Scalar voltageOutCol = green;
 const cv::Scalar rollCol = red;
 const cv::Scalar pitchCol = green;
 const cv::Scalar yawCol = yellow;
-                                        /*spd   los   cmd   tgt   help    vrec   stat   js    DEV_MODE*/
-bool* widgets::is_enabled = new bool[9] {true, true, true, true, false, false, true, false, false};
+                                        /*spd   los  tgt   help    vrec  sysstat      js   DEV_MODE*/
+bool* widgets::is_enabled = new bool[8] {true, true, true, false, false, true,     false,  false};
 
-/** COMMANDS OUT WIDGET **/
-char* widgets::commands_out::cmd_display = new char[256];
-void widgets::commands_out::init()
-{
-    sprintf(cmd_display, "OUT: NONE");
-}
 
-void widgets::commands_out::update(int key)
-{
-    sprintf(cmd_display, "OUT: %s", getNameOfKey(key));
-}
-
-void widgets::commands_out::draw(cv::Mat* imagewindow, int x, int y)
-{
-    if (is_enabled[COMMANDS_OUT])
-    {
-        std::string text_command(cmd_display);
-        int recwidth = 110U;
-        int recheight = 20U;
-        filledRoundedRectangle(*imagewindow, cv::Point(x, y), cv::Size(recwidth, recheight), bgCol, cv::LINE_AA, 1, 0.1f);
-        cv::putText(*imagewindow, text_command, cv::Point2d(x + 5U, y + 15U), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-    }
-}
 
 /** THROTTLESTATE WIDGET **/
 char* widgets::throttlestate::throttle_display = new char[256];
@@ -75,23 +46,28 @@ char* widgets::throttlestate::speed_display_ms = new char[256];
 float widgets::throttlestate::duty_cycle = 0.f;
 void widgets::throttlestate::init()
 {
-    sprintf(throttle_display, "[                                                                                                    ]");
+    char throttle_zero[100];
+    memset(throttle_zero, ' ', 99);
+    throttle_zero[99] = '\0';
+
+    sprintf(throttle_display, "[%s]", throttle_zero);
     sprintf(speed_display_kmh, "0.00 km/h");
     sprintf(speed_display_ms, "0.00 m/s");
 }
 
-void widgets::throttlestate::update(throttle_msg rx)
+void widgets::throttlestate::updateThrottle(uint8_t throttle_state)
 {
     char th_progress[100];
-    float perc = ((float)rx.throttle_state / 255.0) * 100.0;
+    float perc = ((float)throttle_state / 255.0) * 100.0;
 
-    for(uint8_t i = 0; i < 100; i++)
+    for(uint8_t i = 0; i < 99; i++)
     {
         th_progress[i] = (i < perc) ? '*' : ' ';
     }
+    th_progress[99] = '\0';
 
     sprintf(throttle_display, "[%s]", th_progress);
-    duty_cycle = rx.throttle_state /255.f;
+    duty_cycle = throttle_state /255.f;
 }
 
 void widgets::throttlestate::updateVoltageIn(float voltage_in)
@@ -132,11 +108,11 @@ void widgets::los::init()
     act_roll_deg = 0.0;
 }
 
-void widgets::los::update(attitude_msg attitude)
+void widgets::los::update(double pitch, double roll, double yaw)
 {
-    act_yaw_deg = -normalizeAngle((attitude.yaw));
-    act_pitch_deg = normalizeAngle((attitude.pitch));
-    act_roll_deg = normalizeAngle((attitude.roll));
+    act_yaw_deg = -normalizeAngle((yaw));
+    act_pitch_deg = normalizeAngle((pitch));
+    act_roll_deg = normalizeAngle((roll));
 }
 
 void widgets::los::draw(cv::Mat* imagewindow, int x, int y)
@@ -281,15 +257,15 @@ void widgets::targets::draw(cv::Mat* imagewindow)
     }
 }
 
-/** MENU WIDGET **/
-void widgets::menu::draw(cv::Mat* imagewindow, int x, int y)
+/** HELP WIDGET **/
+void widgets::help::draw(cv::Mat* imagewindow, int x, int y)
 {
-    if (is_enabled[MENU])
+    if (is_enabled[HELP])
     {
         int lineSpacing = 20;
         int offsetX = 30;
         int width = 300;
-        int height = 21 * (lineSpacing + 2);
+        int height = 11 * (lineSpacing + 2);
         int centerx = x;
         int centery = y;
         int x0 = centerx - width/2;
@@ -297,28 +273,16 @@ void widgets::menu::draw(cv::Mat* imagewindow, int x, int y)
 
         filledRoundedRectangle(*imagewindow, cv::Point(x0, y0), cv::Size(width, height), bgCol, cv::LINE_AA, 1, 0.1f);
 
-        cv::putText(*imagewindow, cv::String("COMMANDS OUT"), cv::Point(x0 + offsetX, y0 + lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SET MOVE FORWARD [w]"), cv::Point(x0 + 2 * offsetX, y0 + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SET MOVE BACKWARD [x]"), cv::Point(x0 + 2 * offsetX, y0 + 3 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SET TURN LEFT [a]"), cv::Point(x0 + 2 * offsetX, y0 + 4 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SET TURN RIGHT [d]"), cv::Point(x0 + 2 * offsetX, y0 + 5 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SET THROTTLE MAX [<space>]"), cv::Point(x0 +  2 * offsetX, y0 + 6 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SET THROTTLE MIN [<backspace>]"), cv::Point(x0 + 2 * offsetX, y0 + 7 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("THROTTLE UP 1 [n]"), cv::Point(x0 + 2 * offsetX, y0 + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("THROTTLE DOWN 1 [b]"), cv::Point(x0 + 2 * offsetX, y0 + 9 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("THROTTLE UP 10 [p]"), cv::Point(x0 + 2 * offsetX, y0 + 10 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("THROTTLE DOWN 10 [q]"), cv::Point(x0 + 2 * offsetX, y0 + 11 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-
-        cv::putText(*imagewindow, cv::String("LOCAL COMMANDS"), cv::Point(x0 + offsetX, y0 + 12 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE THROTTLE WIDGET [s]"), cv::Point(x0 + 2 * offsetX, y0 + 13 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE LOS WIDGET [l]"), cv::Point(x0 + 2 * offsetX, y0 + 14 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE COMMAND OUT WIDGET [c]"), cv::Point(x0 + 2 * offsetX, y0 + 15 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE TARGET WIDGET [m]"), cv::Point(x0 + 2 * offsetX, y0 + 16 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE HELP [h]"), cv::Point(x0 + 2 * offsetX, y0 + 17 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE JOYSTICK HELP [j / <select>]"), cv::Point(x0 + 2 * offsetX, y0 + 18 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TOGGLE SYSTEM STATUS [y]"), cv::Point(x0 + 2 * offsetX, y0 + 19 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("VIDEO RECORD [v]"), cv::Point(x0 + 2 * offsetX, y0 + 20 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("ENTER DEVELOPMENT MODE [e]"), cv::Point(x0 + 2 * offsetX, y0 + 21 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("LOCAL COMMANDS"), cv::Point(x0 + offsetX, y0 +  lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE THROTTLE WIDGET [s]"), cv::Point(x0 + 2 * offsetX, y0 + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE LOS WIDGET [l]"), cv::Point(x0 + 2 * offsetX, y0 + 3 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE COMMAND OUT WIDGET [c]"), cv::Point(x0 + 2 * offsetX, y0 + 4 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE TARGET WIDGET [m]"), cv::Point(x0 + 2 * offsetX, y0 + 5 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE HELP [h]"), cv::Point(x0 + 2 * offsetX, y0 + 6 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE JOYSTICK HELP [j / <select>]"), cv::Point(x0 + 2 * offsetX, y0 + 7 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("TOGGLE SYSTEM STATUS [y]"), cv::Point(x0 + 2 * offsetX, y0 + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("VIDEO RECORD [v]"), cv::Point(x0 + 2 * offsetX, y0 + 9 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String("ENTER DEVELOPMENT MODE [e]"), cv::Point(x0 + 2 * offsetX, y0 + 10 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
 
     }
 }
@@ -341,6 +305,7 @@ bool widgets::systemstatus::arduino_status;
 float widgets::systemstatus::motor_voltage_in;
 float widgets::systemstatus::motor_voltage_out;
 float widgets::systemstatus::duty_cycle;
+widgets::systemstatus::motor_status_t widgets::systemstatus::motor_status;
 
 void widgets::systemstatus::init()
 {
@@ -351,6 +316,7 @@ void widgets::systemstatus::init()
     motor_voltage_in = 0.f;
     motor_voltage_out = 0.f;
     duty_cycle = 0.f;
+    motor_status = motor_status_t::FAILURE;
 }
 
 void widgets::systemstatus::updateCbit(cbit_result_msg msg)
@@ -360,18 +326,26 @@ void widgets::systemstatus::updateCbit(cbit_result_msg msg)
     vid_status = msg.vid_failure == false;
     js_status  = msg.js_failure  == false;
     arduino_status = msg.arduino_failure == false;
+    motor_status = msg.motor_failure ? motor_status_t::FAILURE :
+                   motor_status;
 }
 
-void widgets::systemstatus::updateMotorVoltageIn(voltage_msg msg)
+void widgets::systemstatus::updateMotorVoltageIn(double voltage)
 {
-    motor_voltage_in = msg.motor_voltage;
+    motor_voltage_in = voltage;
     motor_voltage_out = motor_voltage_in * duty_cycle;
 }
 
-void widgets::systemstatus::updateMotorVoltageOut(throttle_msg msg)
+void widgets::systemstatus::updateMotorVoltageOut(uint8_t pwm)
 {
-    duty_cycle = (float)msg.throttle_state / (float)std::numeric_limits<uint8_t>::max();
+    duty_cycle = (float)pwm / (float)std::numeric_limits<uint8_t>::max();
     motor_voltage_out = motor_voltage_in * duty_cycle;
+}
+
+void widgets::systemstatus::updateRemoteSystemState(uint8_t system_state)
+{
+    motor_status = system_state == 0x00 ? motor_status_t::IDLE :
+                                              motor_status_t::RUNNING;
 }
 
 void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
@@ -381,7 +355,7 @@ void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
         int lineSpacing = 20;
         int offsetX = 5;
         int width = 210;
-        int height = 8 * (lineSpacing + 2);
+        int height = 9 * (lineSpacing + 2);
         int centerx = x;
         int centery = y;
         int x0 = centerx - width/2;
@@ -390,9 +364,12 @@ void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
         float battery_charge_percentage = motor_voltage_in / 10.f; //MAX VOLTAGE 10.0 V
         char prompt_motor_voltage_in[64];
         char prompt_motor_voltage_out[64];
+        char prompt_motor_status[64];
 
         sprintf(prompt_motor_voltage_in, "%.1f V", motor_voltage_in);
         sprintf(prompt_motor_voltage_out, "%.1f V", motor_voltage_out);
+        sprintf(prompt_motor_status, "MOTORS: %s", motor_status == motor_status_t::IDLE ? "IDLE" :
+                                                   motor_status == motor_status_t::RUNNING ? "RUNNING" : "UNKNOWN");
 
         filledRoundedRectangle(*imagewindow, cv::Point(x0, y0), cv::Size(width, height), bgCol, cv::LINE_AA, 1, 0.1f);
         cv::putText(*imagewindow, cv::String("TEGRA DETECTOR"), cv::Point(x0 + offsetX, y0 + 1 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
@@ -402,6 +379,7 @@ void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
         cv::putText(*imagewindow, cv::String("MOTOR BATTERY STATUS"), cv::Point(x0 +  offsetX, y0 + 6 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("MOTOR VOLTAGE IN"), cv::Point(x0 +  offsetX, y0 + 7 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("MOTOR VOLTAGE OUT"), cv::Point(x0 +  offsetX, y0 + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+        cv::putText(*imagewindow, cv::String(prompt_motor_status), cv::Point(x0 + offsetX, y0 + 9 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String("JOYSTICK"), cv::Point(x0 +  offsetX, y0 + 5 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
 
         filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 1 * lineSpacing - 9), cv::Size(15, 15), tegra_status ? green : red, cv::LINE_AA, 1, 0.5f);
@@ -411,16 +389,18 @@ void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)
         filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 6 * lineSpacing - 9), cv::Size(15, 15),
                                battery_charge_percentage >= 0.70 ? okBatteryCol :
                                battery_charge_percentage >= 0.40 ? warnBatteryCol : failBatteryCol, cv::LINE_AA, 1, 0.5f);
+        filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 9 * lineSpacing - 9), cv::Size(15, 15), motor_status == motor_status_t::RUNNING ? green :
+                                                                                                                       motor_status == motor_status_t::IDLE ? yellow : red, cv::LINE_AA, 1, 0.5f);
         cv::putText(*imagewindow, cv::String(prompt_motor_voltage_in), cv::Point(x0 + 30 * offsetX, y0 + 7 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         cv::putText(*imagewindow, cv::String(prompt_motor_voltage_out), cv::Point(x0 + 30 * offsetX, y0 + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         filledRoundedRectangle(*imagewindow, cv::Point(x0 + 30 * offsetX, y0 + 5 * lineSpacing - 9), cv::Size(15, 15), js_status  ? green : red, cv::LINE_AA, 1, 0.5f);
     }
 }
 
-/** JS MENU WIDGET **/
-void widgets::js_menu::draw(cv::Mat* imagewindow, int x, int y)
+/** JS HELP WIDGET **/
+void widgets::js_help::draw(cv::Mat* imagewindow, int x, int y)
 {
-    if (is_enabled[JS_MENU])
+    if (is_enabled[JS_HELP])
     {
         int lineSpacing = 20;
         int offsetX = 30;
@@ -447,565 +427,9 @@ void widgets::js_menu::draw(cv::Mat* imagewindow, int x, int y)
 }
 
 /** DEV MODE **/
-char* widgets::devmode::board_address = new char[256];
-int widgets::devmode::act_tab;
-float* widgets::devmode::vin_values;
-float* widgets::devmode::pitch_values;
-float* widgets::devmode::roll_values;
-float* widgets::devmode::yaw_values;
-float widgets::devmode::duty_cycle;
-int widgets::devmode::fps;
-int widgets::devmode::rx_timeout_s;
-int widgets::devmode::key_timeout_millis;
-int widgets::devmode::paramToEdit;
-double widgets::devmode::test_t0;
-double widgets::devmode::test_tf;
-std::list<float> widgets::devmode::voltagesIn;
-std::list<float> widgets::devmode::voltagesOut;
-std::list<target_data> widgets::devmode::targets;
 
-void widgets::devmode::init()
+widgets::devmode::DeveloperMode::DeveloperMode()
 {
-    act_tab = DEV_ATTITUDE_TAB;
-
-    fps = 30;
-    rx_timeout_s = 1;
-    key_timeout_millis = 1;
-    paramToEdit = 0; /*FPS*/
-
-    vin_values = new float[100];
-    memset(vin_values, 0x00, 100 * sizeof(float));
-    pitch_values = new float[100];
-    memset(pitch_values, 0x00, 100 * sizeof(float));
-    roll_values = new float[100];
-    memset(roll_values, 0x00, 100 * sizeof(float));
-    yaw_values = new float[100];
-    memset(yaw_values, 0x00, 100 * sizeof(float));
-
-    test_t0 = -1.0;
-    test_tf = -1.0;
+    //act_tab = ATTITUDE;
+    //act_tabitem = VIDEOREC_FPS;
 }
-
-void widgets::devmode::updateBoardAddress(const char* addr)
-{
-    sprintf(board_address, "%s", addr);
-}
-
-void widgets::devmode::updatePitch(float p)
-{
-    static int llpitch = -1;
-
-    if (llpitch < 99)
-    {
-        llpitch += 1;
-    }
-    else
-    {
-        llpitch = 0;
-    }
-    pitch_values[llpitch] = normalizeAngle(p);
-}
-
-void widgets::devmode::updateRoll(float r)
-{
-    static int llroll = -1;
-
-    if (llroll < 99)
-    {
-        llroll += 1;
-    }
-    else
-    {
-        llroll = 0;
-    }
-    roll_values[llroll] = normalizeAngle(r);
-}
-
-void widgets::devmode::updateYaw(float y)
-{
-    static int llyaw = -1;
-
-    if (llyaw < 99)
-    {
-        llyaw += 1;
-    }
-    else
-    {
-        llyaw = 0;
-    }
-    yaw_values[llyaw] = normalizeAngle(y);
-}
-
-void widgets::devmode::updateVoltageIn(float v)
-{
-    static int llvin = -1;
-
-    if (llvin < 99)
-    {
-        llvin += 1;
-    }
-    else
-    {
-        llvin = 0;
-    }
-    vin_values[llvin] = v;
-}
-
-void widgets::devmode::updateVoltageOut(float dc)
-{
-    duty_cycle = dc;
-}
-
-void widgets::devmode::updateTargets(target_data* p_targets, int n_targets)
-{
-    targets.clear();
-    if (n_targets > MAX_TARGETS)
-    {
-        n_targets = MAX_TARGETS;
-    }
-
-    for(int i = 0; i < n_targets; i++)
-    {
-        targets.push_back(p_targets[i]);
-    }
-}
-
-void widgets::devmode::updateTab(int tab)
-{
-    act_tab = tab;
-    if (act_tab != DEV_SPEEDTEST_TAB)
-    {
-        signalResetTest();
-    }
-}
-
-void widgets::devmode::signalStartSpeedTest()
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    test_t0 = (double)tv.tv_sec + ((double)(tv.tv_usec) * 1e-6);
-    test_tf = -1;
-}
-
-void widgets::devmode::signalStopSpeedTest()
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    test_tf = (double)tv.tv_sec + ((double)(tv.tv_usec) * 1e-6);
-}
-
-void widgets::devmode::signalResetTest()
-{
-    test_t0 = -1;
-    test_tf = -1;
-    voltagesIn.clear();
-    voltagesOut.clear();
-}
-
-void widgets::devmode::updateSpeedTestVoltageIn(float v)
-{
-    voltagesIn.push_back(v);
-    voltagesOut.push_back(v * duty_cycle);
-}
-
-void widgets::devmode::signalSwitchCurrentParam(int delta)
-{
-    paramToEdit += delta;
-    if (paramToEdit > 3) paramToEdit = 0;
-    if (paramToEdit < 0) paramToEdit = 3;
-}
-
-#include <libssh/libssh.h>
-int run_ssh_command(char* board_address, const char* command)
-{
-    ssh_session session;
-      int rc;
-
-      // Open session and set options
-      session = ssh_new();
-      if (session == NULL)
-      {
-          printf("ssh_session null\n");
-          return SSH_ERROR;
-      }
-      ssh_options_set(session, SSH_OPTIONS_HOST, board_address);
-
-      // Connect to server
-      rc = ssh_connect(session);
-      if (rc != SSH_OK)
-      {
-        fprintf(stderr, "Error connecting to board: %s\n",
-                ssh_get_error(session));
-        ssh_free(session);
-        exit(-1);
-      }
-
-      // Authenticate ourselves
-
-      rc = ssh_userauth_password(session, "pi", "lamerome123");
-      if (rc != SSH_AUTH_SUCCESS)
-      {
-        fprintf(stderr, "Error authenticating with password: %s\n",
-                ssh_get_error(session));
-        ssh_disconnect(session);
-        ssh_free(session);
-        exit(-1);
-      }
-  ssh_channel channel;
-  char buffer[256];
-  int nbytes;
-
-  channel = ssh_channel_new(session);
-  if (channel == NULL)
-    return SSH_ERROR;
-
-  rc = ssh_channel_open_session(channel);
-  if (rc != SSH_OK)
-  {
-    ssh_channel_free(channel);
-    return rc;
-  }
-
-  rc = ssh_channel_request_exec(channel, command);
-
-  ssh_channel_send_eof(channel);
-  ssh_channel_close(channel);
-  ssh_channel_free(channel);
-
-  ssh_disconnect(session);
-  ssh_free(session);
-  return SSH_OK;
-}
-
-void widgets::devmode::editCurrentParamValue(int delta)
-{
-    switch (paramToEdit)
-    {
-    case 0: /*FPS*/
-        if (fps + delta < 1) fps = 1; else fps += delta;
-        break;
-    case 1: /*RX TIMEOUT*/
-        if (rx_timeout_s + delta < 1) rx_timeout_s = 1; else rx_timeout_s += delta;
-        break;
-    case 2: /*WAIT KEY TIMEOUT*/
-        if (key_timeout_millis + delta < 1) key_timeout_millis = 1; else key_timeout_millis += delta;
-        break;
-    case 3: /*RECALIBRATE IMU*/
-        if (delta)
-        {
-
-              run_ssh_command(board_address, "pkill -f imu_driver");
-              printf("after pkill\n");
-              run_ssh_command(board_address, "python3 /home/pi/git/imu_driver/imu_driver.py &");
-              printf("after python3\n");
-
-        }
-        break;
-    }
-}
-
-void widgets::devmode::draw(cv::Mat* imagewindow, int x, int y)
-{
-    if (is_enabled[DEVELOPER_MODE])
-    {
-        /** Local variable initialization **/
-        int lineSpacing = 20;
-        int width = 900;
-        int height = 600;
-        int centerx = x;
-        int centery = y;
-        int x0 = centerx - width/2;
-        int y0 = centery - height/2;
-        int selection_x = act_tab == DEV_ATTITUDE_TAB ? 175 :
-                          act_tab == DEV_VOLTAGE_TAB ? 275 :
-                          act_tab == DEV_DETECTOR_TAB ? 375 :
-                          act_tab == DEV_SPEEDTEST_TAB ? 475 : 575;
-        int selection_y = y0 + lineSpacing / 2 - 28;
-        int selection_width = act_tab == DEV_ATTITUDE_TAB ? 93:
-                              act_tab == DEV_VOLTAGE_TAB ?  90 :
-                              act_tab == DEV_DETECTOR_TAB ? 80 :
-                              act_tab == DEV_SPEEDTEST_TAB ? 77 : 120;
-        int selection_height = 3 * lineSpacing / 5 + 3;
-        float scale_x = width / 100.f;
-        const cv::Scalar* fgColAttitudeTab = act_tab == DEV_ATTITUDE_TAB ? &bgCol : &fgCol;
-        const cv::Scalar* fgColVoltageTab = act_tab == DEV_VOLTAGE_TAB ? &bgCol : &fgCol;
-        const cv::Scalar* fgColTargetTab = act_tab == DEV_DETECTOR_TAB ? &bgCol : &fgCol;
-        const cv::Scalar* fgColSpeedTestTab = act_tab == DEV_SPEEDTEST_TAB ? &bgCol : &fgCol;
-        const cv::Scalar* fgColEditParamsTab = act_tab == DEV_EDITPARAMS_TAB ? &bgCol : &fgCol;
-        static double delta_t_test = 0.f;
-        static double avg_vin_test = 0.f;
-        static double avg_vout_test = 0.f;
-
-        /** Developer mode background **/
-        filledRoundedRectangle(*imagewindow, cv::Point(x0, y0 - 20), cv::Size(width, height + 20), bgCol, cv::LINE_AA, 1, 0.01f);
-        cv::rectangle(*imagewindow, cv::Rect(x0, y0 - 2, width, height + 2), fgCol);
-        float scale_y = 1.f;
-        float delta_value_y = 1.f;
-        float max_value_y = 1.f;
-        bool isPlot = false;
-
-        /** Developer mode header **/
-        filledRoundedRectangle(*imagewindow, cv::Point(selection_x, selection_y), cv::Size(selection_width, selection_height), fgCol, cv::LINE_AA, 1, 0.01f);
-        cv::putText(*imagewindow, cv::String("ATTITUDE PLOT"), cv::Point(175, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColAttitudeTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("VOLTAGE PLOT"), cv::Point(275, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColVoltageTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("TARGETS"), cv::Point(375, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColTargetTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("SPEED TEST"), cv::Point(475, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColSpeedTestTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("EDIT PARAMETERS"), cv::Point(575, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColEditParamsTab, 1, cv::LINE_AA);
-        cv::putText(*imagewindow, cv::String("NEXT TAB [g/<R3>] PREV. TAB [f/<L3>]"), cv::Point(width - x0, y0 + lineSpacing - 25), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-        /** Developer mode plot axis **/
-        switch(act_tab)
-        {
-        case DEV_ATTITUDE_TAB:
-            isPlot = true;
-            delta_value_y = 45.f/2.f;
-            max_value_y = 360.f;
-            scale_y = height / max_value_y;
-            break;
-        case DEV_VOLTAGE_TAB:
-            delta_value_y = 0.25f;
-            isPlot = true;
-            max_value_y = 10.f;
-            scale_y = height / max_value_y;
-            break;
-        default:
-            break;
-        }
-        if (isPlot)
-        {
-            float value_y = 0.f;
-
-            while(value_y < max_value_y)
-            {
-                float height_of_value = (height + y0) - value_y * scale_y;
-                char buf[64];
-                sprintf(buf, "%.2f", value_y);
-                cv::putText(*imagewindow, cv::String(buf), cv::Point(x0, height_of_value - 2), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
-
-                float act_x = x0;
-                bool drawSegment = true;
-                float segLen = width / 300.f;
-                while(act_x < x0 + width)
-                {
-                    if(drawSegment && fabs(value_y) >= delta_value_y)
-                    {
-                        cv::line(*imagewindow, cv::Point(act_x, height_of_value), cv::Point(act_x + segLen, height_of_value), fgCol,1, cv::LINE_AA);
-                    }
-
-                    act_x += segLen;
-                    drawSegment = !drawSegment;
-                }
-                value_y += delta_value_y;
-            }
-        }
-
-        /** Developer mode content **/
-        switch(act_tab)
-        {
-        case DEV_ATTITUDE_TAB:
-            cv::putText(*imagewindow, cv::String("YAW"), cv::Point(x0 + width - 200, y0 + 13), cv::FONT_HERSHEY_SIMPLEX, 0.35, yawCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("PITCH"), cv::Point(x0 + width - 150, y0 + 13), cv::FONT_HERSHEY_SIMPLEX, 0.35, pitchCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("ROLL"), cv::Point(x0 + width - 100, y0 + 13), cv::FONT_HERSHEY_SIMPLEX, 0.35, rollCol, 1, cv::LINE_AA);
-            for(int i = 0; i < 99; i++)
-            {
-                float x1 = x0 + i * scale_x;
-                float y1 = (height + y0) - pitch_values[i] * scale_y;
-                float x2 = x0 + (i + 1) * scale_x;
-                float y2 = (height + y0) - pitch_values[i + 1] * scale_y;
-                cv::line(*imagewindow, cv::Point(x1, y1), cv::Point(x2, y2), pitchCol);
-
-                x1 = x0 + i * scale_x;
-                y1 = (height + y0) - roll_values[i] * scale_y;
-                x2 = x0 + (i + 1) * scale_x;
-                y2 = (height + y0) - roll_values[i + 1] * scale_y;
-                cv::line(*imagewindow, cv::Point(x1, y1), cv::Point(x2, y2), rollCol);
-
-                x1 = x0 + i * scale_x;
-                y1 = (height + y0) - yaw_values[i] * scale_y;
-                x2 = x0 + (i + 1) * scale_x;
-                y2 = (height + y0) - yaw_values[i + 1] * scale_y;
-                cv::line(*imagewindow, cv::Point(x1, y1), cv::Point(x2, y2), yawCol);
-            }
-            break;
-        case DEV_VOLTAGE_TAB:
-        {
-            cv::putText(*imagewindow, cv::String("V IN"), cv::Point(x0 + width - 200, y0 + 13), cv::FONT_HERSHEY_SIMPLEX, 0.35, voltageInCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("V OUT"), cv::Point(x0 + width - 150, y0 + 13), cv::FONT_HERSHEY_SIMPLEX, 0.35, voltageOutCol, 1, cv::LINE_AA);
-            for(int i = 0; i < 99; i++)
-            {
-                float x1 = x0 + i * scale_x;
-                float y1 = (height + y0) - vin_values[i] * scale_y;
-                float x2 = x0 + (i + 1) * scale_x;
-                float y2 = (height + y0) - vin_values[i + 1] * scale_y;
-                cv::line(*imagewindow, cv::Point(x1, y1), cv::Point(x2, y2), voltageInCol);
-
-                y1 = (height + y0) - duty_cycle * vin_values[i] * scale_y;
-                y2 = (height + y0) - duty_cycle * vin_values[i + 1] * scale_y;
-                cv::line(*imagewindow, cv::Point(x1, y1), cv::Point(x2, y2), voltageOutCol);
-            }
-            break;
-        }
-        case DEV_DETECTOR_TAB:
-        {
-            int n_targets = targets.size();
-            char buf[64];
-            sprintf(buf, "NUMBER OF TARGETS: %d", n_targets);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 10, 30 + y0), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            float line_height = (float)height / (float)(2.f + MAX_TARGETS);
-
-            /** Table header: column names **/
-            cv::putText(*imagewindow, cv::String("INDEX"), cv::Point(x0 + 3 + 10, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("CLASS"), cv::Point(x0 + 3 +10 + 120, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("CONFIDENCE"), cv::Point(x0 + 3 + 10 + 240, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("X COORD."), cv::Point(x0 + 3 + 10 + 360, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("Y COORD."), cv::Point(x0 + 3 + 10 + 480, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("WIDTH"), cv::Point(x0 + 12 + 600, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("HEIGHT"), cv::Point(x0 + 12 + 720, 30 + y0 + line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-            /** Table header: square **/
-            cv::line(*imagewindow, cv::Point(x0 + 7, 18 + y0 + line_height), cv::Point(x0 + 840, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 7, 38 + y0 + line_height), cv::Point(x0 + 840, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 7, 18 + y0 + line_height), cv::Point(x0 + 7, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 840, 18 + y0 + line_height), cv::Point(x0 + 840, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-
-            /** Table header: columns **/
-            cv::line(*imagewindow, cv::Point(x0 + 10 + 120, 18 + y0 + line_height), cv::Point(x0 + 10 + 120, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 10 + 240, 18 + y0 + line_height), cv::Point(x0 + 10 + 240, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 10 + 360, 18 + y0 + line_height), cv::Point(x0 + 10 + 360, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 10 + 480, 18 + y0 + line_height), cv::Point(x0 + 10 + 480, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 10 + 600, 18 + y0 + line_height), cv::Point(x0 + 10 + 600, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-            cv::line(*imagewindow, cv::Point(x0 + 10 + 720, 18 + y0 + line_height), cv::Point(x0 + 10 + 720, 38 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-
-            int i = 1;
-            for(auto& target : targets)
-            {
-                char index[64];
-                sprintf(index, "%d", i++);
-                char class_[64];
-                sprintf(class_, "%s", target.description);
-                char conf[64];
-                sprintf(conf, "%f", target.confidence);
-                char x_coord[64];
-                sprintf(x_coord, "%d", target.x_pos);
-                char y_coord[64];
-                sprintf(y_coord, "%d", target.y_pos);
-                char tgtwidth[64];
-                sprintf(tgtwidth, "%d", target.width);
-                char tgtheight[64];
-                sprintf(tgtheight, "%d", target.height);
-
-                /** Table row: column values **/
-                cv::putText(*imagewindow, cv::String(index), cv::Point(x0 + 3 + 10, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String(class_), cv::Point(x0 + 3 +10 + 120, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String(conf), cv::Point(x0 + 3 + 10 + 240, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String(x_coord), cv::Point(x0 + 3 + 10 + 360, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String(y_coord), cv::Point(x0 + 3 + 10 + 480, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String(tgtwidth), cv::Point(x0 + 12 + 600, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String(tgtheight), cv::Point(x0 + 12 + 720, 20 + y0 + i * line_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-                /** Table row: horizontal delimiter bottom **/
-                cv::line(*imagewindow, cv::Point(x0 + 7, 28 + y0 + i * line_height), cv::Point(x0 + 840, 28 + y0 + i * line_height), fgCol, 1, cv::LINE_AA);
-
-                /** Table row: columns delimiter from bottom row to table top **/
-                cv::line(*imagewindow, cv::Point(x0 + 7, 28 + y0 + i * line_height), cv::Point(x0 + 7, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 10 + 120, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 120, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 10 + 240, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 240, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 10 + 360, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 360, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 10 + 480, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 480, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 10 + 600, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 600, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 10 + 720, 28 + y0 + i * line_height), cv::Point(x0 + 10 + 720, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-                cv::line(*imagewindow, cv::Point(x0 + 840, 28 + y0 + i * line_height), cv::Point(x0 + 840, 18 + y0 + line_height), fgCol, 1, cv::LINE_AA);
-
-            }
-            break;
-        }
-        case DEV_SPEEDTEST_TAB:
-        {
-            if (test_t0 > 0 && test_tf < 0)
-            {
-                /** Test running **/
-                struct timeval act_t;
-                gettimeofday(&act_t, NULL);
-                delta_t_test = (double)act_t.tv_sec + ((double)act_t.tv_usec * 1e-6) - test_t0;
-                avg_vin_test = 0.f;
-                avg_vout_test = 0.f;
-
-                cv::putText(*imagewindow, cv::String("STOP TEST"), cv::Point(x0 + 20, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String("[s/<cross>]"), cv::Point(x0 + 300, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            }
-            else if(test_t0 > 0 && test_tf > 0)
-            {
-                /** Test finished **/
-                delta_t_test = test_tf - test_t0;
-                avg_vin_test = avg(voltagesIn);
-                avg_vout_test = avg(voltagesOut);
-
-                FILE* f = fopen("speedtest.csv", "a");
-                fprintf(f, "%f, %f, %f\n", delta_t_test, avg_vin_test, avg_vout_test);
-                fclose(f);
-
-                signalResetTest();
-            }
-            else
-            {
-                /** Test is not running **/
-                cv::putText(*imagewindow, cv::String("START TEST"), cv::Point(x0 + 20, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-                cv::putText(*imagewindow, cv::String("[s/<cross>]"), cv::Point(x0 + 300, y0 + 100), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            }
-
-            char buf[64];
-
-            sprintf(buf, "%f s", (delta_t_test));
-            cv::putText(*imagewindow, cv::String("DURATION"), cv::Point(x0 + 20, y), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-            sprintf(buf, "%f V", avg_vin_test);
-            cv::putText(*imagewindow, cv::String("AVG VOLTAGE IN"), cv::Point(x0 + 20, y + 80), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y + 80), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-            sprintf(buf, "%f V", avg_vout_test);
-            cv::putText(*imagewindow, cv::String("AVG VOLTAGE OUT"), cv::Point(x0 + 20, y + 160), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + 300, y + 160), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            break;
-        }
-        case DEV_EDITPARAMS_TAB:
-        {
-            int selection_x = x0 + 10;
-            int selection_y = paramToEdit == 0 ? /*FPS*/ y0 + 10 :
-                              paramToEdit == 1 ? /*RX TIMEOUT*/  y0 + 50 :
-                              paramToEdit == 2 ? /*WAITKEY TIMEOUT*/  y0 + 90 : /*RECALIBRATE IMU*/ y0 + 130;
-            int selection_width = paramToEdit == 0 ? /*FPS*/ 122:
-                                  paramToEdit == 1 ? /*RX TIMEOUT*/ 100 :
-                                  paramToEdit== 2 ? /*WAITKEY TIMEOUT*/ 220 : /*RECALIBRATE IMU*/ 200;
-            const cv::Scalar* fgColFps = paramToEdit == 0 ? &bgCol : &fgCol;
-            const cv::Scalar* fgColRxTimeout = paramToEdit == 1 ? &bgCol : &fgCol;
-            const cv::Scalar* fgColWaitKeyTimeout = paramToEdit == 2 ? &bgCol : &fgCol;
-            const cv::Scalar* fgColImu = paramToEdit == 3 ? &bgCol : &fgCol;
-
-            filledRoundedRectangle(*imagewindow, cv::Point(selection_x, selection_y), cv::Size(selection_width, selection_height), fgCol, cv::LINE_AA, 1, 0.01f);
-            cv::putText(*imagewindow, cv::String("VIDEO RECORD FPS"), cv::Point(x0 + 10, y0 + 10 + selection_height - 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColFps, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("RX TIMEOUT (s)"), cv::Point(x0 + 10, y0 + 50 + selection_height - 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColRxTimeout, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("KEYBOARD INPUT TIMEOUT (millis)"), cv::Point(x0 + 10, y0 + 90 + selection_height - 2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColWaitKeyTimeout, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("RECALIBRATE IMU DRIVER"), cv::Point(x0 + 10, y0 + 130 + selection_height -2), cv::FONT_HERSHEY_SIMPLEX, 0.4, *fgColImu, 1, cv::LINE_AA);
-
-            char buf[64];
-            sprintf(buf, "%d", fps);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + width / 3, y0 + 10 + selection_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            sprintf(buf, "%d", rx_timeout_s);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + width / 3, y0 + 50 + selection_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            sprintf(buf, "%d", key_timeout_millis);
-            cv::putText(*imagewindow, cv::String(buf), cv::Point(x0 + width / 3, y0 + 90 + selection_height), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-            cv::putText(*imagewindow, cv::String("SELECTION DOWN [s/cross]"), cv::Point(x0 + 10, y0 + height / 2 + lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("SELECTION UP [c/triangle]"), cv::Point(x0 + 10, y0 + height / 2 + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("VALUE DOWN [l/square]"), cv::Point(x0 + 10, y0 + height / 2 + 3 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-            cv::putText(*imagewindow, cv::String("VALUE UP [y/circle]"), cv::Point(x0 + 10, y0 + height / 2 + 4 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-
-            break;
-        }
-        default:
-            break;
-        }
-    }
-}
-

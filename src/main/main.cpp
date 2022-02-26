@@ -1,17 +1,13 @@
-#include "defs.h"
-#include "video_renderer.h"
-#include "joystick.h"
-#include "cbit.h"
-
-#include <stdio.h>
+#include <QApplication>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <wait.h>
 
-#include <signal.h>
-#include <sys/stat.h>
-#include <experimental/filesystem>
+#include "defs.h"
+#include "data_interface.h"
+#include "video_interface.h"
+#include "video_renderer.h"
+#include "joystick.h"
 
 const char* DEFAULT_RASPBY_ADDR = "192.168.1.13";
 
@@ -28,33 +24,39 @@ int main(int argc, char** argv)
     FILE* f = fopen("speedtest.csv", "w");
     fprintf(f, "dt, avg_vin, avg_vout\n");
     fclose(f);
-    int js_pid = fork();
-    if(js_pid == 0)
-    {
-        /** child process joystick **/
-        joystick_task(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
-        exit(EXIT_SUCCESS);
-    }
 
-    int cbit_pid = fork();
-    if(cbit_pid == 0)
-    {
-        /** child process cbit **/
-        cbit_task();
-        exit(EXIT_SUCCESS);
-    }
 
-    init_window(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
+    /** Init Qt Application **/
+    QApplication app(argc, argv);
 
-    main_loop(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
+    /** Register meta types **/
+    qRegisterMetaType<joystick_msg>();
+    qRegisterMetaType<attitude_msg>();
+    qRegisterMetaType<voltage_msg>();
+    qRegisterMetaType<actuators_state_msg>();
+    qRegisterMetaType<cbit_result_msg>();
+    qRegisterMetaType<target_msg>();
+    qRegisterMetaType<image_msg>();
 
-    kill(js_pid, SIGUSR1);
-    kill(cbit_pid, SIGUSR1);
+    /** Create window render **/
+    VideoRenderer* renderer = new VideoRenderer();
 
-    int canExit;
-    wait(&canExit);
-    wait(&canExit);
+    /** Create data interface **/
+    DataInterface* iface = new DataInterface();
+    QObject::connect(iface, SIGNAL(received_attitude(attitude_msg)), renderer, SLOT(update(attitude_msg)));
+    QObject::connect(iface, SIGNAL(received_voltage(voltage_msg)), renderer, SLOT(update(voltage_msg)));
+    QObject::connect(iface, SIGNAL(received_cbit_result(cbit_result_msg)), renderer, SLOT(update(cbit_result_msg)));
+    QObject::connect(iface, SIGNAL(received_actuators(actuators_state_msg)), renderer, SLOT(update(actuators_state_msg)));
+    QObject::connect(iface, SIGNAL(received_targets(target_msg)), renderer, SLOT(update(target_msg)));
 
-    printf("Main process exit\n");
-    return 0;
+    /** Create video interface **/
+    VideoInterface* iface_v = new VideoInterface();
+    QObject::connect(iface_v, SIGNAL(received_video(image_msg)), renderer, SLOT(update(image_msg)));
+
+    /** Start renerer **/
+    renderer->init_window();
+    renderer->start();
+
+    /** Launch Qt Application **/
+    app.exec();
 }

@@ -1,0 +1,234 @@
+{
+	"BUILD_DIR" : "/home/alex/git/raspberry_car_controller/raspberry_car_controller_autogen",
+	"CMAKE_BINARY_DIR" : "/home/alex/git/raspberry_car_controller",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/alex/git/raspberry_car_controller",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/alex/git/raspberry_car_controller",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/home/alex/git/raspberry_car_controller/CMakeLists.txt",
+		"/home/alex/git/raspberry_car_controller/CMakeFiles/3.18.4/CMakeSystem.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeSystemSpecificInitialize.cmake",
+		"/home/alex/git/raspberry_car_controller/CMakeFiles/3.18.4/CMakeCXXCompiler.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeSystemSpecificInformation.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeGenericSystem.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeInitializeConfigs.cmake",
+		"/usr/share/cmake-3.18/Modules/Platform/Linux.cmake",
+		"/usr/share/cmake-3.18/Modules/Platform/UnixPaths.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeCXXInformation.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeLanguageInformation.cmake",
+		"/usr/share/cmake-3.18/Modules/Compiler/GNU-CXX.cmake",
+		"/usr/share/cmake-3.18/Modules/Compiler/GNU.cmake",
+		"/usr/share/cmake-3.18/Modules/Compiler/CMakeCommonCompilerMacros.cmake",
+		"/usr/share/cmake-3.18/Modules/Internal/CMakeCheckCompilerFlag.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake",
+		"/usr/share/cmake-3.18/Modules/Platform/Linux-GNU-CXX.cmake",
+		"/usr/share/cmake-3.18/Modules/Platform/Linux-GNU.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeCommonLanguageInclude.cmake",
+		"/usr/share/cmake-3.18/Modules/FindThreads.cmake",
+		"/usr/share/cmake-3.18/Modules/CheckLibraryExists.cmake",
+		"/usr/share/cmake-3.18/Modules/CheckIncludeFileCXX.cmake",
+		"/usr/share/cmake-3.18/Modules/CheckCXXSourceCompiles.cmake",
+		"/usr/share/cmake-3.18/Modules/FindPackageHandleStandardArgs.cmake",
+		"/usr/share/cmake-3.18/Modules/FindPackageMessage.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5/Qt5ConfigVersion.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5/Qt5Config.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5/Qt5ModuleLocation.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Core/Qt5CoreConfigVersion.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Core/Qt5CoreConfig.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Core/Qt5CoreConfigExtras.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Core/Qt5CoreMacros.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeParseArguments.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5GuiConfigVersion.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5GuiConfig.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QComposePlatformInputContextPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEglFSEmulatorIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEglFSIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEglFSKmsEglDeviceIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEglFSX11IntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEvdevKeyboardPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEvdevMousePlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEvdevTabletPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QEvdevTouchScreenPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QGifPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QGtk3ThemePlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QICNSPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QICOPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QIbusPlatformInputContextPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QJpegPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QLinuxFbIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QMinimalEglIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QMinimalIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QOffscreenIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QTgaPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QTiffPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QTuioTouchPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QVirtualKeyboardPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QVncIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QWbmpPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QWebpPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QXcbEglIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QXcbGlxIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5Gui_QXcbIntegrationPlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigVersion.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfig.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigExtras.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Widgets/Qt5WidgetsMacros.cmake",
+		"/usr/share/cmake-3.18/Modules/CMakeParseArguments.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Network/Qt5NetworkConfigVersion.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Network/Qt5NetworkConfig.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Network/Qt5Network_QConnmanEnginePlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Network/Qt5Network_QGenericEnginePlugin.cmake",
+		"/home/alex/Qt/5.9.9/gcc_64/lib/cmake/Qt5Network/Qt5Network_QNetworkManagerEnginePlugin.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/opencv4/OpenCVConfig-version.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/opencv4/OpenCVConfig.cmake",
+		"/usr/share/cmake-3.18/Modules/FindPackageHandleStandardArgs.cmake",
+		"/usr/share/cmake-3.18/Modules/FindPackageMessage.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/opencv4/OpenCVModules.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/opencv4/OpenCVModules-release.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/libssh/libssh-config-version.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/libssh/libssh-config.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/libssh/libssh-config-none.cmake",
+		"/usr/lib/x86_64-linux-gnu/cmake/libssh/libssh-config-version.cmake"
+	],
+	"CMAKE_SOURCE_DIR" : "/home/alex/git/raspberry_car_controller",
+	"DEP_FILE" : "",
+	"DEP_FILE_RULE_NAME" : "",
+	"HEADERS" : 
+	[
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/cbit.h",
+			"MU",
+			"7PH6M6IPMC/moc_cbit.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/data_interface.h",
+			"MU",
+			"7PH6M6IPMC/moc_data_interface.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/defs.h",
+			"MU",
+			"7PH6M6IPMC/moc_defs.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/joystick.h",
+			"MU",
+			"7PH6M6IPMC/moc_joystick.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/keyboard_input.h",
+			"MU",
+			"7PH6M6IPMC/moc_keyboard_input.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/keymap.h",
+			"MU",
+			"7PH6M6IPMC/moc_keymap.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/utils.h",
+			"MU",
+			"7PH6M6IPMC/moc_utils.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/video_renderer.h",
+			"MU",
+			"7PH6M6IPMC/moc_video_renderer.cpp"
+		],
+		[
+			"/home/alex/git/raspberry_car_controller/src/include/widgets.h",
+			"MU",
+			"7PH6M6IPMC/moc_widgets.cpp"
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/alex/git/raspberry_car_controller/raspberry_car_controller_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/alex/git/raspberry_car_controller/raspberry_car_controller_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NETWORK_LIB",
+		"QT_NO_DEBUG",
+		"QT_WIDGETS_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/alex/git/raspberry_car_controller",
+		"/home/alex/git/raspberry_car_controller/src/include",
+		"/home/alex/git/raspberry_car_controller/src/core",
+		"/home/alex/git/raspberry_car_controller/src/main",
+		"/usr/include/opencv4",
+		"/home/alex/Qt/5.9.9/gcc_64/include",
+		"/home/alex/Qt/5.9.9/gcc_64/include/QtCore",
+		"/home/alex/Qt/5.9.9/gcc_64/mkspecs/linux-g++",
+		"/home/alex/Qt/5.9.9/gcc_64/include/QtGui",
+		"/home/alex/Qt/5.9.9/gcc_64/include/QtWidgets",
+		"/home/alex/Qt/5.9.9/gcc_64/include/QtNetwork",
+		"/usr/include",
+		"/usr/include/c++/10",
+		"/usr/include/x86_64-linux-gnu/c++/10",
+		"/usr/include/c++/10/backward",
+		"/usr/lib/gcc/x86_64-linux-gnu/10/include",
+		"/usr/local/include",
+		"/usr/include/x86_64-linux-gnu"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-dM",
+		"-E",
+		"-c",
+		"/usr/share/cmake-3.18/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/alex/git/raspberry_car_controller/raspberry_car_controller_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/alex/git/raspberry_car_controller/CMakeFiles/raspberry_car_controller_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/home/alex/Qt/5.9.9/gcc_64/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/home/alex/Qt/5.9.9/gcc_64/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"QT_VERSION_MINOR" : 9,
+	"SETTINGS_FILE" : "/home/alex/git/raspberry_car_controller/CMakeFiles/raspberry_car_controller_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[ "/home/alex/git/raspberry_car_controller/src/core/cbit.cpp", "MU" ],
+		[
+			"/home/alex/git/raspberry_car_controller/src/core/data_interface.cpp",
+			"MU"
+		],
+		[ "/home/alex/git/raspberry_car_controller/src/core/joystick.cpp", "MU" ],
+		[
+			"/home/alex/git/raspberry_car_controller/src/core/keyboard_input.cpp",
+			"MU"
+		],
+		[ "/home/alex/git/raspberry_car_controller/src/core/keymap.cpp", "MU" ],
+		[ "/home/alex/git/raspberry_car_controller/src/core/utils.cpp", "MU" ],
+		[
+			"/home/alex/git/raspberry_car_controller/src/core/video_renderer.cpp",
+			"MU"
+		],
+		[ "/home/alex/git/raspberry_car_controller/src/core/widgets.cpp", "MU" ],
+		[ "/home/alex/git/raspberry_car_controller/src/main/main.cpp", "MU" ]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

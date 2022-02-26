@@ -1,5 +1,17 @@
-#include <math.h>
 #include "utils.h"
+#include <math.h>
+#include <sys/time.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
+
+double micros_since_epoch()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    return ((double)tv.tv_sec*1e6 + (double)tv.tv_usec);
+}
 
 double toDegrees(double angle_deg)
 {
@@ -94,5 +106,24 @@ float avg(std::list<float> list)
 float linearSpeed(float voltage_out)
 {
     return 0.000737 + 0.084763 * voltage_out;
+}
 
+void init_localsock(int* localsocket, int timeout_s, struct sockaddr_in* localaddr, int port)
+{
+    *localsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    if (timeout_s)
+    {
+        struct timeval read_timeout;
+        read_timeout.tv_sec = timeout_s;
+        read_timeout.tv_usec = 0;
+        setsockopt(*localsocket, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
+    }
+
+    memset(localaddr, 0x00, sizeof(struct sockaddr_in));
+    localaddr->sin_family = AF_INET;
+    localaddr->sin_port = htons(port);
+    localaddr->sin_addr.s_addr = INADDR_ANY;
+
+    bind(*localsocket, (struct sockaddr*)localaddr, sizeof(struct sockaddr));
 }
