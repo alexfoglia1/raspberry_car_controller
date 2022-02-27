@@ -1,6 +1,7 @@
 #ifndef WIDGETS_H
 #define WIDGETS_H
 
+#include "cbit.h"
 #include "defs.h"
 #include <opencv2/opencv.hpp>
 #include <stdint.h>
@@ -92,7 +93,7 @@ namespace widgets
         extern motor_status_t motor_status;
 
         void init();
-        void updateCbit(cbit_result_msg msg);
+        void updateCbit(quint32 cbit);
         void updateMotorVoltageIn(double voltage);
         void updateMotorVoltageOut(uint8_t pwm);
         void updateRemoteSystemState(uint8_t system_state);

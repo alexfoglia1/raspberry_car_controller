@@ -4,21 +4,19 @@
 #include "defs.h"
 
 /** Keys for local usage **/
-#define TOGGLE_SPEED (int)'s'
-#define TOGGLE_LOS (int)'l'
-#define TOGGLE_TGT (int)'m'
-#define TOGGLE_MENU (int)'h'
-#define TOGGLE_SS   (int)'y'
-#define TOGGLE_JS   (int)'j'
-#define VIDEOREC (int)'v'
-#define DEV_MODE (int)'e'
-#define DEV_TAB_RIGHT (int)'g'
-#define DEV_TAB_LEFT (int)'f'
-#define RIGHT_ARROW 83
-#define LEFT_ARROW 81
-#define UP_ARROW 82
-#define DOWN_ARROW 84
-#define ESCAPE 27
+#define TOGGLE_SPEED 83
+#define TOGGLE_LOS 76
+#define TOGGLE_TGT 77
+#define TOGGLE_MENU 72
+#define TOGGLE_SS  89
+#define TOGGLE_JS 74
+#define VIDEOREC  86
+#define DEV_MODE  69
+#define RIGHT_ARROW 16777236
+#define LEFT_ARROW 16777234
+#define UP_ARROW 16777235
+#define DOWN_ARROW 16777237
+#define ESCAPE 16777216
 
 /** Js jeys for local usage **/
 #define JS_KEY_TOGGLE_JS 8

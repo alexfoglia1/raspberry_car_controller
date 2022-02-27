@@ -7,7 +7,30 @@
 #include <semaphore.h>
 #include <opencv2/opencv.hpp>
 #include <QThread>
+#include <QtOpenGL/QGLWidget>
+#include <QObject>
 
+class GLViewer : public QGLWidget {
+    Q_OBJECT
+public:
+    GLViewer(QWidget *parent = NULL);
+    void set_frame(cv::Mat newframe);
+    void clear();
+    cv::Mat get_frame();
+
+    void resizeEvent(QResizeEvent* ev);
+    virtual void paintEvent(QPaintEvent* ev);
+
+signals:
+    void received_keyboard(int key);
+
+protected:
+    virtual bool eventFilter(QObject *target, QEvent *event);
+
+    qreal scale;
+    QTransform scaler, scalerI;
+    QPixmap* pixmap = 0;
+};
 
 class VideoRenderer : public QThread
 {
@@ -24,22 +47,27 @@ protected:
 
 public slots:
     /** Remote controlled slots **/
+    void clear();
     void update(image_msg image);
     void update(voltage_msg voltage);
     void update(attitude_msg attitude);
     void update(actuators_state_msg actuators);
     void update(target_msg targets);
+    void update(quint32 cbit);
 
     /** Local controlled slots **/
-    void toggle_widget(bool enabled, int widget);
+    void on_keyboard(int key);
+    void toggle_widget(int widget);
     void toggle_videorec(int fps);
 
+signals:
+    void thread_quit();
+
 private:
-
-    cv::Mat* imagewindow;
     sem_t image_semaphore;
+    GLViewer* viewer;
+    cv::Mat next_frame;
     cv::VideoWriter* video;
-
     bool save_frame;
     bool stopped;
 

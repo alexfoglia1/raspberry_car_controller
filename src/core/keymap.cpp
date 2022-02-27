@@ -10,8 +10,6 @@ int jsToKeyboardMap(int js_key)
         case JS_KEY_TOGGLE_TH: return TOGGLE_SPEED;
         case JS_KEY_TOGGLE_LOS: return TOGGLE_LOS;
         case JS_KEY_DEV_MODE: return DEV_MODE;
-        case JS_KEY_DEV_TAB_LEFT : return DEV_TAB_LEFT;
-        case JS_KEY_DEV_TAB_RIGHT: return DEV_TAB_RIGHT;
     }
 
     return 0;

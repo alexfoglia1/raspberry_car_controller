@@ -2,6 +2,22 @@
 #include "joystick.h"
 #include "keymap.h"
 
+JoystickInput::JoystickInput(DataInterface* iface)
+{
+    js = -1;
+    min_js_axis_value = -32767;
+    max_js_axis_value = 32767;
+    data_iface = iface;
+    act_state = IDLE;
+
+    msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false};
+}
+
+void JoystickInput::stop()
+{
+    act_state = EXIT;
+}
+
 int8_t JoystickInput::map_js_axis_value_int8(int js_axis_value)
 {
     int js_axis_span = max_js_axis_value - min_js_axis_value;
@@ -19,18 +35,10 @@ uint8_t JoystickInput::map_js_axis_value_uint8(int js_axis_value)
 }
 
 
-int JoystickInput::read_event(int fd, struct js_event *event)
+bool JoystickInput::read_event(int fd, struct js_event *event)
 {
-    ssize_t bytes;
-
-    bytes = read(fd, event, sizeof(*event));
-    if (bytes == sizeof(*event))
-        return 0;
-    else
-        return -1;
+    return read(fd, event, sizeof(*event)) == sizeof(*event);
 }
-
-
 
 size_t JoystickInput::get_axis_state(struct js_event *event, struct axis_state axes[3])
 {
@@ -48,87 +56,92 @@ size_t JoystickInput::get_axis_state(struct js_event *event, struct axis_state a
 }
 
 
-int JoystickInput::init_joystick()
+bool JoystickInput::init_joystick()
 {
     js = open("/dev/input/js0", O_RDONLY);
-    if (js > 0) return 0;
-    else if (is_quitting_js) return 0;
-    else return -1;
+    return js > 0;
 }
 
-void JoystickInput::get_joystick_event()
+void JoystickInput::update_msg_out(js_event event, axis_state axes[3])
 {
-    for (int i = 0; i < 100; i++)
+    switch (event.type)
     {
-        btn_state[i] = false;
-    }
-
-    struct js_event event;
-    struct axis_state axes[3];
-    memset(axes, 0x00, 3 * sizeof(struct axis_state));
-
-    size_t axis;
-    while (!is_quitting_js)
-    {
-        while (joystick_failure)
+        case JS_EVENT_AXIS:
         {
-            sleep(1);
-            joystick_failure = init_joystick() < 0;
-        }
-        if (read_event(js, &event) == 0)
-        {
-            switch (event.type)
+            size_t axis = get_axis_state(&event, axes);
+            if (axis == 0)
             {
-                case JS_EVENT_BUTTON:
-                    btn_state[event.number] = !btn_state[event.number];
-                break;
-                case JS_EVENT_AXIS:
-                    axis = get_axis_state(&event, axes);
-                    if (axis == 0)
-                    {
-                        int* args = new int[2]{map_js_axis_value_int8(axes[axis].x), map_js_axis_value_int8(axes[axis].y)};
-                        //controller->updateRemoteCommand(Controller::TURN, args);
-                        //controller->postEvent(Controller::controller_event_t::received_joypad);
-
-                        delete[] args;
-                    }
-                    else if(axis == 1)
-                    {
-                        int* args = new int(map_js_axis_value_uint8(axes[axis].x));
-                        //controller->updateRemoteCommand(Controller::BREAK, args);
-                        //controller->postEvent(Controller::controller_event_t::received_joypad);
-
-                        delete args;
-                    }
-                    else if (event.number == 5)
-                    {
-                        int* args = new int(map_js_axis_value_uint8(axes[axis].y));
-                        //controller->updateRemoteCommand(Controller::ACCELERATE, args);
-                        //controller->postEvent(Controller::controller_event_t::received_joypad);
-
-                        delete args;
-                    }
-                    break;
-                default:
-                {
-                    int* args = new int(0);
-                    int* args_turn = new int[2]{0, 0};
-                    //controller->updateRemoteCommand(Controller::ACCELERATE, args);
-                    //controller->updateRemoteCommand(Controller::TURN, args_turn);
-                    //controller->postEvent(Controller::controller_event_t::received_joypad);
-
-                    delete args;
-                    delete[] args_turn;
-                    break;
-                }
+                msg_out.header.msg_id = JS_ACC_MSG_ID;
+                msg_out.x_axis = map_js_axis_value_int8(axes[axis].x);
+                msg_out.y_axis = map_js_axis_value_int8(axes[axis].y);
+            }
+            else if (axis == 1)
+            {
+                msg_out.header.msg_id = JS_BRK_MSG_ID;
+                msg_out.throttle_state = axes[axis].y;
+            }
+            else if (event.number == 4)
+            {
+                msg_out.header.msg_id = JS_ACC_MSG_ID;
+                msg_out.throttle_state = axes[axis].x;
             }
         }
+        break;
+        default:
+        break;
 
-        fflush(stdout);
+    }
+}
+
+void JoystickInput::run()
+{
+    while (act_state != EXIT)
+    {
+        switch (act_state)
+        {
+            case IDLE:
+            {
+                if (init_joystick())
+                {
+                    data_iface->send_command(remote_start);
+                    act_state = OPERATIVE;
+                    emit js_on();
+                }
+                else
+                {
+                    act_state = IDLE;
+                    emit js_failure();
+                }
+            }
+            break;
+            case OPERATIVE:
+            {
+                struct js_event event;
+                struct axis_state axes[3];
+                if (read_event(js, &event))
+                {
+                    update_msg_out(event, axes);
+                    data_iface->send_command(msg_out);
+                }
+                else
+                {
+                    msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false};
+                    data_iface->send_command(remote_stop);
+                    act_state = IDLE;
+                }
+            }
+            break;
+            case EXIT:
+            break;
+            default:
+            break;
+        }
     }
 
     close(js);
-
+    data_iface->send_command(remote_stop);
     printf("Joystick thread exit\n");
+
+    emit thread_quit();
 }
 

@@ -251,7 +251,7 @@ void widgets::targets::draw(cv::Mat* imagewindow)
            char name_and_prob[150];
            sprintf(name_and_prob, "%s %f", target.description, target.confidence);
 
-           cv::putText(*imagewindow, cv::String(name_and_prob), cv::Point(x0 + 4.0*target_rect.width/5.0, y0 + 10), cv::FONT_HERSHEY_SIMPLEX, 0.35, cv::Scalar(255,0,0), 1, cv::LINE_AA);
+           cv::putText(*imagewindow, cv::String(name_and_prob), cv::Point(x0 + 4.0*target_rect.width/5.0, y0 + 20), cv::FONT_HERSHEY_SIMPLEX, 0.65, cv::Scalar(255,0,0), 2, cv::LINE_AA);
         }
 
     }
@@ -319,16 +319,17 @@ void widgets::systemstatus::init()
     motor_status = motor_status_t::FAILURE;
 }
 
-void widgets::systemstatus::updateCbit(cbit_result_msg msg)
+
+void widgets::systemstatus::updateCbit(quint32 cbit)
 {
-    tegra_status = msg.tegra_failure == false;
-    att_status = msg.att_failure == false;
-    vid_status = msg.vid_failure == false;
-    js_status  = msg.js_failure  == false;
-    arduino_status = msg.arduino_failure == false;
-    motor_status = msg.motor_failure ? motor_status_t::FAILURE :
-                   motor_status;
+    arduino_status = !(cbit & ARDUINO_NODATA);
+    att_status = !(cbit & ATTITUDE_NODATA);
+    js_status = !(cbit & JOYSTICK_NODATA);
+    motor_status = (cbit & MOTORS_NODATA) ? motor_status_t::FAILURE : motor_status;
+    tegra_status = !(cbit & TEGRA_NODATA);
+    vid_status = !(cbit & VIDEO_NODATA);
 }
+
 
 void widgets::systemstatus::updateMotorVoltageIn(double voltage)
 {
@@ -345,7 +346,7 @@ void widgets::systemstatus::updateMotorVoltageOut(uint8_t pwm)
 void widgets::systemstatus::updateRemoteSystemState(uint8_t system_state)
 {
     motor_status = system_state == 0x00 ? motor_status_t::IDLE :
-                                              motor_status_t::RUNNING;
+                                          motor_status_t::RUNNING;
 }
 
 void widgets::systemstatus::draw(cv::Mat* imagewindow, int x, int y)

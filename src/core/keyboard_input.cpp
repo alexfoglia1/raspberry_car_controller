@@ -9,8 +9,10 @@ KeyboardInput::KeyboardInput()
 
 }
 
-void KeyboardInput::get_keyboard_event()
+void KeyboardInput::run()
 {
+    while (true)
+    {
     int key = cv::waitKey(0);
 #if 0
     switch (key)
@@ -51,6 +53,7 @@ void KeyboardInput::get_keyboard_event()
     case ESCAPE:
         controller->postEvent(Controller::controller_event_t::stop_controller);
         break;
-    }
 #endif
+    }
+
 }

@@ -1,7 +1,9 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#define PROJNAME "Raspberry PI 4 Car Remote Controller v01.01"
+#define APP_NAME    "Raspberry PI 4 Car Remote Controller"
+#define MAJOR_VERS  "02"
+#define MINOR_VERS  "00"
 
 #define UDP_PORT                8888
 #define UDP_PORT_VIDEO          2222
@@ -12,8 +14,6 @@
 #define JS_ACC_MSG_ID           7
 #define JS_BRK_MSG_ID           8
 #define TARGET_MSG_ID           9
-#define CBIT_MSG_ID             10
-#define CBITRES_MSG_ID          11
 
 #define MAX_IMAGESIZE 60000
 #define IMAGE_ROWS    650
@@ -44,24 +44,6 @@ typedef struct __attribute__((packed))
     uint32_t msg_id;
     float motor_voltage;
 } voltage_msg;
-
-typedef struct __attribute__((packed))
-{
-    msg_header header;
-    comp_t component;
-    uint8_t is_failure;
-} cbit_msg;
-
-typedef struct __attribute__((packed))
-{
-    msg_header header;
-    uint8_t tegra_failure;
-    uint8_t att_failure;
-    uint8_t vid_failure;
-    uint8_t arduino_failure;
-    uint8_t js_failure;
-    uint8_t motor_failure;
-} cbit_result_msg;
 
 typedef struct __attribute__((packed))
 {
@@ -116,6 +98,8 @@ Q_DECLARE_METATYPE(target_msg)
 Q_DECLARE_METATYPE(actuators_state_msg)
 Q_DECLARE_METATYPE(joystick_msg)
 Q_DECLARE_METATYPE(voltage_msg)
-Q_DECLARE_METATYPE(cbit_result_msg)
 Q_DECLARE_METATYPE(image_msg)
+Q_DECLARE_METATYPE(comp_t)
+
+
 #endif //DEFS_H

@@ -4,28 +4,32 @@
 #include "defs.h"
 
 #include <QUdpSocket>
+#include <QTimer>
 
 class DataInterface : public QObject
 {
     Q_OBJECT
 
 public:
-    DataInterface();
+    DataInterface(QString address);
 
-    void send_command(joystick_msg msg, QString remote_address);
+    void send_command(joystick_msg msg);
 
 signals:
     void received_voltage(voltage_msg message);
     void received_attitude(attitude_msg message);
     void received_actuators(actuators_state_msg message);
     void received_targets(target_msg message);
-    void received_cbit_result(cbit_result_msg message);
+    void data_timeout(comp_t component);
 
 private:
     QUdpSocket udp_socket;
+    QString remote_address;
+    QTimer voltage_timeout, imu_timeout, actuators_timeout, tegra_timeout;
 
 private slots:
     void receive_data();
+    void timeout_rx(comp_t component);
 
 };
 
