@@ -32,6 +32,7 @@ public:
     };
 
     JoystickInput(DataInterface* iface);
+    void call_run();
 
 public slots:
     void stop();
@@ -52,7 +53,7 @@ private:
     js_thread_state_t act_state;
     joystick_msg msg_out;
 
-    void update_msg_out(struct js_event event, struct axis_state axes[3]);
+    bool update_msg_out(struct js_event event, struct axis_state axes[3]);
     bool read_event(int fd, struct js_event *event);
     bool init_joystick();
     int8_t map_js_axis_value_int8(int js_axis_value);

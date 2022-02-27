@@ -14,6 +14,7 @@ const char* DEFAULT_RASPBY_ADDR = "192.168.1.24";
 
 int main(int argc, char** argv)
 {
+
     printf("%s v%s.%s\n", APP_NAME, MAJOR_VERS, MINOR_VERS);
     if (argc == 1)
     {
@@ -110,4 +111,9 @@ int main(int argc, char** argv)
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
     QObject::connect(js_input, SIGNAL(thread_quit()), &app, SLOT(quit()));
     return app.exec();
+#if 0
+    JoystickInput* js_in = new JoystickInput(new DataInterface("127.0.0.1"));
+    //js_in->start();
+    js_in->call_run();
+#endif
 }

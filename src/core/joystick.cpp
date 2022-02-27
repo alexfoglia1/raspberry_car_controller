@@ -62,8 +62,9 @@ bool JoystickInput::init_joystick()
     return js > 0;
 }
 
-void JoystickInput::update_msg_out(js_event event, axis_state axes[3])
+bool JoystickInput::update_msg_out(js_event event, axis_state axes[3])
 {
+    bool updated = false;
     switch (event.type)
     {
         case JS_EVENT_AXIS:
@@ -74,26 +75,33 @@ void JoystickInput::update_msg_out(js_event event, axis_state axes[3])
                 msg_out.header.msg_id = JS_ACC_MSG_ID;
                 msg_out.x_axis = map_js_axis_value_int8(axes[axis].x);
                 msg_out.y_axis = map_js_axis_value_int8(axes[axis].y);
+                updated = true;
             }
             else if (axis == 1)
             {
+                qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
                 msg_out.header.msg_id = JS_BRK_MSG_ID;
                 msg_out.throttle_state = axes[axis].y;
+                updated = true;
             }
             else if (event.number == 4)
             {
+                qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
                 msg_out.header.msg_id = JS_ACC_MSG_ID;
                 msg_out.throttle_state = axes[axis].x;
+                updated = true;
             }
+
         }
         break;
         default:
         break;
 
     }
+    return updated;
 }
 
-void JoystickInput::run()
+void JoystickInput::call_run()
 {
     while (act_state != EXIT)
     {
@@ -120,8 +128,10 @@ void JoystickInput::run()
                 struct axis_state axes[3];
                 if (read_event(js, &event))
                 {
-                    update_msg_out(event, axes);
-                    data_iface->send_command(msg_out);
+                    if (update_msg_out(event, axes))
+                    {
+                        data_iface->send_command(msg_out);
+                    }
                 }
                 else
                 {
@@ -129,6 +139,7 @@ void JoystickInput::run()
                     data_iface->send_command(remote_stop);
                     act_state = IDLE;
                 }
+
             }
             break;
             case EXIT:
@@ -143,5 +154,10 @@ void JoystickInput::run()
     printf("Joystick thread exit\n");
 
     emit thread_quit();
+}
+
+void JoystickInput::run()
+{
+    call_run();
 }
 
