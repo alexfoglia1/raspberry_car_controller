@@ -41,9 +41,6 @@
 #define THR_UP01 (int)'n'
 #define THR_DW01 (int)'b'
 
-
-command_msg getCommandOfKey(int key, bool* error);
-const char* getNameOfKey(int key);
 int jsToKeyboardMap(int js_key);
 
 #endif // KEYMAP_H

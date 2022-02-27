@@ -13,11 +13,13 @@
 #include <sys/stat.h>
 #include <experimental/filesystem>
 
-const char* DEFAULT_RASPBY_ADDR = "192.168.1.13";
+const char* DEFAULT_RASPBY_ADDR = "192.168.1.24";
 
 int main(int argc, char** argv)
 {
-    printf("%s\n", PROJNAME);
+    char buf[128];
+    sprintf(buf, "%s %s.%s", APP_NAME, MAJOR_VERS, MINOR_VERS);
+    printf("%s\n", buf);
     if (argc == 1)
     {
         printf("USAGE: %s [raspberry_address]\n", argv[0]);

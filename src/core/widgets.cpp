@@ -10,13 +10,12 @@
 
 const int widgets::THROTTLESTATE = 0;
 const int widgets::LOS = 1;
-const int widgets::COMMANDS_OUT = 2;
-const int widgets::TARGETS = 3;
-const int widgets::MENU = 4;
-const int widgets::VIDEO_REC = 5;
-const int widgets::SYSTEM_STATUS = 6;
-const int widgets::JS_MENU = 7;
-const int widgets::DEVELOPER_MODE = 8;
+const int widgets::TARGETS = 2;
+const int widgets::MENU = 3;
+const int widgets::VIDEO_REC = 4;
+const int widgets::SYSTEM_STATUS = 5;
+const int widgets::JS_MENU = 6;
+const int widgets::DEVELOPER_MODE = 7;
 const int widgets::DEV_ATTITUDE_TAB = 0;
 const int widgets::DEV_VOLTAGE_TAB = 1;
 const int widgets::DEV_DETECTOR_TAB = 2;
@@ -41,32 +40,9 @@ const cv::Scalar voltageOutCol = green;
 const cv::Scalar rollCol = red;
 const cv::Scalar pitchCol = green;
 const cv::Scalar yawCol = yellow;
-                                        /*spd   los   cmd   tgt   help    vrec   stat   js    DEV_MODE*/
-bool* widgets::is_enabled = new bool[9] {true, true, true, true, false, false, true, false, false};
+                                        /*spd   los   tgt   help    vrec   stat   js    DEV_MODE*/
+bool* widgets::is_enabled = new bool[8] {true, true,  true, false, false, true, false, false};
 
-/** COMMANDS OUT WIDGET **/
-char* widgets::commands_out::cmd_display = new char[256];
-void widgets::commands_out::init()
-{
-    sprintf(cmd_display, "OUT: NONE");
-}
-
-void widgets::commands_out::update(int key)
-{
-    sprintf(cmd_display, "OUT: %s", getNameOfKey(key));
-}
-
-void widgets::commands_out::draw(cv::Mat* imagewindow, int x, int y)
-{
-    if (is_enabled[COMMANDS_OUT])
-    {
-        std::string text_command(cmd_display);
-        int recwidth = 110U;
-        int recheight = 20U;
-        filledRoundedRectangle(*imagewindow, cv::Point(x, y), cv::Size(recwidth, recheight), bgCol, cv::LINE_AA, 1, 0.1f);
-        cv::putText(*imagewindow, text_command, cv::Point2d(x + 5U, y + 15U), cv::FONT_HERSHEY_SIMPLEX, 0.4, fgCol, 1, cv::LINE_AA);
-    }
-}
 
 /** THROTTLESTATE WIDGET **/
 char* widgets::throttlestate::throttle_display = new char[256];
@@ -80,7 +56,7 @@ void widgets::throttlestate::init()
     sprintf(speed_display_ms, "0.00 m/s");
 }
 
-void widgets::throttlestate::update(throttle_msg rx)
+void widgets::throttlestate::update(actuators_state_msg rx)
 {
     char th_progress[100];
     float perc = ((float)rx.throttle_state / 255.0) * 100.0;
@@ -368,7 +344,7 @@ void widgets::systemstatus::updateMotorVoltageIn(voltage_msg msg)
     motor_voltage_out = motor_voltage_in * duty_cycle;
 }
 
-void widgets::systemstatus::updateMotorVoltageOut(throttle_msg msg)
+void widgets::systemstatus::updateMotorVoltageOut(actuators_state_msg msg)
 {
     duty_cycle = (float)msg.throttle_state / (float)std::numeric_limits<uint8_t>::max();
     motor_voltage_out = motor_voltage_in * duty_cycle;

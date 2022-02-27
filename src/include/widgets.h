@@ -14,7 +14,6 @@ namespace widgets
 {
     extern const int THROTTLESTATE;
     extern const int LOS;
-    extern const int COMMANDS_OUT;
     extern const int TARGETS;
     extern const int MENU;
     extern const int VIDEO_REC;
@@ -29,16 +28,6 @@ namespace widgets
     extern const int DEV_EDITPARAMS_TAB;
 
     extern bool* is_enabled;
-
-    namespace commands_out
-    {
-        extern char* cmd_display;
-
-        void init();
-        void update(int key);
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
     namespace throttlestate
     {
         extern char* throttle_display;
@@ -47,7 +36,7 @@ namespace widgets
         extern float duty_cycle;
 
         void init();
-        void update(throttle_msg rx);
+        void update(actuators_state_msg rx);
         void updateDutyCycle(float dc);
         void updateVoltageIn(float voltage_in);
         void draw(cv::Mat* imagewindow, int x, int y);
@@ -106,7 +95,7 @@ namespace widgets
         void init();
         void updateCbit(cbit_result_msg msg);
         void updateMotorVoltageIn(voltage_msg msg);
-        void updateMotorVoltageOut(throttle_msg msg);
+        void updateMotorVoltageOut(actuators_state_msg msg);
         void draw(cv::Mat* imagewindow, int x, int y);
     }
 

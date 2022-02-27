@@ -15,8 +15,8 @@
 #include <semaphore.h>
 #include <signal.h>
 
-int attitude_socket, throttle_socket, tgt_socket, image_socket, voltage_socket, cbit_rx_socket;
-struct sockaddr_in imu_saddr, speed_saddr, attitude_saddr, voltage_saddr, throttle_saddr, tgt_saddr, image_saddr, cbit_tx_addr, cbit_rx_addr;
+int data_socket, image_socket, cbit_rx_socket;
+struct sockaddr_in data_saddr, image_saddr, cbit_tx_addr, cbit_rx_addr;
 bool is_recording = false;
 bool is_speed_test = false;
 bool is_editparams = false;
@@ -135,16 +135,6 @@ void cmd_out_task(const char* board_address)
                 widgets::is_enabled[widgets::LOS] = !widgets::is_enabled[widgets::LOS];
             }
             break;
-        case TOGGLE_CMD_OUT: /* c keyboard or triangle joystick */
-            if (is_editparams)
-            {
-                widgets::devmode::signalSwitchCurrentParam(-1);
-            }
-            else
-            {
-                widgets::is_enabled[widgets::COMMANDS_OUT] = !widgets::is_enabled[widgets::COMMANDS_OUT];
-            }
-            break;
         case TOGGLE_TGT:
             widgets::is_enabled[widgets::TARGETS] = !widgets::is_enabled[widgets::TARGETS];
             break;
@@ -231,31 +221,14 @@ void cmd_out_task(const char* board_address)
             }
             break;
         default:
-            {
-            bool error;
-            command_msg cmd_out = getCommandOfKey(key, &error);
-            if(!error)
-            {
-                struct sockaddr_in daddr;
-                memset(&daddr, 0x00, sizeof(struct sockaddr_in));
-                daddr.sin_family = AF_INET;
-                daddr.sin_port = htons(THRPORT);
-                daddr.sin_addr.s_addr = inet_addr(board_address);
-                if (sendto(throttle_socket, reinterpret_cast<char*>(&cmd_out), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in)))
-                {
-                    widgets::commands_out::update(key);
-                }
-            }
             break;
-            }
         }
     }
 }
 
-void attitude_task()
+
+void attitude_task(attitude_msg rx, ssize_t bytes_recv)
 {
-    attitude_msg rx;
-    ssize_t bytes_recv = recv(attitude_socket, &rx, sizeof(attitude_msg), 0);
     if(bytes_recv > 0)
     {
         widgets::los::update(rx);
@@ -267,10 +240,9 @@ void attitude_task()
     cbit_out(comp_t::ATTITUDE, bytes_recv > 0);
 }
 
-void target_task()
+void target_task(target_msg rx, ssize_t bytes_recv)
 {
-    target_msg rx;
-    ssize_t bytes_recv = recv(tgt_socket, (char*)&rx, sizeof(target_msg), 0);
+
     if(bytes_recv > 0)
     {
         sem_wait(&tgt_semaphore);
@@ -282,10 +254,8 @@ void target_task()
     cbit_out(comp_t::TEGRA, bytes_recv > 0);
 }
 
-void throttle_task()
+void throttle_task(actuators_state_msg rx, ssize_t bytes_recv)
 {
-    throttle_msg rx;
-    ssize_t bytes_recv = recv(throttle_socket, &rx, sizeof(throttle_msg), 0);
     if(bytes_recv > 0)
     {
         widgets::throttlestate::update(rx);
@@ -298,10 +268,8 @@ void throttle_task()
 
 }
 
-void voltage_task()
+void voltage_task(voltage_msg rx, ssize_t bytes_recv)
 {
-    voltage_msg rx;
-    ssize_t bytes_recv = recv(voltage_socket, &rx, sizeof(voltage_msg), 0);
     if(bytes_recv > 0)
     {
         widgets::systemstatus::updateMotorVoltageIn(rx);
@@ -347,6 +315,29 @@ void image_task()
     }
 }
 
+void data_task()
+{
+    char rx[256];
+    ssize_t bytes_recv = recv(data_socket, rx, 256, 0);
+    msg_header* header = (msg_header*)rx;
+    switch (header->msg_id)
+    {
+    case ATTITUDE_MSG_ID:
+        attitude_task(*(attitude_msg*)rx, bytes_recv);
+        break;
+    case TARGET_MSG_ID:
+        target_task(*(target_msg*)rx, bytes_recv);
+        break;
+    case ACTUATORS_STATE_MSG_ID:
+        throttle_task(*(actuators_state_msg*)rx, bytes_recv);
+        break;
+    case VOLTAGE_MSG_ID:
+        voltage_task(*(voltage_msg*)rx, bytes_recv);
+        break;
+    }
+}
+
+
 
 void render_window()
 {
@@ -354,7 +345,6 @@ void render_window()
     if (!widgets::is_enabled[widgets::DEVELOPER_MODE])
     {
         sem_wait(&image_semaphore);
-        widgets::commands_out::draw(imagewindow, size.width - 120U, 20U);
         widgets::los::draw(imagewindow, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
         widgets::throttlestate::draw(imagewindow, size.width - 320U, size.height - 30U);
         sem_wait(&tgt_semaphore);
@@ -374,7 +364,10 @@ void render_window()
         sem_post(&tgt_semaphore);
         sem_post(&image_semaphore);
     }
-    cv::imshow(PROJNAME, *imagewindow);
+
+    char buf[128];
+    sprintf(buf, "%s %s.%s", APP_NAME, MAJOR_VERS, MINOR_VERS);
+    cv::imshow(buf, *imagewindow);
 
 
     if (is_recording)
@@ -408,31 +401,13 @@ void* image_thread(void*)
     return NULL;
 }
 
-void* attitude_thread(void*)
+void* data_thread(void*)
 {
-    while (!is_quitting_app) { attitude_task(); }
+    while (!is_quitting_app)
+    {
+        data_task();
+    }
     printf("Attitude receiver thread exit\n");
-    return NULL;
-}
-
-void* throttle_thread(void*)
-{
-    while (!is_quitting_app) { throttle_task(); }
-    printf("Throttle state receiver thread exit\n");
-    return NULL;
-}
-
-void* voltage_thread(void*)
-{
-    while (!is_quitting_app) { voltage_task(); }
-    printf("Voltage receiver thread exit\n");
-    return NULL;
-}
-
-void* target_thread(void*)
-{
-    while (!is_quitting_app) { target_task(); }
-    printf("Targets receiver thread exit\n");
     return NULL;
 }
 
@@ -446,12 +421,9 @@ void* cbit_result_thread(void*)
 void main_loop(const char* board_address)
 {
     /** Run threads **/
-    pthread_t tid_image, tid_attitude, tid_throttle, tid_voltage, tid_target, tid_cbit;
+    pthread_t tid_image, tid_data, tid_cbit;
     pthread_create(&tid_image, NULL, image_thread, NULL);
-    pthread_create(&tid_attitude, NULL, attitude_thread, NULL);
-    pthread_create(&tid_throttle, NULL, throttle_thread, NULL);
-    pthread_create(&tid_voltage, NULL, voltage_thread, NULL);
-    pthread_create(&tid_target, NULL, target_thread, NULL);
+    pthread_create(&tid_data, NULL, data_thread, NULL);
     pthread_create(&tid_cbit, NULL, cbit_result_thread, NULL);
 
     while(!is_quitting_app)
@@ -471,18 +443,12 @@ void main_loop(const char* board_address)
 
         if (rx_timeout_s != widgets::devmode::rx_timeout_s)
         {
-            close(attitude_socket);
-            close(throttle_socket);
-            close(tgt_socket);
+            close(data_socket);
             close(image_socket);
-            close(voltage_socket);
             close(cbit_rx_socket);
 
-            init_localsock(&attitude_socket, &attitude_saddr, ATTPORT);
-            init_localsock(&throttle_socket, &throttle_saddr, THRPORT);
-            init_localsock(&tgt_socket, &tgt_saddr, TGTPORT);
+            init_localsock(&data_socket, &data_saddr, DATPORT);
             init_localsock(&image_socket, &image_saddr, RENPORT);
-            init_localsock(&voltage_socket, &voltage_saddr, VLTPORT);
             init_localsock(&cbit_rx_socket, &cbit_rx_addr, BITRESPORT);
         }
 
@@ -496,29 +462,23 @@ void main_loop(const char* board_address)
 
     printf("Requested application exit\n");
     pthread_join(tid_image, NULL);
-    pthread_join(tid_attitude, NULL);
-    pthread_join(tid_throttle, NULL);
-    pthread_join(tid_voltage, NULL);
-    pthread_join(tid_target, NULL);
+    pthread_join(tid_data, NULL);
     pthread_join(tid_cbit, NULL);
 
-    /** I'm exiting, send to board 0xDE **/
-    command_msg controller_off;
-    memset(&controller_off, 0x00, sizeof(throttle_msg));
-    controller_off.header.msg_id = COMMAND_MSG_ID;
-    controller_off.throttle_add = CONTROLLER_DEAD;
+    /** I'm exiting, send to board stop flag **/
+    joystick_msg controller_off;
+    memset(&controller_off, 0x00, sizeof(joystick_msg));
+    controller_off.header.msg_id = JS_ACC_MSG_ID;
+    controller_off.stop_flag = true;
     struct sockaddr_in daddr;
     memset(&daddr, 0x00, sizeof(struct sockaddr_in));
     daddr.sin_family = AF_INET;
-    daddr.sin_port = htons(THRPORT);
+    daddr.sin_port = htons(DATPORT);
     daddr.sin_addr.s_addr = inet_addr(board_address);
-    sendto(throttle_socket, reinterpret_cast<char*>(&controller_off), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
+    sendto(data_socket, reinterpret_cast<char*>(&controller_off), sizeof(joystick_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
 
-    close(attitude_socket);
-    close(throttle_socket);
-    close(tgt_socket);
     close(image_socket);
-    close(voltage_socket);
+    close(data_socket);
     close(cbit_rx_socket);
     printf("Sockets closed\n");
 }
@@ -527,13 +487,12 @@ void init_window(const char* board_address)
 {
     imagewindow = new cv::Mat(IMAGE_ROWS, IMAGE_COLS, CV_8UC3, cv::Scalar(0, 0, 0));
 
-    cv::imshow(PROJNAME, *imagewindow);
+    char buf[128];
+    sprintf(buf, "%s %s.%s", APP_NAME, MAJOR_VERS, MINOR_VERS);
+    cv::imshow(buf, *imagewindow);
 
-    init_localsock(&attitude_socket, &attitude_saddr, ATTPORT);
-    init_localsock(&throttle_socket, &throttle_saddr, THRPORT);
-    init_localsock(&tgt_socket, &tgt_saddr, TGTPORT);
+    init_localsock(&data_socket, &data_saddr, DATPORT);
     init_localsock(&image_socket, &image_saddr, RENPORT);
-    init_localsock(&voltage_socket, &voltage_saddr, VLTPORT);
     init_localsock(&cbit_rx_socket, &cbit_rx_addr, BITRESPORT);
 
     cbit_tx_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -544,7 +503,6 @@ void init_window(const char* board_address)
 
     widgets::throttlestate::init();
     widgets::los::init();
-    widgets::commands_out::init();
     widgets::targets::init();
     widgets::systemstatus::init();
     widgets::devmode::init();
@@ -552,16 +510,16 @@ void init_window(const char* board_address)
     sem_init(&image_semaphore, 0, 1);
     sem_init(&tgt_semaphore, 0, 1);
 
-    /** I'm ready, send to board 0xAD **/
-    command_msg controller_on;
-    memset(&controller_on, 0x00, sizeof(throttle_msg));
-    controller_on.header.msg_id = COMMAND_MSG_ID;
-    controller_on.throttle_add = CONTROLLER_ALIVE;
+    /** I'm ready, send to board start flag **/
+    joystick_msg controller_on;
+    memset(&controller_on, 0x00, sizeof(joystick_msg));
+    controller_on.header.msg_id = JS_ACC_MSG_ID;
+    controller_on.start_flag = true;
     struct sockaddr_in daddr;
     memset(&daddr, 0x00, sizeof(struct sockaddr_in));
     daddr.sin_family = AF_INET;
-    daddr.sin_port = htons(THRPORT);
+    daddr.sin_port = htons(DATPORT);
     daddr.sin_addr.s_addr = inet_addr(board_address);
-    sendto(throttle_socket, reinterpret_cast<char*>(&controller_on), sizeof(command_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
+    sendto(data_socket, reinterpret_cast<char*>(&controller_on), sizeof(joystick_msg), 0, reinterpret_cast<struct sockaddr*>(&daddr), sizeof(struct sockaddr_in));
 }
 

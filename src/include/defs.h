@@ -1,7 +1,9 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-#define PROJNAME "Raspberry PI 4 Car Remote Controller v01.00"
+#define APP_NAME "Raspberry PI 4 Car Remote Controller"
+#define MAJOR_VERS "01"
+#define MINOR_VERS "00"
 
 #define ERR_CREATESOCKDATA "Could not create data socket"
 #define ERR_BINDSOCKDATA "Could not bind data socket"
@@ -31,21 +33,17 @@
 #define OK_TARGET "Received TARGET msg"
 #define OK_IMAGE "Received IMAGE msg"
 
-#define ATTPORT 1111
+#define DATPORT 8888
 #define RENPORT 2222
-#define THRPORT 3333
-#define TGTPORT 4444
-#define VLTPORT 5555
 
 #define BITPORT 7788
 #define BITRESPORT 8877
 
 #define VOLTAGE_MSG_ID   1
 #define ATTITUDE_MSG_ID  2
-#define COMMAND_MSG_ID   4
-#define JS_XY_MSG_ID     6
-#define JS_TH_MSG_ID     7
-#define JS_BR_MSG_ID     8
+#define ACTUATORS_STATE_MSG_ID  3
+#define JS_ACC_MSG_ID           7
+#define JS_BRK_MSG_ID           8
 #define TARGET_MSG_ID	 9
 #define CBIT_MSG_ID     10
 #define CBITRES_MSG_ID  11
@@ -131,46 +129,22 @@ typedef struct
     uint8_t data[MAX_IMAGESIZE];
 } __attribute__((packed)) image_msg;
 
-typedef enum
-{
-    DIR_FWD,
-    DIR_LFT,
-    DIR_RGT,
-    DIR_BWD,
-    DIR_NONE
-} dir_t;
-
-typedef struct
+typedef struct __attribute__((packed))
 {
     msg_header header;
-    dir_t direction;
-    int8_t throttle_add;
-} __attribute__((packed)) command_msg;
-
-typedef struct
-{
-    msg_header header;
+    uint8_t throttle_state;
     int8_t x_axis;
     int8_t y_axis;
-} __attribute__((packed)) joystick_xy_msg;
+    bool start_flag;
+    bool stop_flag;
+}  joystick_msg;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     msg_header header;
     uint8_t throttle_state;
-} __attribute__((packed)) joystick_throttle_msg;
-
-typedef struct
-{
-    msg_header header;
-    uint8_t throttle_state;
-} __attribute__((packed)) throttle_msg;
-
-typedef struct
-{
-    msg_header header;
-    uint8_t backward;
-} __attribute__((packed)) joystick_break_msg;
+    uint8_t system_state;
+} actuators_state_msg;
 
 
 #endif //DEFS_H
