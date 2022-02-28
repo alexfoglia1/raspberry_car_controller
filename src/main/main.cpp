@@ -104,6 +104,12 @@ int main(int argc, char** argv)
     QObject::connect(js_input, &JoystickInput::js_failure, cbit, [cbit]() {cbit->update_cbit(true, JOYSTICK_NODATA);});
     QObject::connect(js_input, &JoystickInput::js_on, cbit, [cbit]() {cbit->update_cbit(false, JOYSTICK_NODATA);});
 
+    /** Connecting joystick to video renderer **/
+    QObject::connect(js_input, SIGNAL(right()), renderer, SLOT(show_context_menu()));
+    QObject::connect(js_input, SIGNAL(left()), renderer, SLOT(hide_context_menu()));
+    QObject::connect(js_input, &JoystickInput::up, renderer, [renderer](){renderer->navigate_context_menu(-1);});
+    QObject::connect(js_input, &JoystickInput::down, renderer, [renderer](){renderer->navigate_context_menu(1);});
+
     /** Start joystick **/
     js_input->start();
 

@@ -38,6 +38,71 @@ const cv::Scalar yawCol = yellow;
 bool* widgets::is_enabled = new bool[8] {true, true, true, false, false, true,     false,  false};
 
 
+/** Context Menu **/
+widgets::ContextMenu::ContextMenu()
+{
+    visible = false;
+    selected_item = 0;
+}
+
+void widgets::ContextMenu::show()
+{
+    visible = true;
+}
+
+void widgets::ContextMenu::hide()
+{
+    visible = false;
+}
+
+void widgets::ContextMenu::navigate(int delta)
+{
+    selected_item += delta;
+    if (selected_item >= int(items.size()))
+    {
+        selected_item = 0;
+    }
+
+    if (selected_item < 0)
+    {
+        selected_item = items.size() - 1;
+    }
+}
+
+void widgets::ContextMenu::select()
+{
+
+}
+
+void widgets::ContextMenu::draw(cv::Mat* frame)
+{
+    if (visible)
+    {
+        cv::Size size = frame->size();
+        int lineSpacing = 30;
+        int recheight = items.size() * (lineSpacing + 2);
+        int recwidth = 300;
+        filledRoundedRectangle(*frame, cv::Point(size.width / 2 - recwidth/2, size.height/2 - recheight/2), cv::Size(recwidth, recheight), bgCol, cv::LINE_AA, 1, 0.1f);
+
+        cv::Point items_top_left = cv::Point(size.width / 2 - recwidth/2 + lineSpacing/2, size.height/2 - recheight/2 + lineSpacing/2);
+        cv::Size selection_size = cv::Size(recwidth/2, lineSpacing/2);
+        cv::Point selection_coord = cv::Point(items_top_left.x, items_top_left.y + selected_item * lineSpacing - selection_size.height / 2);
+        filledRoundedRectangle(*frame, selection_coord, selection_size, fgCol, cv::LINE_AA, 1, 0.1f);
+
+        qDebug("x(%d), y(%d)\n", selection_coord.x, selection_coord.y);
+
+        ContextMenuItemKey selection = items[selected_item];
+        for (int i = 0; i < int(items.size()); i++)
+        {
+            ContextMenuItemKey actual = items[i];
+            cv::Point act_coord(items_top_left.x, items_top_left.y + i * lineSpacing + 3);
+            bool actualIsSelected = items[i].item == selection.item;
+
+            cv::putText(*frame, cv::String(items[i].text.toStdString()), act_coord, cv::FONT_HERSHEY_SIMPLEX, 0.35, actualIsSelected ? bgCol : fgCol, 1, cv::LINE_AA);
+        }
+    }
+}
+
 
 /** THROTTLESTATE WIDGET **/
 char* widgets::throttlestate::throttle_display = new char[256];

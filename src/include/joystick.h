@@ -39,6 +39,10 @@ public slots:
 signals:
     void js_failure();
     void js_on();
+    void right();
+    void left();
+    void up();
+    void down();
     void thread_quit();
 
 protected:

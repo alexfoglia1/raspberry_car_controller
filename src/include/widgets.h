@@ -6,10 +6,50 @@
 #include <opencv2/opencv.hpp>
 #include <stdint.h>
 #include <map>
+#include <vector>
 
 
 namespace widgets
 {
+    class ContextMenu
+    {
+    public:
+        enum ContextMenuItem
+        {
+            DEHAZE,
+            LACE,
+            ALGORITMO_CHE_NON_ESISTE,
+            DIO_BOIA,
+            ALCUNE_COSE,
+            PRESCRITTI_CARTONATI,
+            VIOLA_MERDA
+        };
+
+        typedef struct
+        {
+            ContextMenuItem item;
+            QString text;
+        } ContextMenuItemKey;
+
+        ContextMenu();
+        std::vector<ContextMenuItemKey> items = {{DEHAZE, "DEHAZE"},
+                                                 {LACE, "LACE"},
+                                                 {ALGORITMO_CHE_NON_ESISTE, "ALGORITMO ALCYONE"},
+                                                 {DIO_BOIA, "DIO BOIA"},
+                                                 {ALCUNE_COSE, "ALCUNE COSE"},
+                                                 {PRESCRITTI_CARTONATI, "PRESCRITTI CARTONATI"},
+                                                 {VIOLA_MERDA, "VIOLA MERDA PUMPUM"},
+                                                };
+        bool visible;
+        int selected_item;
+
+        void hide();
+        void show();
+        void navigate(int delta);
+        void select();
+        void draw(cv::Mat* frame);
+    };
+
     extern const int THROTTLESTATE;
     extern const int LOS;
     extern const int TARGETS;

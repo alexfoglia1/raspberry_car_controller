@@ -73,40 +73,46 @@ bool JoystickInput::update_msg_out(SDL_Event event)
                 msg_out.y_axis = int8_t(0xFF - uint8_t(msg_out.x_axis));
                 updated = true;
             }
-
-
+            else
+            {
+                qDebug("event.jaxis(%d)\n", event.jaxis.axis);
+            }
             break;
         }
-#if 0
-            size_t axis = get_axis_state(&event, axes);
-            if (axis == 0)
-            {
-                msg_out.header.msg_id = JS_ACC_MSG_ID;
-                msg_out.x_axis = map_js_axis_value_int8(axes[axis].x);
-                msg_out.y_axis = map_js_axis_value_int8(axes[axis].y);
-                updated = true;
-            }
-            else if (axis == 1 && event.number == 2)
-            {
-                qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
-                msg_out.header.msg_id = JS_BRK_MSG_ID;
-                msg_out.throttle_state = axes[axis].x;
-                updated = true;
-            }
-            else if (axis == 2 && event.number == 5)
-            {
-                qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
-                msg_out.header.msg_id = JS_ACC_MSG_ID;
-                msg_out.throttle_state = axes[axis].y;
-                updated = true;
-            }
-
-
+        case  SDL_JOYBUTTONDOWN:
+        {
+            qDebug("button(%d) state(%d)\n", event.jbutton.button, event.jbutton.state);
+            break;
         }
+    case SDL_JOYHATMOTION:
+    {
+        switch(event.jhat.value)
+        {
+        case SDL_HAT_LEFTUP:  qDebug("LEFTUP"); break;
+
+        case SDL_HAT_UP: emit up(); break;
+
+       case SDL_HAT_RIGHTUP: qDebug("RIGHTUP"); break;
+
+       case SDL_HAT_LEFT: emit left(); break;
+
+       case SDL_HAT_CENTERED: qDebug("CENTERED"); break;
+
+        case SDL_HAT_RIGHT: emit right(); break;
+
+        case SDL_HAT_LEFTDOWN: qDebug("LEFTDOWN"); break;
+
+        case SDL_HAT_DOWN: emit down(); break;
+
+        case SDL_HAT_RIGHTDOWN: qDebug("RIGHTDOWN"); break;
+        }
+
         break;
-        default:
+    }
+
+    default:
         break;
-#endif
+
     }
     return updated;
 }

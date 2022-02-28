@@ -278,6 +278,19 @@ void VideoRenderer::toggle_videorec(int fps)
     widgets::is_enabled[widgets::VIDEO_REC] = save_frame;
 }
 
+void VideoRenderer::show_context_menu()
+{
+    context_menu.show();
+}
+void VideoRenderer::hide_context_menu()
+{
+    context_menu.hide();
+}
+void VideoRenderer::navigate_context_menu(int delta)
+{
+    context_menu.navigate(delta);
+}
+
 
 void VideoRenderer::run()
 {
@@ -301,7 +314,6 @@ void VideoRenderer::run()
 void VideoRenderer::render_window()
 {
     sem_wait(&image_semaphore);
-
     cv::Size size = next_frame.size();
     widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
     widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
@@ -310,7 +322,11 @@ void VideoRenderer::render_window()
     widgets::js_help::draw(&next_frame, size.width/2, size.height/2);
     widgets::videorec::draw(&next_frame, size.width - 40U, 50U);
     widgets::systemstatus::draw(&next_frame, size.width - 130U, size.height/2);
+
+    context_menu.draw(&next_frame);
+
     //widgets::devmode::draw(imagewindow, size.width/2, size.height/2);
+
 
     viewer->set_frame(next_frame);
 

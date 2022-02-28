@@ -59,6 +59,9 @@ public slots:
     void on_keyboard(int key);
     void toggle_widget(int widget);
     void toggle_videorec(int fps);
+    void show_context_menu();
+    void hide_context_menu();
+    void navigate_context_menu(int delta);
 
 signals:
     void thread_quit();
@@ -68,6 +71,10 @@ private:
     GLViewer* viewer;
     cv::Mat next_frame;
     cv::VideoWriter* video;
+
+    /** Widgets **/
+    widgets::ContextMenu context_menu;
+
     bool save_frame;
     bool stopped;
 
