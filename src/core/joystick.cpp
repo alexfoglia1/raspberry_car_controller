@@ -4,7 +4,7 @@
 
 JoystickInput::JoystickInput(DataInterface* iface)
 {
-    js = -1;
+    js = nullptr;
     min_js_axis_value = -32767;
     max_js_axis_value = 32767;
     data_iface = iface;
@@ -35,40 +35,49 @@ uint8_t JoystickInput::map_js_axis_value_uint8(int js_axis_value)
 }
 
 
-bool JoystickInput::read_event(int fd, struct js_event *event)
-{
-    return read(fd, event, sizeof(*event)) == sizeof(*event);
-}
-
-size_t JoystickInput::get_axis_state(struct js_event *event, struct axis_state axes[3])
-{
-    size_t axis = event->number / 2;
-
-    if (axis < 3)
-    {
-        if (event->number % 2 == 0)
-            axes[axis].x = event->value;
-        else
-            axes[axis].y = event->value;
-    }
-
-    return axis;
-}
-
-
 bool JoystickInput::init_joystick()
 {
-    js = open("/dev/input/js0", O_RDONLY);
-    return js > 0;
+    if (SDL_Init(SDL_INIT_JOYSTICK) == 0)
+    {
+        SDL_JoystickEventState(SDL_ENABLE);
+        js = SDL_JoystickOpen(0);
+    }
+
+    return js != nullptr;
 }
 
-bool JoystickInput::update_msg_out(js_event event, axis_state axes[3])
+bool JoystickInput::update_msg_out(SDL_Event event)
 {
     bool updated = false;
     switch (event.type)
     {
-        case JS_EVENT_AXIS:
+        case SDL_JOYAXISMOTION:
         {
+            if (R2_AXIS == event.jaxis.axis)
+            {
+                msg_out.header.msg_id = JS_ACC_MSG_ID;
+                msg_out.throttle_state = map_js_axis_value_uint8(event.jaxis.value);
+                updated = true;
+            }
+            else if (L2_AXIS == event.jaxis.axis)
+            {
+                msg_out.header.msg_id = JS_BRK_MSG_ID;
+                msg_out.throttle_state = map_js_axis_value_uint8(event.jaxis.value);
+                updated = true;
+            }
+            else if (L3_HORIZONTAL_AXIS == event.jaxis.axis)
+            {
+                msg_out.header.msg_id = JS_ACC_MSG_ID;
+                msg_out.x_axis = map_js_axis_value_int8(event.jaxis.value);
+
+                msg_out.y_axis = int8_t(0xFF - uint8_t(msg_out.x_axis));
+                updated = true;
+            }
+
+
+            break;
+        }
+#if 0
             size_t axis = get_axis_state(&event, axes);
             if (axis == 0)
             {
@@ -77,26 +86,27 @@ bool JoystickInput::update_msg_out(js_event event, axis_state axes[3])
                 msg_out.y_axis = map_js_axis_value_int8(axes[axis].y);
                 updated = true;
             }
-            else if (axis == 1)
+            else if (axis == 1 && event.number == 2)
             {
                 qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
                 msg_out.header.msg_id = JS_BRK_MSG_ID;
-                msg_out.throttle_state = axes[axis].y;
-                updated = true;
-            }
-            else if (event.number == 4)
-            {
-                qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
-                msg_out.header.msg_id = JS_ACC_MSG_ID;
                 msg_out.throttle_state = axes[axis].x;
                 updated = true;
             }
+            else if (axis == 2 && event.number == 5)
+            {
+                qDebug("axis(%d), event.number(%d), x(%d), y(%d)", axis, event.number, axes[axis].x, axes[axis].y);
+                msg_out.header.msg_id = JS_ACC_MSG_ID;
+                msg_out.throttle_state = axes[axis].y;
+                updated = true;
+            }
+
 
         }
         break;
         default:
         break;
-
+#endif
     }
     return updated;
 }
@@ -124,20 +134,22 @@ void JoystickInput::call_run()
             break;
             case OPERATIVE:
             {
-                struct js_event event;
-                struct axis_state axes[3];
-                if (read_event(js, &event))
-                {
-                    if (update_msg_out(event, axes))
-                    {
-                        data_iface->send_command(msg_out);
-                    }
-                }
-                else
+                SDL_Event event;
+                if (SDL_NumJoysticks() == 0)
                 {
                     msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false};
                     data_iface->send_command(remote_stop);
                     act_state = IDLE;
+                }
+                else
+                {
+                    while (SDL_PollEvent(&event))
+                    {
+                        if (update_msg_out(event))
+                        {
+                            data_iface->send_command(msg_out);
+                        }
+                    }
                 }
 
             }
@@ -149,7 +161,6 @@ void JoystickInput::call_run()
         }
     }
 
-    close(js);
     data_iface->send_command(remote_stop);
     printf("Joystick thread exit\n");
 

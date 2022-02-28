@@ -34,7 +34,7 @@ void DataInterface::send_command(joystick_msg msg)
     QByteArray datagram;
     datagram.setRawData(reinterpret_cast<char*>(&msg), sizeof(joystick_msg));
     QHostAddress address(remote_address);
-    qDebug("thr state out(%d)\n", msg.throttle_state);
+    qDebug("left(%d), right(%d)", msg.x_axis, msg.y_axis);
     udp_socket.writeDatagram(datagram, address, UDP_PORT);
 }
 

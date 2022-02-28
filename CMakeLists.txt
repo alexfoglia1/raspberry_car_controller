@@ -8,6 +8,9 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+
+cmake_policy(SET CMP0072 OLD)
+
 message("Cmake prefix path = ${CMAKE_PREFIX_PATH}")
 
 add_executable(
@@ -45,7 +48,9 @@ find_package(OpenCV REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(libssh REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS})
-target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::Network stdc++fs pthread ssh )
+find_package(SDL2 REQUIRED)
+
+include_directories(${OpenCV_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS})
+target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${SDL2_LIBRARIES} Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::Network stdc++fs pthread ssh )
 
 install(TARGETS raspberry_car_controller DESTINATION bin)

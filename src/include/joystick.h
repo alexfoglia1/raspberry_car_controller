@@ -4,12 +4,12 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <linux/joystick.h>
 #include <stdint.h>
 #include <limits>
 #include <string.h>
 #include <QThread>
 #include <signal.h>
+#include <SDL.h>
 
 #include "data_interface.h"
 
@@ -19,10 +19,9 @@ class JoystickInput : public QThread
 public:
     const joystick_msg remote_start = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, true, false};
     const joystick_msg remote_stop =  {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, true};
-    struct axis_state
-    {
-        short x, y;
-    };
+    const int R2_AXIS = 5;
+    const int L2_AXIS = 2;
+    const int L3_HORIZONTAL_AXIS = 0;
 
     enum js_thread_state_t
     {
@@ -46,19 +45,19 @@ protected:
     void run() override;
 
 private:
-    int js;
+    SDL_Joystick *js;
+
     int min_js_axis_value;
     int max_js_axis_value;
     DataInterface* data_iface;
     js_thread_state_t act_state;
     joystick_msg msg_out;
 
-    bool update_msg_out(struct js_event event, struct axis_state axes[3]);
-    bool read_event(int fd, struct js_event *event);
+    bool update_msg_out(SDL_Event event);
     bool init_joystick();
     int8_t map_js_axis_value_int8(int js_axis_value);
     uint8_t map_js_axis_value_uint8(int js_axis_value);
-    size_t get_axis_state(struct js_event *event, struct axis_state axes[3]);
+
 };
 
 

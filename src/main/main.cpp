@@ -10,7 +10,7 @@
 #include "video_renderer.h"
 #include "joystick.h"
 
-const char* DEFAULT_RASPBY_ADDR = "192.168.1.24";
+const char* DEFAULT_RASPBY_ADDR = "192.168.1.25";
 
 int main(int argc, char** argv)
 {
@@ -110,6 +110,7 @@ int main(int argc, char** argv)
     /** Launch Qt Application **/
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
     QObject::connect(js_input, SIGNAL(thread_quit()), &app, SLOT(quit()));
+
     return app.exec();
 #if 0
     JoystickInput* js_in = new JoystickInput(new DataInterface("127.0.0.1"));
