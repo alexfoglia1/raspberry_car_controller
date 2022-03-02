@@ -8,8 +8,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-
-cmake_policy(SET CMP0072 OLD)
+# cmake_policy(SET CMP0072 OLD)
 
 message("Cmake prefix path = ${CMAKE_PREFIX_PATH}")
 
@@ -25,6 +24,7 @@ ${CMAKE_SOURCE_DIR}/src/include/utils.h
 ${CMAKE_SOURCE_DIR}/src/include/cbit.h
 ${CMAKE_SOURCE_DIR}/src/include/data_interface.h
 ${CMAKE_SOURCE_DIR}/src/include/video_interface.h
+${CMAKE_SOURCE_DIR}/src/include/video_algo.h
 
 ${CMAKE_SOURCE_DIR}/src/core/video_renderer.cpp
 ${CMAKE_SOURCE_DIR}/src/core/joystick.cpp
@@ -33,8 +33,9 @@ ${CMAKE_SOURCE_DIR}/src/core/utils.cpp
 ${CMAKE_SOURCE_DIR}/src/core/cbit.cpp
 ${CMAKE_SOURCE_DIR}/src/core/data_interface.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_interface.cpp
-
+${CMAKE_SOURCE_DIR}/src/core/video_algo.cpp
 ${CMAKE_SOURCE_DIR}/src/core/keymap.cpp
+
 ${CMAKE_SOURCE_DIR}/src/main/main.cpp
 )
 
@@ -51,6 +52,6 @@ find_package(libssh REQUIRED)
 find_package(SDL2 REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} ${SDL2_INCLUDE_DIRS})
-target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${SDL2_LIBRARIES} Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::Network stdc++fs pthread ssh )
+target_link_libraries(raspberry_car_controller ${OpenCV_LIBS} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${SDL2_LIBRARIES} Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL Qt5::Network stdc++fs pthread)
 
 install(TARGETS raspberry_car_controller DESTINATION bin)

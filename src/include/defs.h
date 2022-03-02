@@ -84,6 +84,12 @@ typedef struct __attribute__((packed))
     int8_t y_axis;
     bool start_flag;
     bool stop_flag;
+    bool left_light_on;
+    bool left_light_off;
+    bool right_light_on;
+    bool right_light_off;
+    bool central_light_on;
+    bool central_light_off;
 }  joystick_msg;
 
 typedef struct __attribute__((packed))

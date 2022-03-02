@@ -21,6 +21,10 @@ public:
     const joystick_msg remote_stop =  {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, true};
     const int R2_AXIS = 5;
     const int L2_AXIS = 2;
+    const int X_BUTTON = 1;
+    const int R1_BUTTON = 5;
+    const int L1_BUTTON = 4;
+    const int PS_BUTTON = 12;
     const int L3_HORIZONTAL_AXIS = 0;
 
     enum js_thread_state_t
@@ -43,6 +47,7 @@ signals:
     void left();
     void up();
     void down();
+    void confirm();
     void thread_quit();
 
 protected:

@@ -107,6 +107,7 @@ int main(int argc, char** argv)
     /** Connecting joystick to video renderer **/
     QObject::connect(js_input, SIGNAL(right()), renderer, SLOT(show_context_menu()));
     QObject::connect(js_input, SIGNAL(left()), renderer, SLOT(hide_context_menu()));
+    QObject::connect(js_input, SIGNAL(confirm()), renderer, SLOT(confirm_context_menu()));
     QObject::connect(js_input, &JoystickInput::up, renderer, [renderer](){renderer->navigate_context_menu(-1);});
     QObject::connect(js_input, &JoystickInput::down, renderer, [renderer](){renderer->navigate_context_menu(1);});
 

@@ -1,195 +1,157 @@
 #ifndef WIDGETS_H
 #define WIDGETS_H
-
-#include "cbit.h"
 #include "defs.h"
+#include "utils.h"
+
 #include <opencv2/opencv.hpp>
-#include <stdint.h>
-#include <map>
 #include <vector>
+#include <QVariant>
+#include <QString>
 
+const cv::Scalar blue(255, 0, 0);
+const cv::Scalar green(0, 255, 0);
+const cv::Scalar red(0, 0, 255);
+const cv::Scalar yellow(0, 255, 255);
+const cv::Scalar gray(200, 200, 200);
+const cv::Scalar black(0, 0, 0);
 
-namespace widgets
+const cv::Scalar bgCol = blue;
+const cv::Scalar fgCol = gray;
+const cv::Scalar okCol = green;
+const cv::Scalar warnCol = yellow;
+const cv::Scalar failCol = red;
+
+const int lineSpacing = 30;
+const int fontScale = 5;
+
+class CVMatWidget
 {
-    class ContextMenu
-    {
     public:
-        enum ContextMenuItem
+        CVMatWidget()
         {
-            DEHAZE,
-            LACE,
-            ALGORITMO_CHE_NON_ESISTE,
-            DIO_BOIA,
-            ALCUNE_COSE,
-            PRESCRITTI_CARTONATI,
-            VIOLA_MERDA
-        };
+            visible = false;
+        }
 
-        typedef struct
+        void update(char* data)
         {
-            ContextMenuItem item;
-            QString text;
-        } ContextMenuItemKey;
+            this->data = data;
+        }
 
-        ContextMenu();
-        std::vector<ContextMenuItemKey> items = {{DEHAZE, "DEHAZE"},
-                                                 {LACE, "LACE"},
-                                                 {ALGORITMO_CHE_NON_ESISTE, "ALGORITMO ALCYONE"},
-                                                 {DIO_BOIA, "DIO BOIA"},
-                                                 {ALCUNE_COSE, "ALCUNE COSE"},
-                                                 {PRESCRITTI_CARTONATI, "PRESCRITTI CARTONATI"},
-                                                 {VIOLA_MERDA, "VIOLA MERDA PUMPUM"},
-                                                };
+        void hide()
+        {
+            visible = false;
+        }
+
+        void show()
+        {
+            visible = true;
+        }
+
+        virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size)
+        {
+            if (visible)
+            {
+                filledRoundedRectangle(*frame, coord, size, bgCol, cv::LINE_AA, 1, 0.01f);
+            }
+        }
+
+    bool enabled()
+    {
+        return visible;
+    }
+
+    protected:
+        char* data;
         bool visible;
-        int selected_item;
+};
 
-        void hide();
-        void show();
-        void navigate(int delta);
-        void select();
-        void draw(cv::Mat* frame);
-    };
+class MenuCvMatWidget : public CVMatWidget
+{
+    public:
 
-    extern const int THROTTLESTATE;
-    extern const int LOS;
-    extern const int TARGETS;
-    extern const int HELP;
-    extern const int VIDEO_REC;
-    extern const int SYSTEM_STATUS;
-    extern const int JS_HELP;
-    extern const int DEVELOPER_MODE;
-
-    extern bool* is_enabled;
-
-    namespace throttlestate
-    {
-        extern char* throttle_display;
-        extern char* speed_display_kmh;
-        extern char* speed_display_ms;
-        extern float duty_cycle;
-
-        void init();
-        void updateThrottle(uint8_t throttle_state);
-        void updateVoltageIn(float voltage_in);
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
-    namespace los
-    {
-        extern int H_FOV_DEG;
-        extern int LOS_RAY;
-
-        extern float act_yaw_deg;
-        extern float act_pitch_deg;
-        extern float act_roll_deg;
-
-        void init();
-        void update(double pitch, double roll, double yaw);
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
-    namespace targets
-    {
-        extern target_data* active_targets;
-        extern int active_size;
-
-        void init();
-        void update(target_msg msg);
-        void draw(cv::Mat* imagewindow);
-    }
-
-    namespace help
-    {
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
-    namespace js_help
-    {
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
-    namespace videorec
-    {
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
-    namespace systemstatus
-    {
-        enum motor_status_t
+        MenuCvMatWidget(std::vector<QString> items)
         {
-            IDLE = 0x00,
-            RUNNING = 0x01,
-            FAILURE = 0x02
-        };
+            for (auto& item : items)
+            {
+                this->items.push_back(item);
+            }
 
-        extern bool tegra_status;
-        extern bool att_status;
-        extern bool vid_status;
-        extern bool js_status;
-        extern bool arduino_status;
-        extern float motor_voltage_in;
-        extern float motor_voltage_out;
-        extern float duty_cycle;
-        extern motor_status_t motor_status;
+            vindex = 0;
+        }
 
-        void init();
-        void updateCbit(quint32 cbit);
-        void updateMotorVoltageIn(double voltage);
-        void updateMotorVoltageOut(uint8_t pwm);
-        void updateRemoteSystemState(uint8_t system_state);
-        void draw(cv::Mat* imagewindow, int x, int y);
-    }
-
-    namespace devmode
-    {
-        class DeveloperMode
+        virtual void navigateVertical(int delta)
         {
-        public:
-
-            enum Tab
+            if (visible)
             {
-                ATTITUDE,
-                VOLTAGE,
-                DETECTOR,
-                SPEEDTEST,
-                EDITPARAMS
-            };
+                vindex += delta;
 
-            enum DeveloperModeEvent
+                if (vindex < 0)
+                {
+                    vindex = items.size() - 1;
+                }
+
+                if (vindex > items.size() - 1)
+                {
+                    vindex = 0;
+                }
+            }
+        }
+
+        virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0))
+        {
+            Q_UNUSED(size);
+
+            if (visible)
             {
-                TAB_LEFT,
-                TAB_RIGHT,
-                ITEM_UP,
-                ITEM_DOWN,
-                ITEM_CONFIRM,
-                ITEM_VALUE_UP,
-                ITEM_VALUE_DOWN
-            };
+                int max_strlen = 0;
+                for(int i = 0; i < items.size(); i++)
+                {
+                    if (items[i].length() > max_strlen)
+                    {
+                        max_strlen = items[i].length();
+                    }
+                }
+                cv::Size rectSize(10 * max_strlen, items.size() * (lineSpacing + 2));
 
-            enum TabItem
-            {
-                START_STOP_SPEED_TEST,
-                KEYBOARD_RX_TIMEOUT,
-                SOCKET_RX_TIMEOUT,
-                VIDEOREC_FPS,
-                IMU_RECALIBRATE
-            };
+                CVMatWidget::draw(frame, coord, rectSize);
 
-            typedef struct
-            {
-                Tab activeTab;
-                TabItem currentTabItem;
-                DeveloperModeEvent event;
-                Tab nextTab;
-                Tab nextTabItem;
-            } DeveloperModeStateMachineEntry;
+                if (vindex >= 0)
+                {
+                    cv::Rect selection(coord.x + lineSpacing/2, lineSpacing/2 + coord.y + vindex * lineSpacing, 7 * max_strlen, lineSpacing / 2);
+                    filledRoundedRectangle(*frame, selection.tl(), selection.size(), fgCol, cv::LINE_AA, 1, 0.01f);
+                }
+                for (int i = 0; i < int(items.size()); i++)
+                {
+                    cv::Point act_coord((coord.x + lineSpacing/2), coord.y + (i + 1) * lineSpacing - 1);
+                    cv::putText(*frame, cv::String(items[i].toStdString()), act_coord, cv::FONT_HERSHEY_SIMPLEX, 0.35, (i == vindex) ? bgCol : fgCol, 1, cv::LINE_AA);
+                }
+            }
+        }
 
-            DeveloperMode();
-        private:
+        QString getSelectedItem()
+        {
+            return items[vindex];
+        }
 
-        };
+        int getSelectedIndex()
+        {
+            return vindex;
+        }
+
+    protected:
+        int vindex;
+        std::vector<QString> items;
+
+};
+
+class SystemStatus : public MenuCvMatWidget
+{
+    void navigateVertical(int delta)
+    {
+        Q_UNUSED(delta);
     }
-}
 
+
+};
 
 #endif // WIDGETS_H

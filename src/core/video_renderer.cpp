@@ -150,11 +150,18 @@ void VideoRenderer::init_window()
     viewer = new GLViewer();
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
-    widgets::throttlestate::init();
-    widgets::los::init();
-    widgets::targets::init();
-    widgets::systemstatus::init();
+    //widgets::throttlestate::init();
+    //widgets::los::init();
+    //widgets::targets::init();
+    //widgets::systemstatus::init();
     //widgets::devmode::init();
+
+    std::vector<QString> context_menu_items;
+    for(auto &algo : image_algorithms)
+    {
+        context_menu_items.push_back(algo.name);
+    }
+    context_menu = new MenuCvMatWidget(context_menu_items);
 
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
@@ -181,30 +188,30 @@ void VideoRenderer::clear()
 
 void VideoRenderer::update(attitude_msg attitude)
 {
-    widgets::los::update(attitude.pitch, attitude.roll, attitude.yaw);
+    //widgets::los::update(attitude.pitch, attitude.roll, attitude.yaw);
 }
 
 void VideoRenderer::update(voltage_msg voltage)
 {
-    widgets::systemstatus::updateMotorVoltageIn(voltage.motor_voltage);
-    widgets::throttlestate::updateVoltageIn(voltage.motor_voltage);
+    //widgets::systemstatus::updateMotorVoltageIn(voltage.motor_voltage);
+    //widgets::throttlestate::updateVoltageIn(voltage.motor_voltage);
 }
 
 void VideoRenderer::update(actuators_state_msg actuators)
 {
-    widgets::systemstatus::updateRemoteSystemState(actuators.system_state);
-    widgets::systemstatus::updateMotorVoltageOut(actuators.throttle_state);
-    widgets::throttlestate::updateThrottle(actuators.throttle_state);
+    //widgets::systemstatus::updateRemoteSystemState(actuators.system_state);
+    //widgets::systemstatus::updateMotorVoltageOut(actuators.throttle_state);
+    //widgets::throttlestate::updateThrottle(actuators.throttle_state);
 }
 
 void VideoRenderer::update(target_msg targets)
 {
-    widgets::targets::update(targets);
+    //widgets::targets::update(targets);
 }
 
 void VideoRenderer::update(quint32 cbit)
 {
-    widgets::systemstatus::updateCbit(cbit);
+    //widgets::systemstatus::updateCbit(cbit);
 }
 
 void VideoRenderer::on_keyboard(int key)
@@ -212,25 +219,25 @@ void VideoRenderer::on_keyboard(int key)
     switch (key)
         {
         case TOGGLE_SPEED:
-            toggle_widget(widgets::THROTTLESTATE);
+            //toggle_widget(widgets::THROTTLESTATE);
             break;
         case TOGGLE_LOS:
-            toggle_widget(widgets::LOS);
+            //toggle_widget(widgets::LOS);
             break;
         case TOGGLE_MENU:
-            toggle_widget(widgets::HELP);
+            //toggle_widget(widgets::HELP);
             break;
         case TOGGLE_SS:
-            toggle_widget(widgets::SYSTEM_STATUS);
+            //toggle_widget(widgets::SYSTEM_STATUS);
             break;
         case TOGGLE_JS:
-            toggle_widget(widgets::JS_HELP);
+            //toggle_widget(widgets::JS_HELP);
             break;
         case VIDEOREC:
-            toggle_videorec(30);
+            //toggle_videorec(30);
             break;
         case TOGGLE_TGT:
-            toggle_widget(widgets::TARGETS);
+            //toggle_widget(widgets::TARGETS);
             break;
         case DEV_MODE:
             //controller->postEvent(Controller::controller_event_t::received_toggle_devmode);
@@ -256,7 +263,7 @@ void VideoRenderer::on_keyboard(int key)
 
 void VideoRenderer::toggle_widget(int widget)
 {
-    widgets::is_enabled[widget] = !widgets::is_enabled[widget];
+    //widgets::is_enabled[widget] = !widgets::is_enabled[widget];
 }
 
 void VideoRenderer::toggle_videorec(int fps)
@@ -275,22 +282,31 @@ void VideoRenderer::toggle_videorec(int fps)
         save_frame = false;
     }
 
-    widgets::is_enabled[widgets::VIDEO_REC] = save_frame;
+    //widgets::is_enabled[widgets::VIDEO_REC] = save_frame;
 }
 
 void VideoRenderer::show_context_menu()
 {
-    context_menu.show();
+    context_menu->show();
 }
 void VideoRenderer::hide_context_menu()
 {
-    context_menu.hide();
-}
-void VideoRenderer::navigate_context_menu(int delta)
-{
-    context_menu.navigate(delta);
+    context_menu->hide();
 }
 
+void VideoRenderer::navigate_context_menu(int delta)
+{
+    context_menu->navigateVertical(delta);
+}
+
+void VideoRenderer::confirm_context_menu()
+{
+    if (context_menu->enabled())
+    {
+        int algorithm_index = context_menu->getSelectedIndex();
+        image_algorithms[algorithm_index].active = !image_algorithms[algorithm_index].active;
+    }
+}
 
 void VideoRenderer::run()
 {
@@ -314,20 +330,32 @@ void VideoRenderer::run()
 void VideoRenderer::render_window()
 {
     sem_wait(&image_semaphore);
-    cv::Size size = next_frame.size();
-    widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
-    widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
-    widgets::targets::draw(&next_frame);
-    widgets::help::draw(&next_frame, size.width/2, size.height/2);
-    widgets::js_help::draw(&next_frame, size.width/2, size.height/2);
-    widgets::videorec::draw(&next_frame, size.width - 40U, 50U);
-    widgets::systemstatus::draw(&next_frame, size.width - 130U, size.height/2);
 
-    context_menu.draw(&next_frame);
+    /** Applico gli eventuali algoritmi **/
+    for (auto& algo : this->image_algorithms)
+    {
+        if (algo.active)
+        {
+            algo.algorithm(&next_frame);
+        }
+    }
+
+    /** Disegno gli widget abilitati **/
+    cv::Size size = next_frame.size();
+    context_menu->draw(&next_frame, cv::Point(size.width/30, size.height/30));
+    //widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
+    //widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
+    //widgets::targets::draw(&next_frame);
+    //widgets::help::draw(&next_frame, size.width/2, size.height/2);
+    //widgets::js_help::draw(&next_frame, size.width/2, size.height/2);
+    //widgets::videorec::draw(&next_frame, size.width - 40U, 50U);
+    //widgets::systemstatus::draw(&next_frame, size.width - 130U, size.height/2);
+
+    //context_menu.draw(&next_frame);
 
     //widgets::devmode::draw(imagewindow, size.width/2, size.height/2);
 
-
+    /** Passo al viewer il frame con algoritmi + widget **/
     viewer->set_frame(next_frame);
 
     if (save_frame)
