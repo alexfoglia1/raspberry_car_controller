@@ -33,7 +33,7 @@ class CVMatWidget
             visible = false;
         }
 
-        void update(char* data)
+        virtual void update(char* data)
         {
             this->data = data;
         }
@@ -87,66 +87,8 @@ class MenuCvMatWidget : public CVMatWidget
             vindex = 0;
         }
 
-        virtual void navigateVertical(int delta)
-        {
-            if (visible)
-            {
-                vindex += delta;
-
-                if (vindex < 0)
-                {
-                    vindex = items.size() - 1;
-                }
-
-                if (vindex > items.size() - 1)
-                {
-                    vindex = 0;
-                }
-
-                while (items[vindex].view_only && vindex < items.size())
-                {
-                    vindex += delta > 0 ? 1 : -1;
-                }
-
-                if (vindex == items.size())
-                {
-                    vindex = 0;
-                }
-
-            }
-        }
-
-        virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0))
-        {
-            Q_UNUSED(size);
-
-            if (visible)
-            {
-                int max_strlen = 0;
-                for(int i = 0; i < items.size(); i++)
-                {
-                    if (items[i].text.length() > max_strlen)
-                    {
-                        max_strlen = items[i].text.length();
-                    }
-                }
-                cv::Size rectSize(15 * max_strlen, items.size() * (lineSpacing + 2));
-
-                CVMatWidget::draw(frame, coord, rectSize);
-
-                if (vindex >= 0 && !items[vindex].view_only)
-                {
-                    cv::Rect selection(coord.x + lineSpacing/2, lineSpacing/2 + coord.y + vindex * lineSpacing, 7 * max_strlen, lineSpacing / 2);
-                    filledRoundedRectangle(*frame, selection.tl(), selection.size(), fgCol, cv::LINE_AA, 1, 0.01f);
-                }
-
-                for (int i = 0; i < int(items.size()); i++)
-                {
-                    cv::Point act_coord((coord.x + lineSpacing/2), coord.y + (i + 1) * lineSpacing - 1);
-                    cv::putText(*frame, cv::String(items[i].text.toStdString()), act_coord, cv::FONT_HERSHEY_SIMPLEX, 0.35, (i == vindex && !items[vindex].view_only) ? bgCol : fgCol, 1, cv::LINE_AA);
-                }
-            }
-        }
+        virtual void navigateVertical(int delta);
+        virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
 
         QString getSelectedItem()
         {
@@ -193,12 +135,16 @@ public:
         this->motor_voltage_index = motor_voltage_index;
         this->motor_status_index = motor_status_index;
         this->joystick_index = joystick_index;
+        this->comp_status = new bool [items.size()];
+        memset(this->comp_status, 0x00, sizeof(bool) * items.size());
+
         this->voltage_in = 0;
         this->voltage_out = 0;
     };
 
 
 public:
+    virtual void update(char* data);
     virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
     void update_voltage(double voltage, double duty_cycle);
     void update_system_status(quint8 system_status);
@@ -215,9 +161,10 @@ private:
     quint8 system_status;
     double voltage_in;
     double voltage_out;
+    bool* comp_status;
 
     void fillCircleAt(cv::Mat* frame, cv::Point coord, cv::Size size, int index, bool status);
-    void drawStringAt(cv::Mat* frame, cv::Point coord, cv::Size size, int index, QString string);
+    void drawStringAt(cv::Mat* frame, cv::Point coord, int index, QString string);
 };
 
 #endif // WIDGETS_H

@@ -170,8 +170,8 @@ void VideoRenderer::init_window()
                                 {"VIDEO CAMERA", true},
                                 {"ARDUINO NANO", true},
                                 {"JOYSTICK", true},
-                                {"VOLTAGE", false},
-                                {"MOTOR STATUS", true},
+                                {"VOLTAGE (V)", false},
+                                {"SYS STATUS", true},
 
                                 };
 
