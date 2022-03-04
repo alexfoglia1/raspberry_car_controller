@@ -26,7 +26,7 @@ public:
     const int L1_BUTTON = 4;
     const int PS_BUTTON = 12;
     const int L3_HORIZONTAL_AXIS = 0;
-
+    const int JOY_DEAD_CENTER_ZONE = 3000;
     enum js_thread_state_t
     {
         IDLE,

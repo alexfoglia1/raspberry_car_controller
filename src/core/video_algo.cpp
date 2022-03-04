@@ -26,7 +26,7 @@ void clahe(cv::Mat* image)
         pData += 3;
     }
 
-    auto clahe = cv::createCLAHE(2.0);
+    auto clahe = cv::createCLAHE(2);
     clahe->apply(bChannel, eq_bChannel);
     clahe->apply(gChannel, eq_gChannel);
     clahe->apply(rChannel, eq_rChannel);

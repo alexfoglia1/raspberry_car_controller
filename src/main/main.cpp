@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     QObject::connect(iface, &DataInterface::received_targets, cbit, [cbit](){cbit->update_cbit(false, TEGRA_NODATA);});
 
     /** Create video interface **/
-    VideoInterface* iface_v = new VideoInterface(1000);
+    VideoInterface* iface_v = new VideoInterface(5000);
 
     /** Connecting video updates to renderer **/
     QObject::connect(iface_v, SIGNAL(received_video(image_msg)), renderer, SLOT(update(image_msg)));
@@ -110,6 +110,8 @@ int main(int argc, char** argv)
     QObject::connect(js_input, SIGNAL(confirm()), renderer, SLOT(confirm_context_menu()));
     QObject::connect(js_input, &JoystickInput::up, renderer, [renderer](){renderer->navigate_context_menu(-1);});
     QObject::connect(js_input, &JoystickInput::down, renderer, [renderer](){renderer->navigate_context_menu(1);});
+    QObject::connect(js_input, &JoystickInput::up, renderer, [renderer](){renderer->navigate_system_menu(-1);});
+    QObject::connect(js_input, &JoystickInput::down, renderer, [renderer](){renderer->navigate_system_menu(1);});
 
     /** Start joystick **/
     js_input->start();

@@ -141,6 +141,7 @@ VideoRenderer::VideoRenderer()
 {
     stopped = false;
     save_frame = false;
+    last_duty_cycle = 0.0;
 
     sem_init(&image_semaphore, 0, 1);
 }
@@ -156,12 +157,27 @@ void VideoRenderer::init_window()
     //widgets::systemstatus::init();
     //widgets::devmode::init();
 
-    std::vector<QString> context_menu_items;
+    std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
     for(auto &algo : image_algorithms)
     {
-        context_menu_items.push_back(algo.name);
+        context_menu_items.push_back({algo.name, false});
     }
+
+    std::vector<MenuCvMatWidget::MenuItem> system_menu_items =
+                                {
+                                {"TEGRA DETECTOR", false},
+                                {"LSM9DS1 IMU", false},
+                                {"VIDEO CAMERA", true},
+                                {"ARDUINO NANO", true},
+                                {"JOYSTICK", true},
+                                {"VOLTAGE", false},
+                                {"MOTOR STATUS", true},
+
+                                };
+
     context_menu = new MenuCvMatWidget(context_menu_items);
+    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6);
+    system_menu->show();
 
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
@@ -195,6 +211,7 @@ void VideoRenderer::update(voltage_msg voltage)
 {
     //widgets::systemstatus::updateMotorVoltageIn(voltage.motor_voltage);
     //widgets::throttlestate::updateVoltageIn(voltage.motor_voltage);
+    system_menu->update_voltage(voltage.motor_voltage, last_duty_cycle/255.0);
 }
 
 void VideoRenderer::update(actuators_state_msg actuators)
@@ -202,6 +219,8 @@ void VideoRenderer::update(actuators_state_msg actuators)
     //widgets::systemstatus::updateRemoteSystemState(actuators.system_state);
     //widgets::systemstatus::updateMotorVoltageOut(actuators.throttle_state);
     //widgets::throttlestate::updateThrottle(actuators.throttle_state);
+    last_duty_cycle = actuators.throttle_state;
+    system_menu->update_system_status(actuators.system_state);
 }
 
 void VideoRenderer::update(target_msg targets)
@@ -212,6 +231,8 @@ void VideoRenderer::update(target_msg targets)
 void VideoRenderer::update(quint32 cbit)
 {
     //widgets::systemstatus::updateCbit(cbit);
+
+    system_menu->update((char*)&cbit);
 }
 
 void VideoRenderer::on_keyboard(int key)
@@ -299,6 +320,7 @@ void VideoRenderer::navigate_context_menu(int delta)
     context_menu->navigateVertical(delta);
 }
 
+
 void VideoRenderer::confirm_context_menu()
 {
     if (context_menu->enabled())
@@ -308,12 +330,38 @@ void VideoRenderer::confirm_context_menu()
     }
 }
 
+
+void VideoRenderer::navigate_system_menu(int delta)
+{
+    if (!context_menu->enabled())
+    {
+        system_menu->navigateVertical(delta);
+    }
+}
+
+void VideoRenderer::show_system_menu()
+{
+    system_menu->show();
+}
+
+void VideoRenderer::hide_system_menu()
+{
+    system_menu->hide();
+}
+
+void VideoRenderer::confirm_system_menu()
+{
+    if (!context_menu->enabled())
+    {
+        //abilita il plot widget associato al current item del context menu
+    }
+}
+
 void VideoRenderer::run()
 {
     while (!stopped)
     {
         render_window();
-
     }
 
     if (save_frame)
@@ -343,6 +391,7 @@ void VideoRenderer::render_window()
     /** Disegno gli widget abilitati **/
     cv::Size size = next_frame.size();
     context_menu->draw(&next_frame, cv::Point(size.width/30, size.height/30));
+    system_menu->draw(&next_frame, cv::Point(size.width - 250, size.height/2));
     //widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
     //widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
     //widgets::targets::draw(&next_frame);

@@ -7,10 +7,10 @@ DataInterface::DataInterface(QString address)
 {
     udp_socket.bind(UDP_PORT);
     remote_address = address;
-    voltage_timeout.setInterval(1000);
-    imu_timeout.setInterval(1000);
-    actuators_timeout.setInterval(1000);
-    tegra_timeout.setInterval(1000);
+    voltage_timeout.setInterval(5000);
+    imu_timeout.setInterval(5000);
+    actuators_timeout.setInterval(5000);
+    tegra_timeout.setInterval(5000);
 
     connect(&udp_socket, SIGNAL(readyRead()), this, SLOT(receive_data()));
     connect(&voltage_timeout, &QTimer::timeout, this, [this]() {timeout_rx(comp_t::ARDUINO);});

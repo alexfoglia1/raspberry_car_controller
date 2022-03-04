@@ -77,6 +77,12 @@ public slots:
     void navigate_context_menu(int delta);
     void confirm_context_menu();
 
+    /** System menu actions **/
+    void show_system_menu();
+    void hide_system_menu();
+    void navigate_system_menu(int delta);
+    void confirm_system_menu();
+
 signals:
     void thread_quit();
 
@@ -87,9 +93,11 @@ private:
     cv::VideoWriter* video;
     bool save_frame;
     bool stopped;
+    double last_duty_cycle;
 
     /** Widgets **/
     MenuCvMatWidget* context_menu;
+    SystemMenuWidget* system_menu;
 
     /** Algorithms **/
     std::vector<image_algo_state_t> image_algorithms =

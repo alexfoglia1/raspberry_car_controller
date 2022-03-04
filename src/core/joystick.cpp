@@ -48,25 +48,34 @@ bool JoystickInput::init_joystick()
 
 bool JoystickInput::update_msg_out(SDL_Event event)
 {
+
+
     bool updated = false;
     switch (event.type)
     {
         case SDL_JOYAXISMOTION:
         {
+            if (abs(event.jaxis.value) < JOY_DEAD_CENTER_ZONE)
+            {
+                return false;
+            }
             if (R2_AXIS == event.jaxis.axis)
             {
+               // printf("R2 PRESSED (%d)\n", event.jbutton.button);
                 msg_out.header.msg_id = JS_ACC_MSG_ID;
                 msg_out.throttle_state = map_js_axis_value_uint8(event.jaxis.value);
                 updated = true;
             }
             else if (L2_AXIS == event.jaxis.axis)
             {
+                printf("L2 PRESSED (%d)\n", event.jbutton.button);
                 msg_out.header.msg_id = JS_BRK_MSG_ID;
                 msg_out.throttle_state = map_js_axis_value_uint8(event.jaxis.value);
                 updated = true;
             }
             else if (L3_HORIZONTAL_AXIS == event.jaxis.axis)
             {
+                printf("L3 PRESSED (%d)\n",  event.jball);
                 msg_out.header.msg_id = JS_ACC_MSG_ID;
                 msg_out.x_axis = map_js_axis_value_int8(event.jaxis.value);
 
@@ -99,6 +108,8 @@ bool JoystickInput::update_msg_out(SDL_Event event)
                 msg_out.central_light_off = !msg_out.central_light_on;
                 updated = true;
             }
+
+            else (printf("%d\n", event.jbutton.button));
 
             break;
         }
@@ -152,6 +163,7 @@ void JoystickInput::call_run()
                 else
                 {
                     act_state = IDLE;
+                    printf("js_failure\n");
                     emit js_failure();
                 }
             }
