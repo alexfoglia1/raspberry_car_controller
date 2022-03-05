@@ -160,7 +160,6 @@ void JoystickInput::call_run()
                 else
                 {
                     act_state = IDLE;
-                    printf("js_failure\n");
                     emit js_failure();
                 }
             }

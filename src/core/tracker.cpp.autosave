@@ -104,44 +104,12 @@ void Tracker::run()
             const double SIMILARITY_THRESHOLD = 0.90; //da parametrizzare
             std::vector<cv::Point> contour;
 
-            /** Left to right scan **/
+
             for (int y = 0; y < num_rows; y++)
             {
                 uchar p0 = grey_old.data[y * num_cols];
                 std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
                 for (int x = 0; x < num_cols; x++)
-                {
-                    uchar p1 = grey_old.data[y * num_cols + x];
-
-                    double act_delta = fabs(double(hist_old[p1]) - double(hist_old[p0]));
-                    double ratio = act_delta / double(max_old);
-
-                    if (ratio >= SIMILARITY_THRESHOLD)
-                    {
-                        contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
-                    }
-                }
-
-                double max_ratio = 0;
-                cv::Point max_ratio_point;
-                for (auto& pair : contour_candidates_wrt_p1)
-                {
-                    if (pair.second > max_ratio)
-                    {
-                        max_ratio = pair.second;
-                        max_ratio_point = pair.first;
-                    }
-                }
-
-                contour.push_back(max_ratio_point);
-            }
-
-            /** Right to left scan **/
-            for (int y = 0; y < num_rows; y++)
-            {
-                uchar p0 = grey_old.data[y * num_cols];
-                std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
-                for (int x = num_cols - 1; x >= 0; x--)
                 {
                     uchar p1 = grey_old.data[y * num_cols + x];
 

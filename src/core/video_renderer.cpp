@@ -56,12 +56,21 @@ void GLViewer::set_frame(cv::Mat new_frame)
         QRgb *destrow = (QRgb*)image.scanLine(y);
         for (int x = 0; x < new_frame.cols; ++x)
         {
-            int blue = new_frame.data[matpixelchannelit + 0];
-            int green = new_frame.data[matpixelchannelit + 1];
-            int red = new_frame.data[matpixelchannelit + 2];
-            matpixelchannelit += 3;
+            if (new_frame.type() == CV_8UC3)
+            {
+                int blue = new_frame.data[matpixelchannelit + 0];
+                int green = new_frame.data[matpixelchannelit + 1];
+                int red = new_frame.data[matpixelchannelit + 2];
+                matpixelchannelit += 3;
+                destrow[x] = qRgba(red, green, blue, 255);
+            }
+            else
+            {
+                int gval = new_frame.data[matpixelchannelit];
+                matpixelchannelit++;
+                destrow[x] = qRgba(gval, gval, gval, 255);
+            }
 
-            destrow[x] = qRgba(red, green, blue, 255);
         }
     }
 
@@ -142,13 +151,16 @@ VideoRenderer::VideoRenderer()
     stopped = false;
     save_frame = false;
     last_duty_cycle = 0.0;
-
+    width = 0;
+    height = 0;
     sem_init(&image_semaphore, 0, 1);
+    sem_init(&track_semaphore, 0, 1);
 }
 
 void VideoRenderer::init_window()
 {
     viewer = new GLViewer();
+    tracker_debugger = new GLViewer();
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
     std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
@@ -182,6 +194,19 @@ void VideoRenderer::init_window()
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
     viewer->show();
+
+    tracker_debugger->move(10, 10);
+    tracker_debugger->show();
+
+    width = next_frame.size().width;
+    height = next_frame.size().height;
+}
+
+void VideoRenderer::set_tracker_region(cv::Rect tracker_region)
+{
+    sem_wait(&image_semaphore);
+    this->tracker_region = tracker_region;
+    sem_post(&image_semaphore);
 }
 
 /** Thread job              **/
@@ -214,6 +239,9 @@ void VideoRenderer::render_window()
     system_menu->draw(&next_frame, cv::Point(size.width/30, 18*size.height/30));
     target_widget->draw(&next_frame);
     speedometer_widget->draw(&next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
+
+    /** Disegno overlay tracker **/
+    cv::rectangle(next_frame, tracker_region, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
     //widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
     //widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
     //widgets::targets::draw(&next_frame);
@@ -297,6 +325,13 @@ void VideoRenderer::on_image(cv::Mat frame_from_processor)
     sem_post(&image_semaphore);
 }
 
+void VideoRenderer::on_tracker_image(cv::Mat frame_from_tracker)
+{
+    sem_wait(&track_semaphore);
+    tracker_debugger->set_frame(frame_from_tracker);
+    sem_post(&track_semaphore);
+}
+
 void VideoRenderer::on_keyboard(int key)
 {
     switch (key)
@@ -376,6 +411,10 @@ void VideoRenderer::on_keyboard(int key)
             if (!context_menu->enabled())
             {
                 show_context_menu();
+            }
+            else
+            {
+                confirm_context_menu();
             }
             break;
         case ESCAPE:

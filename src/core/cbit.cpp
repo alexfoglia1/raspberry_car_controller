@@ -19,11 +19,6 @@ void Cbit::update_cbit(bool active, quint32 cbit)
                (cbit & TEGRA_NODATA)    ? active?  (TEGRA_NODATA | act_cbit)    : (~TEGRA_NODATA & act_cbit) :
                (cbit & VIDEO_NODATA)    ? active?  (VIDEO_NODATA | act_cbit)    : (~VIDEO_NODATA & act_cbit) : act_cbit;
 
-    if (active && cbit & ARDUINO_NODATA) printf("arduino nodata!\n");
-    if (active && cbit & ATTITUDE_NODATA) printf("imu nodata!\n");
-    if (active && cbit & MOTORS_NODATA) printf("motors nodata!\n");
-   // if (active && cbit & TEGRA_NODATA) printf("tegra nodata!\n");
-    if (active && cbit & VIDEO_NODATA) printf("video nodata\n");
     emit cbit_result(act_cbit);
 }
 

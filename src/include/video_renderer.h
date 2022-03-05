@@ -49,9 +49,12 @@ public:
 
     static const int RENDER_FREQ_HZ = 30;
     double render_timeout_micros = 1e6/RENDER_FREQ_HZ;
+    int width;
+    int height;
 
     VideoRenderer();
     void init_window();
+    void set_tracker_region(cv::Rect tracker_region);
 
 protected:
     /** Thread job **/
@@ -69,6 +72,7 @@ public slots:
 
     /** Local controlled slots **/
     void on_image(cv::Mat image);
+    void on_tracker_image(cv::Mat image);
     void on_keyboard(int key);
 
     /** Context menu actions **/
@@ -103,7 +107,9 @@ private:
     void b_filter_changed_state(bool enabled);
 
     sem_t image_semaphore;
+    sem_t track_semaphore;
     GLViewer* viewer;
+    GLViewer* tracker_debugger;
     cv::Mat next_frame;
     cv::VideoWriter* video;
     bool save_frame;
@@ -115,6 +121,9 @@ private:
     SystemMenuWidget* system_menu;
     SpeedometerWidget* speedometer_widget;
     TargetWidget* target_widget;
+
+    /** Tracker region **/
+    cv::Rect tracker_region;
 
     std::vector<image_algorithm_state_t> image_algorithms =
     {

@@ -50,7 +50,10 @@ int main(int argc, char** argv)
     renderer->start();
 
     /** Create tracker instance **/
-    Tracker* tracker = new Tracker();
+    cv::Rect tracker_region(renderer->width / 2 - 150, renderer->height / 2 - 150, 300, 300);
+    Tracker* tracker = new Tracker(tracker_region);
+    renderer->set_tracker_region(tracker_region);
+    QObject::connect(tracker, SIGNAL(debugger_frame(cv::Mat)), renderer, SLOT(on_tracker_image(cv::Mat)));
 
     /** Create data interface **/
     DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);
@@ -111,9 +114,9 @@ int main(int argc, char** argv)
     {
         std::vector<char> data(image.data, image.data + image.len);
         cv::Mat img = cv::imdecode(cv::Mat(data), 1);
+
         tracker->on_camera_image(img);
     });
-
     /** Connecting video processor to renderer **/
     QObject::connect(video_processor, SIGNAL(frame_ready(cv::Mat)), renderer, SLOT(on_image(cv::Mat)));
 
@@ -156,6 +159,9 @@ int main(int argc, char** argv)
 
     /** Start joystick **/
     js_input->start();
+
+    /** Start tracker **/
+    tracker->start();
 
     /** Launch Qt Application **/
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
