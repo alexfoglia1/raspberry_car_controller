@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     VideoInterface* iface_v = new VideoInterface(1000);
 
     /** Connecting video timeout to renderer **/
-    QObject::connect(iface_v, SIGNAL(video_timeout()), renderer, SLOT(clear()));
+    QObject::connect(iface_v, SIGNAL(video_timeout()), renderer, SLOT(on_video_timeout()));
 
     /** Create video procesor **/
     VideoProcessor* video_processor = new VideoProcessor();

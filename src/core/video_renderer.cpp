@@ -242,7 +242,7 @@ void VideoRenderer::render_window()
 
 /** Remote controlled slots **/
 
-void VideoRenderer::clear()
+void VideoRenderer::on_video_timeout()
 {
     sem_wait(&image_semaphore);
     viewer->clear();
@@ -482,13 +482,6 @@ void VideoRenderer::g_filter_changed_state(bool enabled)
 void VideoRenderer::b_filter_changed_state(bool enabled)
 {
     emit signal_b_filter_changed_state(enabled);
-}
-
-/*****************************/
-
-void VideoRenderer::start_videorec(int fps)
-{
-
 }
 
 /*****************************/

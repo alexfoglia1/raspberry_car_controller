@@ -60,7 +60,7 @@ protected:
 
 public slots:
     /** Remote controlled slots **/
-    void clear();
+    void on_video_timeout();
     void update(voltage_msg voltage);
     void update(attitude_msg attitude);
     void update(actuators_state_msg actuators);
