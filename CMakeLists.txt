@@ -25,6 +25,7 @@ ${CMAKE_SOURCE_DIR}/src/include/cbit.h
 ${CMAKE_SOURCE_DIR}/src/include/data_interface.h
 ${CMAKE_SOURCE_DIR}/src/include/video_interface.h
 ${CMAKE_SOURCE_DIR}/src/include/video_algo.h
+${CMAKE_SOURCE_DIR}/src/include/tracker.h
 
 ${CMAKE_SOURCE_DIR}/src/core/video_renderer.cpp
 ${CMAKE_SOURCE_DIR}/src/core/joystick.cpp
@@ -35,6 +36,7 @@ ${CMAKE_SOURCE_DIR}/src/core/data_interface.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_interface.cpp
 ${CMAKE_SOURCE_DIR}/src/core/video_algo.cpp
 ${CMAKE_SOURCE_DIR}/src/core/keymap.cpp
+${CMAKE_SOURCE_DIR}/src/core/tracker.cpp
 
 ${CMAKE_SOURCE_DIR}/src/main/main.cpp
 )

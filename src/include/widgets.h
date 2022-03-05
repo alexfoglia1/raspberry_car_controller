@@ -31,11 +31,23 @@ class CVMatWidget
         CVMatWidget()
         {
             visible = false;
+            this->data_len = 256;
+            this->data = new char[this->data_len];
+            memset(this->data, 0x00, this->data_len);
         }
 
-        virtual void update(char* data)
+        virtual void update(char* data, quint64 data_len)
         {
-            this->data = data;
+            if (data_len > this->data_len)
+            {
+                delete[] this->data;
+
+                this->data = new char[data_len];
+                memset(this->data, 0x00, data_len);
+            }
+
+            memcpy(this->data, data, data_len);
+            this->data_len = data_len;
         }
 
         void hide()
@@ -63,7 +75,27 @@ class CVMatWidget
 
     protected:
         char* data;
+        quint64 data_len;
         bool visible;
+};
+
+class TargetWidget : public CVMatWidget
+{
+
+public:
+    virtual void update(char* data, quint64 data_len);
+    virtual void draw(cv::Mat* frame, cv::Point coord = cv::Point(0, 0), cv::Size size = cv::Size(0,0));
+private:
+    std::vector<cv::Rect> rectangles;
+    std::vector<cv::String> rectangle_names;
+    std::vector<float> rectangle_confidences;
+
+};
+
+class SpeedometerWidget : public CVMatWidget
+{
+public:
+    virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size);
 };
 
 class MenuCvMatWidget : public CVMatWidget
@@ -85,10 +117,20 @@ class MenuCvMatWidget : public CVMatWidget
             }
 
             vindex = 0;
+
+            max_strlen = 0;
+            for(int i = 0; i < int(items.size()); i++)
+            {
+                if (items[i].text.length() > max_strlen)
+                {
+                    max_strlen = items[i].text.length();
+                }
+            }
         }
 
         virtual void navigateVertical(int delta);
         virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
+        virtual void setItemText(QString text, int item=-1);
 
         QString getSelectedItem()
         {
@@ -102,6 +144,7 @@ class MenuCvMatWidget : public CVMatWidget
 
     protected:
         int vindex;
+        int max_strlen;
         std::vector<MenuItem> items;
 
 };
@@ -123,7 +166,7 @@ public:
         vindex = 0;
         while (items[vindex].view_only) vindex += 1;
 
-        if (vindex > items.size() - 1)
+        if (vindex > int(items.size()) - 1)
         {
             vindex = 0;
         }
@@ -144,7 +187,7 @@ public:
 
 
 public:
-    virtual void update(char* data);
+    virtual void update(char* data, quint64 data_len);
     virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
     void update_voltage(double voltage, double duty_cycle);
     void update_system_status(quint8 system_status);

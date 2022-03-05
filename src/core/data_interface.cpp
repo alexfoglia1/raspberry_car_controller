@@ -3,14 +3,14 @@
 #include <QByteArray>
 #include <QHostAddress>
 
-DataInterface::DataInterface(QString address)
+DataInterface::DataInterface(QString address, int timeout_millis)
 {
     udp_socket.bind(UDP_PORT);
     remote_address = address;
-    voltage_timeout.setInterval(5000);
-    imu_timeout.setInterval(5000);
-    actuators_timeout.setInterval(5000);
-    tegra_timeout.setInterval(5000);
+    voltage_timeout.setInterval(timeout_millis);
+    imu_timeout.setInterval(timeout_millis);
+    actuators_timeout.setInterval(timeout_millis);
+    tegra_timeout.setInterval(timeout_millis);
 
     connect(&udp_socket, SIGNAL(readyRead()), this, SLOT(receive_data()));
     connect(&voltage_timeout, &QTimer::timeout, this, [this]() {timeout_rx(comp_t::ARDUINO);});

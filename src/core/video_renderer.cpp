@@ -80,9 +80,8 @@ void GLViewer::clear()
 {
     if (pixmap)
     {
-        delete pixmap;
+        pixmap->fill(Qt::black);
     }
-    pixmap = nullptr;
 }
 
 bool GLViewer::eventFilter(QObject* target, QEvent *event)
@@ -90,7 +89,6 @@ bool GLViewer::eventFilter(QObject* target, QEvent *event)
     if (event->type() == QEvent::KeyPress)
     {
           QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-          printf("%d\n", keyEvent->key());
 
           emit received_keyboard(keyEvent->key());
 
@@ -101,6 +99,8 @@ bool GLViewer::eventFilter(QObject* target, QEvent *event)
 
 void GLViewer::resizeEvent(QResizeEvent *ev)
 {
+    Q_UNUSED(ev);
+
     if (!pixmap)
     {
         return;
@@ -151,14 +151,9 @@ void VideoRenderer::init_window()
     viewer = new GLViewer();
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
-    //widgets::throttlestate::init();
-    //widgets::los::init();
-    //widgets::targets::init();
-    //widgets::systemstatus::init();
-    //widgets::devmode::init();
-
     std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
-    for(auto &algo : image_algorithms)
+
+    for (auto &algo : image_algorithms)
     {
         context_menu_items.push_back({algo.name, false});
     }
@@ -179,18 +174,20 @@ void VideoRenderer::init_window()
     system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6);
     system_menu->show();
 
+    speedometer_widget = new SpeedometerWidget();
+    speedometer_widget->show();
+
+    target_widget = new TargetWidget();
+
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
     viewer->show();
 }
 
-void VideoRenderer::update(image_msg image)
+void VideoRenderer::update(cv::Mat frame_from_processor)
 {
-    std::vector<char> data(image.data, image.data + image.len);
-
     sem_wait(&image_semaphore);
-    cv::Mat frame_from_camera = cv::imdecode(cv::Mat(data), 1);
-    next_frame = frame_from_camera;
+    next_frame = frame_from_processor;
     sem_post(&image_semaphore);
 }
 
@@ -211,28 +208,32 @@ void VideoRenderer::update(voltage_msg voltage)
 {
     //widgets::systemstatus::updateMotorVoltageIn(voltage.motor_voltage);
     //widgets::throttlestate::updateVoltageIn(voltage.motor_voltage);
+    sem_wait(&image_semaphore);
     system_menu->update_voltage(voltage.motor_voltage, last_duty_cycle/255.0);
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::update(actuators_state_msg actuators)
 {
-    //widgets::systemstatus::updateRemoteSystemState(actuators.system_state);
-    //widgets::systemstatus::updateMotorVoltageOut(actuators.throttle_state);
-    //widgets::throttlestate::updateThrottle(actuators.throttle_state);
+    sem_wait(&image_semaphore);
     last_duty_cycle = actuators.throttle_state;
     system_menu->update_system_status(actuators.system_state);
+    speedometer_widget->update((char*)&actuators.throttle_state, sizeof(actuators.throttle_state));
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::update(target_msg targets)
 {
-    //widgets::targets::update(targets);
+    sem_wait(&image_semaphore);
+    target_widget->update((char*)&targets, sizeof(target_msg));
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::update(quint32 cbit)
 {
-    //widgets::systemstatus::updateCbit(cbit);
-
-    system_menu->update((char*)&cbit);
+    sem_wait(&image_semaphore);
+    system_menu->update((char*)&cbit, sizeof(quint32));
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::on_keyboard(int key)
@@ -258,22 +259,49 @@ void VideoRenderer::on_keyboard(int key)
             //toggle_videorec(30);
             break;
         case TOGGLE_TGT:
-            //toggle_widget(widgets::TARGETS);
+            if (!target_widget->enabled())
+            {
+                target_widget->show();
+            }
+            else
+            {
+                target_widget->hide();
+            }
             break;
         case DEV_MODE:
             //controller->postEvent(Controller::controller_event_t::received_toggle_devmode);
             break;
         case UP_ARROW:
-            //handle up arrow
+            if (context_menu->enabled())
+            {
+                navigate_context_menu(-1);
+            }
+            else
+            {
+                navigate_system_menu(-1);
+            }
             break;
         case DOWN_ARROW:
-            //handle down arrow
+            if (context_menu->enabled())
+            {
+                navigate_context_menu(+1);
+            }
+            else
+            {
+                navigate_system_menu(+1);
+            }
             break;
         case LEFT_ARROW:
-            //handle left arrow
+            if (context_menu->enabled())
+            {
+                hide_context_menu();
+            }
             break;
         case RIGHT_ARROW:
-            //handle right arrow
+            if (!context_menu->enabled())
+            {
+                show_context_menu();
+            }
             break;
         case ESCAPE:
             stopped = true;
@@ -281,11 +309,6 @@ void VideoRenderer::on_keyboard(int key)
     }
 }
 
-
-void VideoRenderer::toggle_widget(int widget)
-{
-    //widgets::is_enabled[widget] = !widgets::is_enabled[widget];
-}
 
 void VideoRenderer::toggle_videorec(int fps)
 {
@@ -320,13 +343,18 @@ void VideoRenderer::navigate_context_menu(int delta)
     context_menu->navigateVertical(delta);
 }
 
-
 void VideoRenderer::confirm_context_menu()
 {
     if (context_menu->enabled())
     {
         int algorithm_index = context_menu->getSelectedIndex();
-        image_algorithms[algorithm_index].active = !image_algorithms[algorithm_index].active;
+        QString algorithm_text = context_menu->getSelectedItem();
+
+        ctx_action_t action = image_algorithms[algorithm_index].action;
+        image_algorithms[algorithm_index].enabled = !image_algorithms[algorithm_index].enabled;
+        bool enabled = image_algorithms[algorithm_index].enabled;
+        context_menu->setItemText(enabled ? algorithm_text + QString(": ON") : algorithm_text.replace(": ON", ""));
+        (this->*action)(enabled);
     }
 }
 
@@ -353,7 +381,7 @@ void VideoRenderer::confirm_system_menu()
 {
     if (!context_menu->enabled())
     {
-        //abilita il plot widget associato al current item del context menu
+        //abilita il plot widget associato al current item del system menu
     }
 }
 
@@ -379,19 +407,12 @@ void VideoRenderer::render_window()
 {
     sem_wait(&image_semaphore);
 
-    /** Applico gli eventuali algoritmi **/
-    for (auto& algo : this->image_algorithms)
-    {
-        if (algo.active)
-        {
-            algo.algorithm(&next_frame);
-        }
-    }
-
     /** Disegno gli widget abilitati **/
     cv::Size size = next_frame.size();
     context_menu->draw(&next_frame, cv::Point(size.width/30, size.height/30));
-    system_menu->draw(&next_frame, cv::Point(size.width - 250, size.height/2));
+    system_menu->draw(&next_frame, cv::Point(size.width/30, 18*size.height/30));
+    target_widget->draw(&next_frame);
+    speedometer_widget->draw(&next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
     //widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
     //widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
     //widgets::targets::draw(&next_frame);
@@ -429,4 +450,34 @@ void VideoRenderer::start_videorec(int fps)
 
     video = new cv::VideoWriter((const char*)buf, cv::VideoWriter::fourcc('M','J','P','G'), fps, viewer->get_frame().size());
     save_frame = true;
+}
+
+void VideoRenderer::clahe_changed_state(bool enabled)
+{
+    emit signal_clahe_changed_state(enabled);
+}
+
+void VideoRenderer::polarity_changed_state(bool enabled)
+{
+    emit signal_polarity_changed_state(enabled);
+}
+
+void VideoRenderer::denoise_changed_state(bool enabled)
+{
+    emit signal_denoise_changed_state(enabled);
+}
+
+void VideoRenderer::r_filter_changed_state(bool enabled)
+{
+    emit signal_r_filter_changed_state(enabled);
+}
+
+void VideoRenderer::g_filter_changed_state(bool enabled)
+{
+    emit signal_g_filter_changed_state(enabled);
+}
+
+void VideoRenderer::b_filter_changed_state(bool enabled)
+{
+    emit signal_b_filter_changed_state(enabled);
 }

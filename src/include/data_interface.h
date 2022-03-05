@@ -11,7 +11,7 @@ class DataInterface : public QObject
     Q_OBJECT
 
 public:
-    DataInterface(QString address);
+    DataInterface(QString address, int timeout_millis);
 
     void send_command(joystick_msg msg);
 

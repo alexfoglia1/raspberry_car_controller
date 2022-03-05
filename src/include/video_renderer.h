@@ -38,15 +38,15 @@ class VideoRenderer : public QThread
 {
     Q_OBJECT
 
-    typedef void (*image_algo_t)(cv::Mat* image);
+public:
+    typedef void (VideoRenderer::*ctx_action_t)(bool);
     typedef struct
     {
         QString name;
-        bool active;
-        image_algo_t algorithm;
-    } image_algo_state_t;
+        bool enabled;
+        ctx_action_t action;
+    } image_algorithm_state_t;
 
-public:
     static const int RENDER_FREQ_HZ = 30;
     double render_timeout_micros = 1e6/RENDER_FREQ_HZ;
 
@@ -59,7 +59,6 @@ protected:
 public slots:
     /** Remote controlled slots **/
     void clear();
-    void update(image_msg image);
     void update(voltage_msg voltage);
     void update(attitude_msg attitude);
     void update(actuators_state_msg actuators);
@@ -67,8 +66,8 @@ public slots:
     void update(quint32 cbit);
 
     /** Local controlled slots **/
+    void update(cv::Mat image);
     void on_keyboard(int key);
-    void toggle_widget(int widget);
     void toggle_videorec(int fps);
 
     /** Context menu actions **/
@@ -84,6 +83,12 @@ public slots:
     void confirm_system_menu();
 
 signals:
+    void signal_clahe_changed_state(bool enabled);
+    void signal_polarity_changed_state(bool enabled);
+    void signal_denoise_changed_state(bool enabled);
+    void signal_r_filter_changed_state(bool enabled);
+    void signal_g_filter_changed_state(bool enabled);
+    void signal_b_filter_changed_state(bool enabled);
     void thread_quit();
 
 private:
@@ -98,19 +103,26 @@ private:
     /** Widgets **/
     MenuCvMatWidget* context_menu;
     SystemMenuWidget* system_menu;
+    SpeedometerWidget* speedometer_widget;
+    TargetWidget* target_widget;
 
-    /** Algorithms **/
-    std::vector<image_algo_state_t> image_algorithms =
+    std::vector<image_algorithm_state_t> image_algorithms =
     {
-     {"CLAHE",    false, &clahe},
-     {"POLARITY", false, &polarity},
-     {"R-FILTER", false, [](cv::Mat* image){channel_filter(image, 2);}},
-     {"G-FILTER", false, [](cv::Mat* image){channel_filter(image, 1);}},
-     {"B-FILTER", false, [](cv::Mat* image){channel_filter(image, 0);}}
+        {"CLAHE",       false,  &VideoRenderer::clahe_changed_state},
+        {"POLARITY",    false,  &VideoRenderer::polarity_changed_state},
+        {"DENOISE",     false,  &VideoRenderer::denoise_changed_state},
+        {"R-FILTER",    false,  &VideoRenderer::r_filter_changed_state},
+        {"G-FILTER",    false,  &VideoRenderer::g_filter_changed_state},
+        {"B-FILTER",    false,  &VideoRenderer::b_filter_changed_state}
     };
-
     void render_window();
     void start_videorec(int fps);
+    void clahe_changed_state(bool enabled);
+    void polarity_changed_state(bool enabled);
+    void denoise_changed_state(bool enabled);
+    void r_filter_changed_state(bool enabled);
+    void g_filter_changed_state(bool enabled);
+    void b_filter_changed_state(bool enabled);
 
 };
 

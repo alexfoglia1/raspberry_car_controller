@@ -8,24 +8,20 @@
 #include "data_interface.h"
 #include "video_interface.h"
 #include "video_renderer.h"
+#include "video_algo.h"
 #include "joystick.h"
+#include "tracker.h"
 
 const char* DEFAULT_RASPBY_ADDR = "192.168.1.25";
 
 int main(int argc, char** argv)
 {
-
     printf("%s v%s.%s\n", APP_NAME, MAJOR_VERS, MINOR_VERS);
     if (argc == 1)
     {
         printf("USAGE: %s [raspberry_address]\n", argv[0]);
         printf("Trying to use %s\n\n", DEFAULT_RASPBY_ADDR);
     }
-
-    /** Speed test file **/
-    FILE* f = fopen("speedtest.csv", "w");
-    fprintf(f, "dt, avg_vin, avg_vout\n");
-    fclose(f);
 
     /** Init Qt Application **/
     QApplication app(argc, argv);
@@ -41,6 +37,7 @@ int main(int argc, char** argv)
     qRegisterMetaType<target_msg>();
     qRegisterMetaType<image_msg>();
     qRegisterMetaType<comp_t>();
+    qRegisterMetaType<cv::Mat>();
 
     /** Create cbit instance **/
     Cbit* cbit = new Cbit();
@@ -52,8 +49,11 @@ int main(int argc, char** argv)
     renderer->init_window();
     renderer->start();
 
+    /** Create tracker instance **/
+    Tracker* tracker = new Tracker();
+
     /** Create data interface **/
-    DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1]);
+    DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);
     QObject::connect(iface, SIGNAL(received_attitude(attitude_msg)), renderer, SLOT(update(attitude_msg)));
     QObject::connect(iface, SIGNAL(received_voltage(voltage_msg)), renderer, SLOT(update(voltage_msg)));
     QObject::connect(iface, SIGNAL(received_actuators(actuators_state_msg)), renderer, SLOT(update(actuators_state_msg)));
@@ -75,6 +75,11 @@ int main(int argc, char** argv)
         break;
     case comp_t::TEGRA:
         cbit->update_cbit(true, TEGRA_NODATA);
+    case comp_t::VIDEO:
+        /** Handled by VideoInterface **/
+        break;
+    case comp_t::JOYSTICK:
+        /** Handled by JoystickInput **/
         break;
     }
     });
@@ -84,11 +89,46 @@ int main(int argc, char** argv)
     QObject::connect(iface, &DataInterface::received_targets, cbit, [cbit](){cbit->update_cbit(false, TEGRA_NODATA);});
 
     /** Create video interface **/
-    VideoInterface* iface_v = new VideoInterface(5000);
+    VideoInterface* iface_v = new VideoInterface(1000);
 
-    /** Connecting video updates to renderer **/
-    QObject::connect(iface_v, SIGNAL(received_video(image_msg)), renderer, SLOT(update(image_msg)));
+    /** Connecting video timeout to renderer **/
     QObject::connect(iface_v, SIGNAL(video_timeout()), renderer, SLOT(clear()));
+
+    /** Create video procesor **/
+    VideoProcessor* video_processor = new VideoProcessor();
+
+    /** Connecting video update to video processor **/
+    QObject::connect(iface_v, &VideoInterface::received_video, video_processor, [video_processor](image_msg image)
+    {
+        std::vector<char> data(image.data, image.data + image.len);
+        cv::Mat img = cv::imdecode(cv::Mat(data), 1);
+
+        video_processor->feed(img);
+    });
+
+    /** Connecting video update to tracker **/
+    QObject::connect(iface_v, &VideoInterface::received_video, tracker, [tracker](image_msg image)
+    {
+        std::vector<char> data(image.data, image.data + image.len);
+        cv::Mat img = cv::imdecode(cv::Mat(data), 1);
+        tracker->on_camera_image(img);
+    });
+
+    /** Connecting video processor to renderer **/
+    QObject::connect(video_processor, SIGNAL(frame_ready(cv::Mat)), renderer, SLOT(update(cv::Mat)));
+    /** Connecting renderer to video processor (image algorithms abilitation) **/
+    QObject::connect(renderer, SIGNAL(signal_clahe_changed_state(bool)), video_processor, SLOT(clahe(bool)));
+    QObject::connect(renderer, SIGNAL(signal_polarity_changed_state(bool)), video_processor, SLOT(polarity(bool)));
+    QObject::connect(renderer, SIGNAL(signal_denoise_changed_state(bool)), video_processor, SLOT(denoise(bool)));
+    QObject::connect(renderer, &VideoRenderer::signal_b_filter_changed_state, video_processor, [video_processor](bool enabled){
+        video_processor->channel_filter(enabled, 0);
+    });
+    QObject::connect(renderer, &VideoRenderer::signal_g_filter_changed_state, video_processor, [video_processor](bool enabled){
+        video_processor->channel_filter(enabled, 1);
+    });
+    QObject::connect(renderer, &VideoRenderer::signal_r_filter_changed_state, video_processor, [video_processor](bool enabled){
+        video_processor->channel_filter(enabled, 2);
+    });
 
     /** Connecting video to cbit **/
     QObject::connect(iface_v, &VideoInterface::video_timeout, cbit, [cbit]() {cbit->update_cbit(true, VIDEO_NODATA);});
@@ -121,9 +161,4 @@ int main(int argc, char** argv)
     QObject::connect(js_input, SIGNAL(thread_quit()), &app, SLOT(quit()));
 
     return app.exec();
-#if 0
-    JoystickInput* js_in = new JoystickInput(new DataInterface("127.0.0.1"));
-    //js_in->start();
-    js_in->call_run();
-#endif
 }

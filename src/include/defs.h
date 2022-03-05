@@ -1,6 +1,8 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <opencv2/opencv.hpp>
+
 #define APP_NAME    "Raspberry PI 4 Car Remote Controller"
 #define MAJOR_VERS  "02"
 #define MINOR_VERS  "00"
@@ -106,6 +108,7 @@ Q_DECLARE_METATYPE(joystick_msg)
 Q_DECLARE_METATYPE(voltage_msg)
 Q_DECLARE_METATYPE(image_msg)
 Q_DECLARE_METATYPE(comp_t)
+Q_DECLARE_METATYPE(cv::Mat)
 
 
 #endif //DEFS_H
