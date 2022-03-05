@@ -115,7 +115,8 @@ int main(int argc, char** argv)
     });
 
     /** Connecting video processor to renderer **/
-    QObject::connect(video_processor, SIGNAL(frame_ready(cv::Mat)), renderer, SLOT(update(cv::Mat)));
+    QObject::connect(video_processor, SIGNAL(frame_ready(cv::Mat)), renderer, SLOT(on_image(cv::Mat)));
+
     /** Connecting renderer to video processor (image algorithms abilitation) **/
     QObject::connect(renderer, SIGNAL(signal_clahe_changed_state(bool)), video_processor, SLOT(clahe(bool)));
     QObject::connect(renderer, SIGNAL(signal_polarity_changed_state(bool)), video_processor, SLOT(polarity(bool)));

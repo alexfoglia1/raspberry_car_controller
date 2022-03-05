@@ -39,12 +39,12 @@ class VideoRenderer : public QThread
     Q_OBJECT
 
 public:
-    typedef void (VideoRenderer::*ctx_action_t)(bool);
+    typedef void (VideoRenderer::*ctx_signal_emitter_t)(bool);
     typedef struct
     {
         QString name;
         bool enabled;
-        ctx_action_t action;
+        ctx_signal_emitter_t action;
     } image_algorithm_state_t;
 
     static const int RENDER_FREQ_HZ = 30;
@@ -54,7 +54,9 @@ public:
     void init_window();
 
 protected:
+    /** Thread job **/
     void run() override;
+    void render_window();
 
 public slots:
     /** Remote controlled slots **/
@@ -66,9 +68,8 @@ public slots:
     void update(quint32 cbit);
 
     /** Local controlled slots **/
-    void update(cv::Mat image);
+    void on_image(cv::Mat image);
     void on_keyboard(int key);
-    void toggle_videorec(int fps);
 
     /** Context menu actions **/
     void show_context_menu();
@@ -83,6 +84,7 @@ public slots:
     void confirm_system_menu();
 
 signals:
+    /** signals to clients **/
     void signal_clahe_changed_state(bool enabled);
     void signal_polarity_changed_state(bool enabled);
     void signal_denoise_changed_state(bool enabled);
@@ -92,6 +94,14 @@ signals:
     void thread_quit();
 
 private:
+    /** signal emitters **/
+    void clahe_changed_state(bool enabled);
+    void polarity_changed_state(bool enabled);
+    void denoise_changed_state(bool enabled);
+    void r_filter_changed_state(bool enabled);
+    void g_filter_changed_state(bool enabled);
+    void b_filter_changed_state(bool enabled);
+
     sem_t image_semaphore;
     GLViewer* viewer;
     cv::Mat next_frame;
@@ -115,14 +125,7 @@ private:
         {"G-FILTER",    false,  &VideoRenderer::g_filter_changed_state},
         {"B-FILTER",    false,  &VideoRenderer::b_filter_changed_state}
     };
-    void render_window();
-    void start_videorec(int fps);
-    void clahe_changed_state(bool enabled);
-    void polarity_changed_state(bool enabled);
-    void denoise_changed_state(bool enabled);
-    void r_filter_changed_state(bool enabled);
-    void g_filter_changed_state(bool enabled);
-    void b_filter_changed_state(bool enabled);
+
 
 };
 

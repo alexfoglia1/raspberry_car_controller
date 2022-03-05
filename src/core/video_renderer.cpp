@@ -184,206 +184,7 @@ void VideoRenderer::init_window()
     viewer->show();
 }
 
-void VideoRenderer::update(cv::Mat frame_from_processor)
-{
-    sem_wait(&image_semaphore);
-    next_frame = frame_from_processor;
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::clear()
-{
-    sem_wait(&image_semaphore);
-    viewer->clear();
-    next_frame = viewer->get_frame();
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::update(attitude_msg attitude)
-{
-    //widgets::los::update(attitude.pitch, attitude.roll, attitude.yaw);
-}
-
-void VideoRenderer::update(voltage_msg voltage)
-{
-    //widgets::systemstatus::updateMotorVoltageIn(voltage.motor_voltage);
-    //widgets::throttlestate::updateVoltageIn(voltage.motor_voltage);
-    sem_wait(&image_semaphore);
-    system_menu->update_voltage(voltage.motor_voltage, last_duty_cycle/255.0);
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::update(actuators_state_msg actuators)
-{
-    sem_wait(&image_semaphore);
-    last_duty_cycle = actuators.throttle_state;
-    system_menu->update_system_status(actuators.system_state);
-    speedometer_widget->update((char*)&actuators.throttle_state, sizeof(actuators.throttle_state));
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::update(target_msg targets)
-{
-    sem_wait(&image_semaphore);
-    target_widget->update((char*)&targets, sizeof(target_msg));
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::update(quint32 cbit)
-{
-    sem_wait(&image_semaphore);
-    system_menu->update((char*)&cbit, sizeof(quint32));
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_keyboard(int key)
-{
-    switch (key)
-        {
-        case TOGGLE_SPEED:
-            //toggle_widget(widgets::THROTTLESTATE);
-            break;
-        case TOGGLE_LOS:
-            //toggle_widget(widgets::LOS);
-            break;
-        case TOGGLE_MENU:
-            //toggle_widget(widgets::HELP);
-            break;
-        case TOGGLE_SS:
-            //toggle_widget(widgets::SYSTEM_STATUS);
-            break;
-        case TOGGLE_JS:
-            //toggle_widget(widgets::JS_HELP);
-            break;
-        case VIDEOREC:
-            //toggle_videorec(30);
-            break;
-        case TOGGLE_TGT:
-            if (!target_widget->enabled())
-            {
-                target_widget->show();
-            }
-            else
-            {
-                target_widget->hide();
-            }
-            break;
-        case DEV_MODE:
-            //controller->postEvent(Controller::controller_event_t::received_toggle_devmode);
-            break;
-        case UP_ARROW:
-            if (context_menu->enabled())
-            {
-                navigate_context_menu(-1);
-            }
-            else
-            {
-                navigate_system_menu(-1);
-            }
-            break;
-        case DOWN_ARROW:
-            if (context_menu->enabled())
-            {
-                navigate_context_menu(+1);
-            }
-            else
-            {
-                navigate_system_menu(+1);
-            }
-            break;
-        case LEFT_ARROW:
-            if (context_menu->enabled())
-            {
-                hide_context_menu();
-            }
-            break;
-        case RIGHT_ARROW:
-            if (!context_menu->enabled())
-            {
-                show_context_menu();
-            }
-            break;
-        case ESCAPE:
-            stopped = true;
-            break;
-    }
-}
-
-
-void VideoRenderer::toggle_videorec(int fps)
-{
-    if (!save_frame)
-    {
-        start_videorec(fps);
-
-        save_frame = true;
-    }
-    else
-    {
-        video->release();
-        delete video;
-
-        save_frame = false;
-    }
-
-    //widgets::is_enabled[widgets::VIDEO_REC] = save_frame;
-}
-
-void VideoRenderer::show_context_menu()
-{
-    context_menu->show();
-}
-void VideoRenderer::hide_context_menu()
-{
-    context_menu->hide();
-}
-
-void VideoRenderer::navigate_context_menu(int delta)
-{
-    context_menu->navigateVertical(delta);
-}
-
-void VideoRenderer::confirm_context_menu()
-{
-    if (context_menu->enabled())
-    {
-        int algorithm_index = context_menu->getSelectedIndex();
-        QString algorithm_text = context_menu->getSelectedItem();
-
-        ctx_action_t action = image_algorithms[algorithm_index].action;
-        image_algorithms[algorithm_index].enabled = !image_algorithms[algorithm_index].enabled;
-        bool enabled = image_algorithms[algorithm_index].enabled;
-        context_menu->setItemText(enabled ? algorithm_text + QString(": ON") : algorithm_text.replace(": ON", ""));
-        (this->*action)(enabled);
-    }
-}
-
-
-void VideoRenderer::navigate_system_menu(int delta)
-{
-    if (!context_menu->enabled())
-    {
-        system_menu->navigateVertical(delta);
-    }
-}
-
-void VideoRenderer::show_system_menu()
-{
-    system_menu->show();
-}
-
-void VideoRenderer::hide_system_menu()
-{
-    system_menu->hide();
-}
-
-void VideoRenderer::confirm_system_menu()
-{
-    if (!context_menu->enabled())
-    {
-        //abilita il plot widget associato al current item del system menu
-    }
-}
+/** Thread job              **/
 
 void VideoRenderer::run()
 {
@@ -437,20 +238,221 @@ void VideoRenderer::render_window()
     usleep(render_timeout_micros);
 }
 
-void VideoRenderer::start_videorec(int fps)
-{
-    int tok = 0;
-    char buf[256];
-    sprintf(buf, "out_%d.avi", tok);
-    while(std::experimental::filesystem::exists((const char*)buf))
-    {
-        tok += 1;
-        sprintf(buf, "out_%d.avi", tok);
-    }
+/*****************************/
 
-    video = new cv::VideoWriter((const char*)buf, cv::VideoWriter::fourcc('M','J','P','G'), fps, viewer->get_frame().size());
-    save_frame = true;
+/** Remote controlled slots **/
+
+void VideoRenderer::clear()
+{
+    sem_wait(&image_semaphore);
+    viewer->clear();
+    next_frame = viewer->get_frame();
+    sem_post(&image_semaphore);
 }
+
+void VideoRenderer::update(attitude_msg attitude)
+{
+
+}
+
+void VideoRenderer::update(voltage_msg voltage)
+{
+    sem_wait(&image_semaphore);
+    system_menu->update_voltage(voltage.motor_voltage, last_duty_cycle/255.0);
+    sem_post(&image_semaphore);
+}
+
+void VideoRenderer::update(actuators_state_msg actuators)
+{
+    sem_wait(&image_semaphore);
+    last_duty_cycle = actuators.throttle_state;
+    system_menu->update_system_status(actuators.system_state);
+    speedometer_widget->update((char*)&actuators.throttle_state, sizeof(actuators.throttle_state));
+    sem_post(&image_semaphore);
+}
+
+void VideoRenderer::update(target_msg targets)
+{
+    sem_wait(&image_semaphore);
+    target_widget->update((char*)&targets, sizeof(target_msg));
+    sem_post(&image_semaphore);
+}
+
+void VideoRenderer::update(quint32 cbit)
+{
+    sem_wait(&image_semaphore);
+    system_menu->update((char*)&cbit, sizeof(quint32));
+    sem_post(&image_semaphore);
+}
+
+/*****************************/
+
+
+/** Local controlled slots **/
+
+void VideoRenderer::on_image(cv::Mat frame_from_processor)
+{
+    sem_wait(&image_semaphore);
+    next_frame = frame_from_processor;
+    sem_post(&image_semaphore);
+}
+
+void VideoRenderer::on_keyboard(int key)
+{
+    switch (key)
+        {
+        case TOGGLE_SPEED:
+            break;
+        case TOGGLE_LOS:
+            break;
+        case TOGGLE_MENU:
+            break;
+        case TOGGLE_SS:
+            break;
+        case TOGGLE_JS:
+            break;
+        case VIDEOREC:
+            if (!save_frame)
+            {
+                int tok = 0;
+                char buf[256];
+                sprintf(buf, "out_%d.avi", tok);
+                while(std::experimental::filesystem::exists((const char*)buf))
+                {
+                    tok += 1;
+                    sprintf(buf, "out_%d.avi", tok);
+                }
+
+                video = new cv::VideoWriter((const char*)buf, cv::VideoWriter::fourcc('M','J','P','G'), 30, viewer->get_frame().size());
+                save_frame = true;
+
+                save_frame = true;
+            }
+            else
+            {
+                video->release();
+                delete video;
+
+                save_frame = false;
+            }
+            break;
+        case TOGGLE_TGT:
+            if (!target_widget->enabled())
+            {
+                target_widget->show();
+            }
+            else
+            {
+                target_widget->hide();
+            }
+            break;
+        case UP_ARROW:
+            if (context_menu->enabled())
+            {
+                navigate_context_menu(-1);
+            }
+            else
+            {
+                navigate_system_menu(-1);
+            }
+            break;
+        case DOWN_ARROW:
+            if (context_menu->enabled())
+            {
+                navigate_context_menu(+1);
+            }
+            else
+            {
+                navigate_system_menu(+1);
+            }
+            break;
+        case LEFT_ARROW:
+            if (context_menu->enabled())
+            {
+                hide_context_menu();
+            }
+            break;
+        case RIGHT_ARROW:
+            if (!context_menu->enabled())
+            {
+                show_context_menu();
+            }
+            break;
+        case ESCAPE:
+            stopped = true;
+            break;
+    }
+}
+
+/*****************************/
+
+
+/** Context menu actions   **/
+
+void VideoRenderer::show_context_menu()
+{
+    context_menu->show();
+}
+void VideoRenderer::hide_context_menu()
+{
+    context_menu->hide();
+}
+
+void VideoRenderer::navigate_context_menu(int delta)
+{
+    context_menu->navigateVertical(delta);
+}
+
+void VideoRenderer::confirm_context_menu()
+{
+    if (context_menu->enabled())
+    {
+        int algorithm_index = context_menu->getSelectedIndex();
+        QString algorithm_text = context_menu->getSelectedItem();
+
+        ctx_signal_emitter_t emitter = image_algorithms[algorithm_index].action;
+        image_algorithms[algorithm_index].enabled = !image_algorithms[algorithm_index].enabled;
+        bool enabled = image_algorithms[algorithm_index].enabled;
+        context_menu->setItemText(enabled ? algorithm_text + QString(": ON") : algorithm_text.replace(": ON", ""));
+        (this->*emitter)(enabled);
+    }
+}
+
+/*****************************/
+
+
+/** System menu actions    **/
+
+void VideoRenderer::navigate_system_menu(int delta)
+{
+    if (!context_menu->enabled())
+    {
+        system_menu->navigateVertical(delta);
+    }
+}
+
+void VideoRenderer::show_system_menu()
+{
+    system_menu->show();
+}
+
+void VideoRenderer::hide_system_menu()
+{
+    system_menu->hide();
+}
+
+void VideoRenderer::confirm_system_menu()
+{
+    if (!context_menu->enabled())
+    {
+        //abilita il plot widget associato al current item del system menu
+    }
+}
+
+/*****************************/
+
+/** Signal emitters         **/
+
 
 void VideoRenderer::clahe_changed_state(bool enabled)
 {
@@ -481,3 +483,13 @@ void VideoRenderer::b_filter_changed_state(bool enabled)
 {
     emit signal_b_filter_changed_state(enabled);
 }
+
+/*****************************/
+
+void VideoRenderer::start_videorec(int fps)
+{
+
+}
+
+/*****************************/
+
