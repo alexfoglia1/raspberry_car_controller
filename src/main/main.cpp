@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <easy/profiler.h>
 
 #include "defs.h"
 #include "cbit.h"
@@ -16,6 +17,7 @@ const char* DEFAULT_RASPBY_ADDR = "192.168.1.25";
 
 int main(int argc, char** argv)
 {
+    profiler::startListen();
     printf("%s v%s.%s\n", APP_NAME, MAJOR_VERS, MINOR_VERS);
     if (argc == 1)
     {
@@ -38,6 +40,7 @@ int main(int argc, char** argv)
     qRegisterMetaType<image_msg>();
     qRegisterMetaType<comp_t>();
     qRegisterMetaType<cv::Mat>();
+    qRegisterMetaType<cv::Rect>();
 
     /** Create cbit instance **/
     Cbit* cbit = new Cbit();
@@ -50,10 +53,11 @@ int main(int argc, char** argv)
     renderer->start();
 
     /** Create tracker instance **/
-    cv::Rect tracker_region(renderer->width / 2 - 150, renderer->height / 2 - 150, 300, 300);
+    cv::Rect tracker_region(renderer->width / 2 - 100, renderer->height / 2 - 100, 200, 200);
     Tracker* tracker = new Tracker(tracker_region);
-    renderer->set_tracker_region(tracker_region);
+    renderer->on_tracker_update(tracker_region);
     QObject::connect(tracker, SIGNAL(debugger_frame(cv::Mat)), renderer, SLOT(on_tracker_image(cv::Mat)));
+    QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
 
     /** Create data interface **/
     DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);

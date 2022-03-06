@@ -109,6 +109,7 @@ Q_DECLARE_METATYPE(voltage_msg)
 Q_DECLARE_METATYPE(image_msg)
 Q_DECLARE_METATYPE(comp_t)
 Q_DECLARE_METATYPE(cv::Mat)
+Q_DECLARE_METATYPE(cv::Rect)
 
 
 #endif //DEFS_H

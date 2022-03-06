@@ -54,7 +54,6 @@ public:
 
     VideoRenderer();
     void init_window();
-    void set_tracker_region(cv::Rect tracker_region);
 
 protected:
     /** Thread job **/
@@ -73,6 +72,7 @@ public slots:
     /** Local controlled slots **/
     void on_image(cv::Mat image);
     void on_tracker_image(cv::Mat image);
+    void on_tracker_update(cv::Rect);
     void on_keyboard(int key);
 
     /** Context menu actions **/

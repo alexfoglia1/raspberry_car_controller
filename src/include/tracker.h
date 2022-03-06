@@ -19,6 +19,7 @@ public slots:
 
 signals:
     void debugger_frame(cv::Mat frame);
+    void region_updated(cv::Rect new_region);
 
 private:
     cv::Mat old, act;

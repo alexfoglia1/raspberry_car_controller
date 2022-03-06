@@ -48,7 +48,7 @@ void build_hist(cv::Mat grayscale, ulong* hist)
 
     cv::Size mat_size = grayscale.size();
     int mat_data_len = mat_size.area();
-    for (uint i = 0; i < mat_data_len; i++)
+    for (int i = 0; i < mat_data_len; i++)
     {
         uchar gval = grayscale.data[i];
         hist[gval] += 1;
@@ -73,11 +73,175 @@ ulong max_delta(ulong* hist)
     return ulong(max);
 }
 
+cv::Mat estimate_contour(cv::Mat frame)
+{
+    ulong hist[0xFF];
+    build_hist(frame, hist);
+    int max_old = max_delta(hist);
+
+    int num_rows = frame.size().height;
+    int num_cols = frame.size().width;
+
+    const double SIMILARITY_THRESHOLD = 0.90; //da parametrizzare
+    std::vector<cv::Point> contour;
+
+    /** Left to right scan **/
+    for (int y = 0; y < num_rows; y++)
+    {
+        uchar p0 = frame.data[y * num_cols];
+        std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
+        for (int x = 0; x < num_cols; x++)
+        {
+            uchar p1 = frame.data[y * num_cols + x];
+
+            double act_delta = fabs(double(hist[p1]) - double(hist[p0]));
+            double ratio = act_delta / double(max_old);
+
+            if (ratio >= SIMILARITY_THRESHOLD)
+            {
+                contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
+            }
+        }
+
+        double max_ratio = 0;
+        cv::Point max_ratio_point;
+        for (auto& pair : contour_candidates_wrt_p1)
+        {
+            if (pair.second > max_ratio)
+            {
+                max_ratio = pair.second;
+                max_ratio_point = pair.first;
+            }
+        }
+
+        contour.push_back(max_ratio_point);
+    }
+
+    /** Right to left scan **/
+    for (int y = 0; y < num_rows; y++)
+    {
+        uchar p0 = frame.data[y * num_cols];
+        std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
+        for (int x = num_cols - 1; x >= 0; x--)
+        {
+            uchar p1 = frame.data[y * num_cols + x];
+
+            double act_delta = fabs(double(hist[p1]) - double(hist[p0]));
+            double ratio = act_delta / double(max_old);
+
+            if (ratio >= SIMILARITY_THRESHOLD)
+            {
+                contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
+            }
+        }
+
+        double max_ratio = 0;
+        cv::Point max_ratio_point;
+        for (auto& pair : contour_candidates_wrt_p1)
+        {
+            if (pair.second > max_ratio)
+            {
+                max_ratio = pair.second;
+                max_ratio_point = pair.first;
+            }
+        }
+
+        contour.push_back(max_ratio_point);
+    }
+
+    /** Top to bottom scan **/
+    for (int x = 0; x < num_cols; x++)
+    {
+        uchar p0 = frame.data[x * num_cols];
+        std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
+        for (int y = 0; y < num_rows; y++)
+        {
+            uchar p1 = frame.data[y * num_cols + x];
+
+            double act_delta = fabs(double(hist[p1]) - double(hist[p0]));
+            double ratio = act_delta / double(max_old);
+
+            if (ratio >= SIMILARITY_THRESHOLD)
+            {
+                contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
+            }
+        }
+
+        double max_ratio = 0;
+        cv::Point max_ratio_point;
+        for (auto& pair : contour_candidates_wrt_p1)
+        {
+            if (pair.second > max_ratio)
+            {
+                max_ratio = pair.second;
+                max_ratio_point = pair.first;
+            }
+        }
+
+        contour.push_back(max_ratio_point);
+    }
+
+    /** Bottom to top scan **/
+    for (int x = 0; x < num_cols; x++)
+    {
+        uchar p0 = frame.data[x * num_cols];
+        std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
+        for (int y = num_rows - 1; y >= 0; y--)
+        {
+            uchar p1 = frame.data[y * num_cols + x];
+
+            double act_delta = fabs(double(hist[p1]) - double(hist[p0]));
+            double ratio = act_delta / double(max_old);
+
+            if (ratio >= SIMILARITY_THRESHOLD)
+            {
+                contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
+            }
+        }
+
+        double max_ratio = 0;
+        cv::Point max_ratio_point;
+        for (auto& pair : contour_candidates_wrt_p1)
+        {
+            if (pair.second > max_ratio)
+            {
+                max_ratio = pair.second;
+                max_ratio_point = pair.first;
+            }
+        }
+
+        contour.push_back(max_ratio_point);
+    }
+
+    cv::Mat contour_mat(num_rows, num_cols, CV_8UC1, cv::Scalar(0));
+    for (auto& pt : contour)
+    {
+        contour_mat.data[pt.y * num_rows + pt.x] = 0xFF;
+    }
+
+    return contour_mat;
+}
+
+cv::Mat shift(cv::Mat &img, int offsetx, int offsety)
+{
+    cv::Mat trans_mat = (cv::Mat_<double>(2,3) << 1, 0, offsetx, 0, 1, offsety);
+    warpAffine(img,img,trans_mat,img.size());
+    return img;
+}
+
+bool equals(cv::Mat a, cv::Mat b)
+{
+    cv::Mat diff = a != b;
+    return cv::countNonZero(diff) == 0;
+}
+
+#include <easy/profiler.h>
 void Tracker::run()
 {
-                GLViewer* viewer = new GLViewer();
+
     while (true)
     {
+
         if (rx > 2)
         {
             sem_wait(&image_semaphore);
@@ -88,95 +252,80 @@ void Tracker::run()
             cv::cvtColor(act(*region), grey_act, cv::COLOR_BGR2GRAY);
 
             sem_post(&image_semaphore);
+            EASY_BLOCK("contour old");
+            cv::Mat contour_old = estimate_contour(grey_old);
+            EASY_END_BLOCK;
 
-            ulong hist_old[0xFF];
-            ulong hist_act[0xFF];
+            EASY_BLOCK("contour act");
+            cv::Mat contour_act = estimate_contour(grey_act);
+            EASY_END_BLOCK;
 
-            build_hist(grey_old, hist_old);
-            build_hist(grey_act, hist_act);
+            bool found = false;
+            int x_mov = 0;
+            int y_mov = 0;
+            int act_shift_amount = 1;
+            int spiral_state = 0;
 
-            int max_old = max_delta(hist_old);
-            int max_act = max_delta(hist_act);
-
-            int num_rows = grey_old.size().height;
-            int num_cols = grey_old.size().width;
-
-            const double SIMILARITY_THRESHOLD = 0.90; //da parametrizzare
-            std::vector<cv::Point> contour;
-
-            /** Left to right scan **/
-            for (int y = 0; y < num_rows; y++)
+            while (x_mov < region->width && y_mov < region->height)// && !found)
             {
-                uchar p0 = grey_old.data[y * num_cols];
-                std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
-                for (int x = 0; x < num_cols; x++)
+                cv::Mat shift_old(contour_old.rows, contour_old.cols, contour_old.type());
+                memcpy(shift_old.data, contour_old.data, contour_old.dataend - contour_old.data);
+                shift(shift_old, x_mov, y_mov);
+                //emit region_updated(cv::Rect(region->x + x_mov, region->y + y_mov, region->width, region->height));
+                //emit debugger_frame(shift_old);
+                //        msleep(500);
+                if (!equals(shift_old, contour_act))
                 {
-                    uchar p1 = grey_old.data[y * num_cols + x];
-
-                    double act_delta = fabs(double(hist_old[p1]) - double(hist_old[p0]));
-                    double ratio = act_delta / double(max_old);
-
-                    if (ratio >= SIMILARITY_THRESHOLD)
+                    switch (spiral_state)
                     {
-                        contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
+                    case 0: /* right of shift amount */
+                    {
+                        x_mov = act_shift_amount;
+                        spiral_state = 1;
                     }
+                    break;
+                    case 1: /* down of shift amount */
+                    {
+                        y_mov = act_shift_amount;
+                        spiral_state = 2;
+                    }
+                    break;
+                    case 2: /* left of (1 + shift amount) */
+                    {
+                        act_shift_amount += 1;
+                        x_mov = -1 * act_shift_amount;
+                        spiral_state = 3;
+                    }
+                    break;
+                    case 3: /* up of shift_amount */
+                    {
+                        y_mov = -1 * act_shift_amount;
+                        spiral_state = 0;
+                    }
+                    break;
+
+                    }
+
+                }
+                else
+                {
+                    found = true;
                 }
 
-                double max_ratio = 0;
-                cv::Point max_ratio_point;
-                for (auto& pair : contour_candidates_wrt_p1)
-                {
-                    if (pair.second > max_ratio)
-                    {
-                        max_ratio = pair.second;
-                        max_ratio_point = pair.first;
-                    }
-                }
-
-                contour.push_back(max_ratio_point);
             }
 
-            /** Right to left scan **/
-            for (int y = 0; y < num_rows; y++)
+            if (found && (x_mov != 0 || y_mov != 0))
             {
-                uchar p0 = grey_old.data[y * num_cols];
-                std::vector<std::pair<cv::Point, double>> contour_candidates_wrt_p1;
-                for (int x = num_cols - 1; x >= 0; x--)
-                {
-                    uchar p1 = grey_old.data[y * num_cols + x];
+                printf("tracker::run():  dx(%d), dy(%d)\n", x_mov, y_mov);
+                int new_region_x = region->x + x_mov;
+                int new_region_y = region->y + y_mov;
+                int new_region_width = region->width;
+                int new_region_height = region->height;
 
-                    double act_delta = fabs(double(hist_old[p1]) - double(hist_old[p0]));
-                    double ratio = act_delta / double(max_old);
-
-                    if (ratio >= SIMILARITY_THRESHOLD)
-                    {
-                        contour_candidates_wrt_p1.push_back(std::pair<cv::Point, double>(cv::Point(x, y), ratio));
-                    }
-                }
-
-                double max_ratio = 0;
-                cv::Point max_ratio_point;
-                for (auto& pair : contour_candidates_wrt_p1)
-                {
-                    if (pair.second > max_ratio)
-                    {
-                        max_ratio = pair.second;
-                        max_ratio_point = pair.first;
-                    }
-                }
-
-                contour.push_back(max_ratio_point);
+                delete region;
+                region = new cv::Rect(new_region_x, new_region_y, new_region_width, new_region_height);
+                emit region_updated(*region);
             }
-
-            cv::Mat contour_mat(num_rows, num_cols, CV_8UC1, cv::Scalar(0));
-            for (auto& pt : contour)
-            {
-                contour_mat.data[pt.y * num_rows + pt.x] = 0xFF;
-            }
-
-
-            emit debugger_frame(contour_mat);
-            msleep(100);
 
         }
     }

@@ -159,8 +159,9 @@ VideoRenderer::VideoRenderer()
 
 void VideoRenderer::init_window()
 {
-    viewer = new GLViewer();
     tracker_debugger = new GLViewer();
+    tracker_debugger->show();
+    viewer = new GLViewer();
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
     std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
@@ -195,18 +196,8 @@ void VideoRenderer::init_window()
     viewer->move(0, 0);
     viewer->show();
 
-    tracker_debugger->move(10, 10);
-    tracker_debugger->show();
-
     width = next_frame.size().width;
     height = next_frame.size().height;
-}
-
-void VideoRenderer::set_tracker_region(cv::Rect tracker_region)
-{
-    sem_wait(&image_semaphore);
-    this->tracker_region = tracker_region;
-    sem_post(&image_semaphore);
 }
 
 /** Thread job              **/
@@ -330,6 +321,14 @@ void VideoRenderer::on_tracker_image(cv::Mat frame_from_tracker)
     sem_wait(&track_semaphore);
     tracker_debugger->set_frame(frame_from_tracker);
     sem_post(&track_semaphore);
+}
+
+void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)
+{
+    sem_wait(&image_semaphore);
+    tracker_region = new_tracker_region;
+    printf("update tracker: x(%d) y(%d)\n", new_tracker_region.x, new_tracker_region.y);
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::on_keyboard(int key)
