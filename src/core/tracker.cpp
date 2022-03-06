@@ -232,7 +232,7 @@ cv::Mat shift(cv::Mat &img, int offsetx, int offsety)
 bool equals(cv::Mat a, cv::Mat b)
 {
     cv::Mat diff = a != b;
-    return cv::countNonZero(diff) == 0;
+    return cv::countNonZero(diff) < 200;
 }
 
 #include <easy/profiler.h>
@@ -266,7 +266,7 @@ void Tracker::run()
             int act_shift_amount = 1;
             int spiral_state = 0;
 
-            while (x_mov < region->width && y_mov < region->height)// && !found)
+            while (x_mov < region->width && y_mov < region->height && !found)
             {
                 cv::Mat shift_old(contour_old.rows, contour_old.cols, contour_old.type());
                 memcpy(shift_old.data, contour_old.data, contour_old.dataend - contour_old.data);

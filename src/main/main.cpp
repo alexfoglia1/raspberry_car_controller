@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     renderer->start();
 
     /** Create tracker instance **/
-    cv::Rect tracker_region(renderer->width / 2 - 100, renderer->height / 2 - 100, 200, 200);
+    cv::Rect tracker_region(renderer->width / 2 - 75, renderer->height / 2 - 75, 150, 150);
     Tracker* tracker = new Tracker(tracker_region);
     renderer->on_tracker_update(tracker_region);
     QObject::connect(tracker, SIGNAL(debugger_frame(cv::Mat)), renderer, SLOT(on_tracker_image(cv::Mat)));
