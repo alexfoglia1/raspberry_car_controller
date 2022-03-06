@@ -265,6 +265,7 @@ void Tracker::run()
             int y_mov = 0;
             int act_shift_amount = 1;
             int spiral_state = 0;
+            emit debugger_frame(contour_act);
 
             while (x_mov < region->width && y_mov < region->height && !found)
             {
@@ -272,7 +273,7 @@ void Tracker::run()
                 memcpy(shift_old.data, contour_old.data, contour_old.dataend - contour_old.data);
                 shift(shift_old, x_mov, y_mov);
                 //emit region_updated(cv::Rect(region->x + x_mov, region->y + y_mov, region->width, region->height));
-                //emit debugger_frame(shift_old);
+                //
                 //        msleep(500);
                 if (!equals(shift_old, contour_act))
                 {
