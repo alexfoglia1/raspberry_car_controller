@@ -95,6 +95,7 @@ signals:
     void signal_r_filter_changed_state(bool enabled);
     void signal_g_filter_changed_state(bool enabled);
     void signal_b_filter_changed_state(bool enabled);
+    void signal_tracker_start();
     void thread_quit();
 
 private:

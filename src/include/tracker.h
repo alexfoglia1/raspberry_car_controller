@@ -4,9 +4,17 @@
 #include <QThread>
 #include <semaphore.h>
 
+typedef enum
+{
+  IDLE,
+  ACQUIRING,
+  RUNNING
+} tracker_state_t;
+
 class Tracker : public QThread
 {
     Q_OBJECT
+
 
 public:
     Tracker(cv::Rect region);
@@ -16,6 +24,7 @@ protected:
 
 public slots:
     void on_camera_image(cv::Mat frame_from_camera);
+    void on_change_state();
 
 signals:
     void debugger_frame(cv::Mat frame);
@@ -26,6 +35,7 @@ private:
     cv::Rect* region;
     int rx;
     sem_t image_semaphore;
+    tracker_state_t state;
 };
 
 #endif // TRACKER_H

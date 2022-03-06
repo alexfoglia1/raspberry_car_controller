@@ -58,6 +58,7 @@ int main(int argc, char** argv)
     renderer->on_tracker_update(tracker_region);
     QObject::connect(tracker, SIGNAL(debugger_frame(cv::Mat)), renderer, SLOT(on_tracker_image(cv::Mat)));
     QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
+    QObject::connect(renderer, SIGNAL(signal_tracker_start()), tracker, SLOT(on_change_state()));
 
     /** Create data interface **/
     DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);

@@ -11,7 +11,7 @@
 #define TOGGLE_SS  89
 #define TOGGLE_JS 74
 #define VIDEOREC  86
-#define DEV_MODE  69
+#define TRACKER_START  69
 #define RIGHT_ARROW 16777236
 #define LEFT_ARROW 16777234
 #define UP_ARROW 16777235

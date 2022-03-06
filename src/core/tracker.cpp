@@ -8,6 +8,7 @@ Tracker::Tracker(cv::Rect region)
 {
     rx = 0;
     this->region = new cv::Rect(region.x, region.y, region.width, region.height);
+    this->state = tracker_state_t::IDLE;
     sem_init(&image_semaphore, 0, 1);
 }
 
@@ -17,29 +18,35 @@ void Tracker::on_camera_image(cv::Mat frame_from_camera)
     cv::Mat* image = new cv::Mat(copy.size(), copy.type());
 
     sem_wait(&image_semaphore);
-    if (rx == 0)
+    if (tracker_state_t::ACQUIRING == state)
     {
         memcpy(image->data, copy.data, copy.dataend - copy.data);
         old = *image;
-        rx = 1;
-
-    }
-    else if (rx == 1)
-    {
-        memcpy(image->data, copy.data, copy.dataend - copy.data);
-        act = *image;
-        rx = 2;
+        state = tracker_state_t::RUNNING;
+        printf("tracker running!\n");
     }
     else
     {
         memcpy(image->data, copy.data, copy.dataend - copy.data);
-
-        old = act;
         act = *image;
-        rx = 3;
     }
     delete image;
     sem_post(&image_semaphore);
+}
+
+void Tracker::on_change_state()
+{
+    sem_wait(&image_semaphore);
+    if (tracker_state_t::RUNNING == state)
+    {
+        printf("tracker idle!\n");
+        state = tracker_state_t::IDLE;
+    }
+    else
+    {
+        printf("tracker acq!\n");
+        state = tracker_state_t::ACQUIRING;
+    }
 }
 
 void build_hist(cv::Mat grayscale, ulong* hist)
@@ -75,10 +82,10 @@ ulong max_delta(ulong* hist)
 
 cv::Mat estimate_contour(cv::Mat frame)
 {
-    ulong hist[0xFF];
+    ulong hist[255];
     build_hist(frame, hist);
-    int max_old = max_delta(hist);
 
+    int max_old = max_delta(hist);
     int num_rows = frame.size().height;
     int num_cols = frame.size().width;
 
@@ -242,7 +249,7 @@ void Tracker::run()
     while (true)
     {
 
-        if (rx > 2)
+        if (tracker_state_t::RUNNING == state)
         {
             sem_wait(&image_semaphore);
 

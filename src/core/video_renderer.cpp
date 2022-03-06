@@ -370,6 +370,11 @@ void VideoRenderer::on_keyboard(int key)
                 save_frame = false;
             }
             break;
+        case TRACKER_START:
+        {
+            emit signal_tracker_start();
+            break;
+        }
         case TOGGLE_TGT:
             if (!target_widget->enabled())
             {
@@ -390,6 +395,7 @@ void VideoRenderer::on_keyboard(int key)
                 navigate_system_menu(-1);
             }
             break;
+
         case DOWN_ARROW:
             if (context_menu->enabled())
             {
