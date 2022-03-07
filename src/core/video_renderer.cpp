@@ -159,9 +159,18 @@ VideoRenderer::VideoRenderer()
 
 void VideoRenderer::init_window()
 {
-    tracker_debugger = new GLViewer();
-    tracker_debugger->show();
+
     viewer = new GLViewer();
+    tracker_pattern = new GLViewer(viewer);
+    tracker_new_frame = new GLViewer(viewer);
+    tracker_pattern->set_frame(cv::Mat(150, 150, CV_8UC1, cv::Scalar(0xFF)));
+    tracker_new_frame->set_frame(cv::Mat(150, 150, CV_8UC1, cv::Scalar(0xAA)));
+
+    tracker_pattern->resize(200, 200);
+    tracker_new_frame->resize(200, 200);
+    tracker_pattern->move(IMAGE_COLS - 200, 200);
+    tracker_new_frame->move(IMAGE_COLS  - 200, IMAGE_ROWS - 200);
+
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
     std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
@@ -233,19 +242,8 @@ void VideoRenderer::render_window()
 
     /** Disegno overlay tracker **/
     cv::rectangle(next_frame, tracker_region, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
-    //widgets::los::draw(&next_frame, 10U + widgets::los::LOS_RAY, size.height - widgets::los::LOS_RAY -  10U);
-    //widgets::throttlestate::draw(&next_frame, size.width - 320U, size.height - 30U);
-    //widgets::targets::draw(&next_frame);
-    //widgets::help::draw(&next_frame, size.width/2, size.height/2);
-    //widgets::js_help::draw(&next_frame, size.width/2, size.height/2);
-    //widgets::videorec::draw(&next_frame, size.width - 40U, 50U);
-    //widgets::systemstatus::draw(&next_frame, size.width - 130U, size.height/2);
 
-    //context_menu.draw(&next_frame);
-
-    //widgets::devmode::draw(imagewindow, size.width/2, size.height/2);
-
-    /** Passo al viewer il frame con algoritmi + widget **/
+    /** Passo al viewer il frame con widget **/
     viewer->set_frame(next_frame);
 
     if (save_frame)
@@ -316,10 +314,17 @@ void VideoRenderer::on_image(cv::Mat frame_from_processor)
     sem_post(&image_semaphore);
 }
 
-void VideoRenderer::on_tracker_image(cv::Mat frame_from_tracker)
+void VideoRenderer::on_tracker_new_frame(cv::Mat frame_from_tracker)
 {
     sem_wait(&track_semaphore);
-    tracker_debugger->set_frame(frame_from_tracker);
+    tracker_new_frame->set_frame(frame_from_tracker);
+    sem_post(&track_semaphore);
+}
+
+void VideoRenderer::on_tracker_track_pattern(cv::Mat track_pattern)
+{
+    sem_wait(&track_semaphore);
+    tracker_pattern->set_frame(track_pattern);
     sem_post(&track_semaphore);
 }
 
@@ -327,7 +332,6 @@ void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)
 {
     sem_wait(&image_semaphore);
     tracker_region = new_tracker_region;
-    printf("update tracker: x(%d) y(%d)\n", new_tracker_region.x, new_tracker_region.y);
     sem_post(&image_semaphore);
 }
 

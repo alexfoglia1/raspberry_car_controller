@@ -13,7 +13,7 @@
 #include "joystick.h"
 #include "tracker.h"
 
-const char* DEFAULT_RASPBY_ADDR = "192.168.1.25";
+const char* DEFAULT_RASPBY_ADDR = "192.168.1.36";
 
 int main(int argc, char** argv)
 {
@@ -53,11 +53,16 @@ int main(int argc, char** argv)
     renderer->start();
 
     /** Create tracker instance **/
-    cv::Rect tracker_region(renderer->width / 2 - 75, renderer->height / 2 - 75, 150, 150);
+    cv::Rect tracker_region(renderer->width / 2 - 50, renderer->height / 2 - 50, 100, 100);
     Tracker* tracker = new Tracker(tracker_region);
     renderer->on_tracker_update(tracker_region);
-    QObject::connect(tracker, SIGNAL(debugger_frame(cv::Mat)), renderer, SLOT(on_tracker_image(cv::Mat)));
+
+    /** Connect tracker to video renderer **/
+    QObject::connect(tracker, SIGNAL(debugger_new_frame(cv::Mat)), renderer, SLOT(on_tracker_new_frame(cv::Mat)));
+    QObject::connect(tracker, SIGNAL(debugger_track_pattern(cv::Mat)), renderer, SLOT(on_tracker_track_pattern(cv::Mat)));
     QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
+
+    /** Connect video renderer to tracker **/
     QObject::connect(renderer, SIGNAL(signal_tracker_start()), tracker, SLOT(on_change_state()));
 
     /** Create data interface **/
@@ -170,7 +175,8 @@ int main(int argc, char** argv)
 
     /** Launch Qt Application **/
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
-    QObject::connect(js_input, SIGNAL(thread_quit()), &app, SLOT(quit()));
+    QObject::connect(js_input, SIGNAL(thread_quit()), tracker, SLOT(stop()));
+    QObject::connect(tracker, SIGNAL(thread_quit()), &app, SLOT(quit()));
 
     return app.exec();
 }

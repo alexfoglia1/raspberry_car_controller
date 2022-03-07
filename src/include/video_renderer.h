@@ -34,6 +34,8 @@ protected:
     QPixmap* pixmap = 0;
 };
 
+
+
 class VideoRenderer : public QThread
 {
     Q_OBJECT
@@ -71,7 +73,8 @@ public slots:
 
     /** Local controlled slots **/
     void on_image(cv::Mat image);
-    void on_tracker_image(cv::Mat image);
+    void on_tracker_new_frame(cv::Mat);
+    void on_tracker_track_pattern(cv::Mat);
     void on_tracker_update(cv::Rect);
     void on_keyboard(int key);
 
@@ -110,7 +113,8 @@ private:
     sem_t image_semaphore;
     sem_t track_semaphore;
     GLViewer* viewer;
-    GLViewer* tracker_debugger;
+    GLViewer* tracker_pattern;
+    GLViewer* tracker_new_frame;
     cv::Mat next_frame;
     cv::VideoWriter* video;
     bool save_frame;
