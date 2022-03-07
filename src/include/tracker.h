@@ -42,6 +42,7 @@ private:
     sem_t image_semaphore;
     sem_t state_semaphore;
     tracker_state_t state;
+    cv::Mat contour_old_mat;
 
     void build_hist(cv::Mat grayscale, ulong* hist);
     ulong max_delta(ulong* hist);

@@ -28,12 +28,12 @@ void Tracker::on_camera_image(cv::Mat frame_from_camera)
         cv::cvtColor(old(*region), grey_old, cv::COLOR_BGR2GRAY);
         contour_old = estimate_contour(grey_old);
 
-        cv::Mat contour_mat(region->width, region->height, CV_8UC1, cv::Scalar(0));
+        contour_old_mat = cv::Mat(region->width, region->height, CV_8UC1, cv::Scalar(0));
         for (auto& pt : contour_old)
         {
-            contour_mat.data[pt.y * region->width + pt.x] = 0xFF;
+            contour_old_mat.data[pt.y * region->width + pt.x] = 0xFF;
         }
-        emit debugger_track_pattern(contour_mat);
+        emit debugger_track_pattern(contour_old_mat);
         state = tracker_state_t::RUNNING;
         sem_post(&state_semaphore);
         printf("tracker running!\n");
@@ -115,7 +115,7 @@ std::vector<cv::Point> Tracker::estimate_contour(cv::Mat frame)
     int num_rows = frame.size().height;
     int num_cols = frame.size().width;
 
-    const double SIMILARITY_THRESHOLD = 0.975; //da parametrizzare
+    const double SIMILARITY_THRESHOLD = 1.0; //da parametrizzare
     std::vector<cv::Point> contour;
 
     /** Left to right scan **/
@@ -305,6 +305,19 @@ cv::Point estimate_mean_point(std::vector<cv::Point> contour, int* width, int* h
     return cv::Point((x_max + x_min) / 2, (y_max  + y_min) / 2);
 }
 
+bool in_contour(std::vector<cv::Point> contour, int x, int y)
+{
+    for (int i = 0; i < int(contour.size()); i++)
+    {
+        if (contour[i].x == x && contour[i].y == y)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void Tracker::run()
 {
 
@@ -339,20 +352,39 @@ void Tracker::run()
             int x_mov = (mean_act.x - mean_old.x);
             int y_mov = (mean_act.y - mean_old.y);
 
-            if (old_width != act_width || old_height != act_height)
+            cv::Mat contour_mat_shifted(contour_mat.size(), contour_mat.type());
+            memcpy(contour_mat_shifted.data, contour_old_mat.data, contour_mat_shifted.dataend - contour_mat_shifted.data);
+            shift(contour_mat_shifted, x_mov, y_mov);
+            int countEquals = 0;
+            int countNotEquals = 0;
+            for (int y = 0; y < contour_mat_shifted.size().height; y++)
             {
-                printf("LOST TARGET\n");
+                for (int x = 0; x < contour_mat_shifted.size().width; x++)
+                {
+                    if (contour_mat_shifted.data[x + y * contour_mat_shifted.size().width] ==
+                        contour_mat.data[x + y * contour_mat_shifted.size().width])
 
-#if 0
-                int new_region_x = original_region->x;
-                int new_region_y = original_region->y;
-                int new_region_width = original_region->width;
-                int new_region_height = original_region->height;
+                    {
+                        if (in_contour(contour_act, x, y))
+                            countEquals++;
+                        //else
+                            //outlier
+                    }
+                    else
+                    {
+                        countNotEquals++;
+                    }
+                }
 
-                delete region;
-                region = new cv::Rect(new_region_x, new_region_y, new_region_width, new_region_height);
-                emit region_updated(*region);
-#endif
+            }
+
+            double match_ratio = double(countEquals) / double(contour_act.size());
+            if (match_ratio == match_ratio) printf("%f\n", match_ratio);
+            const double MATCH_RATIO_THRESHOLD = 0.6;
+            if (match_ratio < MATCH_RATIO_THRESHOLD)
+            {
+                printf("NOT THE TARGET\n");
+
             }
 
             else if ((x_mov != 0 || y_mov != 0) && (region->x + x_mov >= 0) && (region->x + x_mov < IMAGE_COLS - region->width)  &&
