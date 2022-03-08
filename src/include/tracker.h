@@ -4,11 +4,14 @@
 #include <QThread>
 #include <semaphore.h>
 
+#include "utils.h"
+
 typedef enum
 {
   IDLE,
   ACQUIRING,
   RUNNING,
+  COASTING,
   EXITING
 } tracker_state_t;
 
@@ -43,6 +46,8 @@ private:
     sem_t state_semaphore;
     tracker_state_t state;
     cv::Mat contour_old_mat;
+    double vel_est_x, vel_est_y, t_last_match, delta_t;
+    int coasting_attempts;
 
     void build_hist(cv::Mat grayscale, ulong* hist);
     ulong max_delta(ulong* hist);
