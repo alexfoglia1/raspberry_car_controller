@@ -53,7 +53,6 @@ private:
     ulong max_delta(ulong* hist);
     std::vector<cv::Point> estimate_contour(cv::Mat frame);
     cv::Mat shift(cv::Mat &img, int offsetx, int offsety);
-    bool equals(cv::Mat a, cv::Mat b, bool* allNotEquals);
 };
 
 #endif // TRACKER_H

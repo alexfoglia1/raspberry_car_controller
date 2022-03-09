@@ -32,21 +32,28 @@ void Tracker::on_camera_image(cv::Mat frame_from_camera)
         cv::Mat grey_old;
         cv::cvtColor(old(*region), grey_old, cv::COLOR_BGR2GRAY);
         contour_old = estimate_contour(grey_old);
-
-        contour_old_mat = cv::Mat(region->width, region->height, CV_8UC1, cv::Scalar(0));
-        for (auto& pt : contour_old)
+        if (!contour_old.empty())
         {
-            contour_old_mat.data[pt.y * region->width + pt.x] = 0xFF;
-        }
-        emit debugger_track_pattern(contour_old_mat);
-        state = tracker_state_t::RUNNING;
-        sem_post(&state_semaphore);
+            contour_old_mat = cv::Mat(region->width, region->height, CV_8UC1, cv::Scalar(0));
+            for (auto& pt : contour_old)
+            {
+                contour_old_mat.data[pt.y * region->width + pt.x] = 0xFF;
+            }
+            emit debugger_track_pattern(contour_old_mat);
+            state = tracker_state_t::RUNNING;
+            sem_post(&state_semaphore);
 
-        vel_est_x = 0;
-        vel_est_y = 0;
-        coasting_attempts = 0;
-        t_last_match = -1;
-        delta_t = 0;
+            vel_est_x = 0;
+            vel_est_y = 0;
+            coasting_attempts = 0;
+            t_last_match = -1;
+            delta_t = 0;
+        }
+        else
+        {
+            state = tracker_state_t::IDLE;
+            sem_post(&state_semaphore);
+        }
     }
     else
     {
@@ -89,7 +96,7 @@ void Tracker::stop()
 
 void Tracker::build_hist(cv::Mat grayscale, ulong* hist)
 {
-    memset(hist, 0x00, 0xFF * sizeof(ulong));
+    memset(hist, 0x00, 256 * sizeof(ulong));
 
     cv::Size mat_size = grayscale.size();
     int mat_data_len = mat_size.area();
@@ -103,9 +110,9 @@ void Tracker::build_hist(cv::Mat grayscale, ulong* hist)
 ulong Tracker::max_delta(ulong* hist)
 {
     double max = 0;
-    for(uint i = 0; i < 0xFF; i++)
+    for(uint i = 0; i < 255; i++)
     {
-        for(uint j = 0; j < 0xFF; j++)
+        for(uint j = 0; j < 255; j++)
         {
             double delta = fabs(double(hist[i]) - double(hist[j]));
             if (delta > max)
@@ -121,7 +128,7 @@ ulong Tracker::max_delta(ulong* hist)
 std::vector<cv::Point> Tracker::estimate_contour(cv::Mat frame)
 {
 
-    ulong hist[255];
+    ulong hist[256];
     build_hist(frame, hist);
 
     int max_old = max_delta(hist);
@@ -281,14 +288,10 @@ cv::Mat Tracker::shift(cv::Mat &img, int offsetx, int offsety)
     return img;
 }
 
-bool Tracker::equals(cv::Mat a, cv::Mat b, bool* lost_target)
-{
-    return false;
-}
-
-cv::Point estimate_mean_point(std::vector<cv::Point> contour, int* width, int* height)
+cv::Point estimate_mean_point(std::vector<cv::Point> contour, int* x0, int* y0,int* width, int* height)
 {
     int y_min=IMAGE_ROWS, x_min=IMAGE_COLS, x_max = 0, y_max = 0;
+
     for (auto& pt : contour)
     {
         if (pt.x < x_min)
@@ -312,24 +315,14 @@ cv::Point estimate_mean_point(std::vector<cv::Point> contour, int* width, int* h
         }
     }
 
-    *width = int(fabs(x_max - x_min));
-    *height = int(fabs(y_max - y_min));
+    *x0 = x_min;
+    *y0 = y_min;
+    *width = (x_max - x_min);
+    *height = (y_max - y_min);
 
     return cv::Point((x_max + x_min) / 2, (y_max  + y_min) / 2);
 }
 
-bool in_contour(std::vector<cv::Point> contour, int x, int y)
-{
-    for (int i = 0; i < int(contour.size()); i++)
-    {
-        if (contour[i].x == x && contour[i].y == y)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 void Tracker::run()
 {
@@ -355,13 +348,27 @@ void Tracker::run()
             coasting_attempts += 1;
             if (coasting_attempts <= MAX_COASTING_ATTEMPTS)
             {
-                region->x += vel_est_x * delta_t;
-                region->y += vel_est_y * delta_t;
-                emit region_updated(*region);
+                int dx = vel_est_x * delta_t;
+                int dy = vel_est_y * delta_t;
 
-                sem_wait(&state_semaphore);
-                state = tracker_state_t::RUNNING;
-                sem_post(&state_semaphore);
+                if (region->x + dx > IMAGE_ROWS || region->y + dy > IMAGE_COLS || region->x + dx < 0 || region->y + dy < 0)
+                {
+                    coasting_attempts = 0;
+                    delta_t = 0;
+                    sem_wait(&state_semaphore);
+                    state = tracker_state_t::IDLE;
+                    sem_post(&state_semaphore);
+                }
+                else
+                {
+                    region->x += vel_est_x * delta_t;
+                    region->y += vel_est_y * delta_t;
+                    emit region_updated(*region);
+
+                    sem_wait(&state_semaphore);
+                    state = tracker_state_t::RUNNING;
+                    sem_post(&state_semaphore);
+                }
             }
             else
             {
@@ -376,77 +383,95 @@ void Tracker::run()
         {
             printf("tracker running\n");
             sem_wait(&image_semaphore);
-            cv::Mat grey_act;
+            cv::Mat grey_act, grey_old;
             cv::cvtColor(act(*region), grey_act, cv::COLOR_BGR2GRAY);
+            cv::cvtColor(old(*region), grey_old, cv::COLOR_BGR2GRAY);
             sem_post(&image_semaphore);
 
             std::vector<cv::Point> contour_act = estimate_contour(grey_act);
-            cv::Mat contour_mat(region->width, region->height, CV_8UC1, cv::Scalar(0));
-            for (auto& pt : contour_act)
+            if (!contour_act.empty())
             {
-                contour_mat.data[pt.y * region->width + pt.x] = 0xFF;
-            }
-            emit debugger_new_frame(contour_mat);
-
-            int old_width, old_height;
-            int act_width, act_height;
-            cv::Point mean_old = estimate_mean_point(contour_old, &old_width, &old_height);
-            cv::Point mean_act = estimate_mean_point(contour_act, &act_width, &act_height);
-            int x_mov = (mean_act.x - mean_old.x);
-            int y_mov = (mean_act.y - mean_old.y);
-
-            int match = 0;
-            for (int i = 0; i < int(contour_old.size()); i++)
-            {
-                cv::Point template_point = contour_old[i];
-                if (in_contour(contour_act, template_point.x + x_mov, template_point.y + y_mov))
+                cv::Mat contour_mat(region->width, region->height, CV_8UC1, cv::Scalar(0));
+                for (auto& pt : contour_act)
                 {
-                    match += 1;
+                    contour_mat.data[pt.y * region->width + pt.x] = 0xFF;
                 }
-            }
+                emit debugger_new_frame(contour_mat);
 
-            double ratio = double(match) / (double)(contour_old.size());
-            printf("ratio(%f)\n", ratio);
+                int old_width, old_x0;
+                int old_height, old_y0;
+                int act_width, act_x0;
+                int act_height, act_y0;
+                cv::Point mean_old = estimate_mean_point(contour_old, &old_x0, &old_y0, &old_width, &old_height);
+                cv::Point mean_act = estimate_mean_point(contour_act, &act_x0, &act_y0, &act_width, &act_height);
+                int x_mov = (mean_act.x - mean_old.x);
+                int y_mov = (mean_act.y - mean_old.y);
 
-            const double MATCH_TEMPLATE_THRESHOLD = 0.25;
-            if (ratio < MATCH_TEMPLATE_THRESHOLD)
-            {
-                printf("NOT THE TARGET\n");
-                sem_wait(&state_semaphore);
-                state = tracker_state_t::COASTING;
-                sem_post(&state_semaphore);
-            }
-            else if ((region->x + x_mov >= 0) && (region->x + x_mov < IMAGE_COLS - region->width)  &&
-                     (region->y + y_mov >= 0) && (region->y + y_mov < IMAGE_ROWS - region->height))
-            {
-                coasting_attempts = 0;
+                ulong hist_act[256];
+                ulong hist_old[256];
 
-                if (t_last_match < 0)
+                cv::Mat target_old = grey_old(cv::Rect(old_x0, old_y0, old_width, old_height));
+                cv::Mat target_act = grey_act(cv::Rect(act_x0, act_y0, act_width, act_height));
+
+                build_hist(target_act, hist_act);
+                build_hist(target_old, hist_old);
+
+                double ratio = 0.0;
+                for (int i = 0; i < 256; i++)
                 {
-                    t_last_match = micros_since_epoch() * 1e-6;
+                    double delta = (int(hist_old[i]) - int(hist_act[i]));
+                    ratio += pow(delta, 2);
+                }
+                ratio = sqrt(ratio);
+
+
+                printf("similarity(%f)\n", ratio);
+                const double THRESHOLD = 0.5;
+                if (ratio < THRESHOLD)
+                {
+                    printf("NOT THE TARGET\n");
+                    sem_wait(&state_semaphore);
+                    state = tracker_state_t::COASTING;
+                    sem_post(&state_semaphore);
+                }
+                else if ((region->x + x_mov >= 0) && (region->x + x_mov < IMAGE_COLS - region->width)  &&
+                         (region->y + y_mov >= 0) && (region->y + y_mov < IMAGE_ROWS - region->height))
+                {
+                    coasting_attempts = 0;
+
+                    if (t_last_match < 0)
+                    {
+                        t_last_match = micros_since_epoch() * 1e-6;
+                    }
+                    else
+                    {
+                        double t = micros_since_epoch() * 1e-6;
+                        delta_t = t - t_last_match;
+                        vel_est_x = x_mov / delta_t;
+                        vel_est_y = y_mov / delta_t;
+                        t_last_match = t;
+                    }
+
+                    int new_region_x = region->x + x_mov;
+                    int new_region_y = region->y + y_mov;
+                    int new_region_width = region->width;
+                    int new_region_height = region->height;
+
+                    delete region;
+                    region = new cv::Rect(new_region_x, new_region_y, new_region_width, new_region_height);
+                    emit region_updated(*region);
                 }
                 else
                 {
-                    double t = micros_since_epoch() * 1e-6;
-                    delta_t = t - t_last_match;
-                    vel_est_x = x_mov / delta_t;
-                    vel_est_y = y_mov / delta_t;
-                    t_last_match = t;
+                    sem_wait(&state_semaphore);
+                    state = tracker_state_t::COASTING;
+                    sem_post(&state_semaphore);
                 }
-
-                int new_region_x = region->x + x_mov;
-                int new_region_y = region->y + y_mov;
-                int new_region_width = region->width;
-                int new_region_height = region->height;
-
-                delete region;
-                region = new cv::Rect(new_region_x, new_region_y, new_region_width, new_region_height);
-                emit region_updated(*region);
             }
             else
             {
                 sem_wait(&state_semaphore);
-                state = tracker_state_t::COASTING;
+                state = tracker_state_t::IDLE;
                 sem_post(&state_semaphore);
             }
         }
