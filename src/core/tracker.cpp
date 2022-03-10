@@ -80,6 +80,8 @@ void Tracker::reset_tracker()
 
         emit region_updated(this->region);
         emit valid_acquiring_area(false);
+        emit debugger_track_pattern(reference_image);
+        emit debugger_new_frame(reference_image);
     }
 }
 
@@ -151,12 +153,17 @@ bool Tracker::acquire_reference_frame()
     double candidate_timestamp;
     cv::Mat reference_frame_candidate = extract_roi(&candidate_timestamp);
 
+
     bool trackable_image = true;
+
     if (trackable_image)
     {
         this->reference_image_time_s = candidate_timestamp;
         this->reference_image = reference_frame_candidate;
+        if (!reset_flag)
+            emit debugger_track_pattern(reference_image);
         this->reset_flag = true;
+
     }
 
     return trackable_image;
@@ -166,8 +173,16 @@ void Tracker::track()
 {
     double timestamp_s;
     cv::Mat act_image = extract_roi(&timestamp_s);
+    emit debugger_new_frame(act_image);
 
-    printf("delta_t (%f)\n", timestamp_s - reference_image_time_s);
+    cv::Point point;
+    cv::Mat correlation;
+    double max_val;
+
+    cv::matchTemplate(act_image, reference_image, correlation, cv::TM_CCORR_NORMED);
+    cv::minMaxLoc(correlation, NULL, &max_val, NULL, &point);
+
+    printf("new_x(%d), new_y(%d) (%f)\n", point.x, point.y, max_val);
 }
 
 void Tracker::coast()

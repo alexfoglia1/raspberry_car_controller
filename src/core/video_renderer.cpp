@@ -231,27 +231,32 @@ void VideoRenderer::run()
 
 void VideoRenderer::render_window()
 {
+    /** Copia locale del frame **/
     sem_wait(&image_semaphore);
+    cv::Mat cp_next_frame(this->next_frame.rows, this->next_frame.cols, this->next_frame.type());
+    memcpy(cp_next_frame.data, this->next_frame.data, cp_next_frame.dataend - cp_next_frame.data);
+    sem_post(&image_semaphore);
 
     /** Disegno gli widget abilitati **/
     cv::Size size = next_frame.size();
-    context_menu->draw(&next_frame, cv::Point(size.width/30, size.height/30));
-    system_menu->draw(&next_frame, cv::Point(size.width/30, 18*size.height/30));
-    target_widget->draw(&next_frame);
-    speedometer_widget->draw(&next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
+    context_menu->draw(&cp_next_frame, cv::Point(size.width/30, size.height/30));
+    system_menu->draw(&cp_next_frame, cv::Point(size.width/30, 18*size.height/30));
+    target_widget->draw(&cp_next_frame);
+    speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
 
     /** Disegno overlay tracker **/
-    cv::rectangle(next_frame, tracker_region, tracker_rect_col, 2, cv::LINE_AA);
+    int tracker_region_thickness = 3;
+    cv::Rect tracker_region_bounds(tracker_region.x - tracker_region_thickness, tracker_region.y - tracker_region_thickness,
+                                   tracker_region.width + 2 * tracker_region_thickness, tracker_region.height + 2 * tracker_region_thickness);
+    cv::rectangle(cp_next_frame, tracker_region_bounds, tracker_rect_col, tracker_region_thickness - 1, cv::LINE_AA);
 
     /** Passo al viewer il frame con widget **/
-    viewer->set_frame(next_frame);
+    viewer->set_frame(cp_next_frame);
 
     if (save_frame)
     {
-        video->write(next_frame);
+        video->write(cp_next_frame);
     }
-
-    sem_post(&image_semaphore);
     usleep(render_timeout_micros);
 }
 
