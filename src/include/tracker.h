@@ -75,6 +75,7 @@ private:
 
     /** Elaboration methods **/
     cv::Mat extract_roi(double* timestamp_s);
+    void normalizeCV8_UC1(cv::Mat cv8_uc1, float* normalized);
     bool acquire_reference_frame();
     void track();
     void coast();

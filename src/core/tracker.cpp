@@ -169,20 +169,29 @@ bool Tracker::acquire_reference_frame()
     return trackable_image;
 }
 
+void Tracker::normalizeCV8_UC1(cv::Mat cv8_uc1, float* normalized)
+{
+    uchar* ptr = cv8_uc1.data;
+    while (ptr < cv8_uc1.dataend)
+    {
+        float act_data = *ptr;
+        act_data /= 255.f;
+        normalized[ptr - cv8_uc1.data] = act_data;
+
+        ptr++;
+    }
+}
+
 void Tracker::track()
 {
     double timestamp_s;
     cv::Mat act_image = extract_roi(&timestamp_s);
     emit debugger_new_frame(act_image);
+    float normalized_reference[reference_image.dataend - reference_image.data];
+    float normalized_actual[act_image.dataend - act_image.data];
 
-    cv::Point point;
-    cv::Mat correlation;
-    double max_val;
-
-    cv::matchTemplate(act_image, reference_image, correlation, cv::TM_CCORR_NORMED);
-    cv::minMaxLoc(correlation, NULL, &max_val, NULL, &point);
-
-    printf("new_x(%d), new_y(%d) (%f)\n", point.x, point.y, max_val);
+    normalizeCV8_UC1(reference_image, normalized_reference);
+    normalizeCV8_UC1(act_image, normalized_actual);
 }
 
 void Tracker::coast()
