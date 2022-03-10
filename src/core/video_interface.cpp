@@ -15,19 +15,23 @@ VideoInterface::VideoInterface(int timeout_millis)
 
 void VideoInterface::receive_video()
 {
+    char bytes[MAX_IMAGESIZE + 2];
     if (udp_socket.hasPendingDatagrams())
     {
         recv_timer.stop();
 
         quint64 size = udp_socket.pendingDatagramSize();
-        char* bytes_in = new char[size];
-        udp_socket.readDatagram(bytes_in, size);
+        if (size <= MAX_IMAGESIZE + 2)
+        {
+            udp_socket.readDatagram(bytes, size);
+            image_msg image = *reinterpret_cast<image_msg*>(bytes);
+            std::vector<char> data(image.data, image.data + image.len);
+            cv::Mat img = cv::imdecode(cv::Mat(data), 1);
 
-        emit received_video(*reinterpret_cast<image_msg*>(bytes_in));
+            emit received_video(img);
 
-        delete[] bytes_in;
-
-        recv_timer.start();
+            recv_timer.start();
+        }
     }
 }
 

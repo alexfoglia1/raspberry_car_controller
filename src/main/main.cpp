@@ -41,6 +41,7 @@ int main(int argc, char** argv)
     qRegisterMetaType<comp_t>();
     qRegisterMetaType<cv::Mat>();
     qRegisterMetaType<cv::Rect>();
+    qRegisterMetaType<tracker_state_t>();
 
     /** Create cbit instance **/
     Cbit* cbit = new Cbit();
@@ -56,14 +57,16 @@ int main(int argc, char** argv)
     cv::Rect tracker_region(renderer->width / 2 - 50, renderer->height / 2 - 50, 100, 100);
     Tracker* tracker = new Tracker(tracker_region);
     renderer->on_tracker_update(tracker_region);
+    renderer->on_tracker_valid_acq(false);
 
     /** Connect tracker to video renderer **/
     QObject::connect(tracker, SIGNAL(debugger_new_frame(cv::Mat)), renderer, SLOT(on_tracker_new_frame(cv::Mat)));
     QObject::connect(tracker, SIGNAL(debugger_track_pattern(cv::Mat)), renderer, SLOT(on_tracker_track_pattern(cv::Mat)));
     QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
+    QObject::connect(tracker, SIGNAL(valid_acquiring_area(bool)), renderer, SLOT(on_tracker_valid_acq(bool)));
 
     /** Connect video renderer to tracker **/
-    QObject::connect(renderer, SIGNAL(signal_tracker_start()), tracker, SLOT(on_change_state()));
+    QObject::connect(renderer, SIGNAL(signal_tracker_changed_state(tracker_state_t)), tracker, SLOT(on_update_state(tracker_state_t)));
 
     /** Create data interface **/
     DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);
@@ -111,22 +114,11 @@ int main(int argc, char** argv)
     VideoProcessor* video_processor = new VideoProcessor();
 
     /** Connecting video update to video processor **/
-    QObject::connect(iface_v, &VideoInterface::received_video, video_processor, [video_processor](image_msg image)
-    {
-        std::vector<char> data(image.data, image.data + image.len);
-        cv::Mat img = cv::imdecode(cv::Mat(data), 1);
-
-        video_processor->feed(img);
-    });
+    QObject::connect(iface_v, SIGNAL(received_video(cv::Mat)), video_processor, SLOT(feed(cv::Mat)));
 
     /** Connecting video update to tracker **/
-    QObject::connect(iface_v, &VideoInterface::received_video, tracker, [tracker](image_msg image)
-    {
-        std::vector<char> data(image.data, image.data + image.len);
-        cv::Mat img = cv::imdecode(cv::Mat(data), 1);
+    QObject::connect(iface_v, SIGNAL(received_video(cv::Mat)), tracker, SLOT(on_camera_image(cv::Mat)));
 
-        tracker->on_camera_image(img);
-    });
     /** Connecting video processor to renderer **/
     QObject::connect(video_processor, SIGNAL(frame_ready(cv::Mat)), renderer, SLOT(on_image(cv::Mat)));
 
@@ -175,7 +167,7 @@ int main(int argc, char** argv)
 
     /** Launch Qt Application **/
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
-    QObject::connect(js_input, SIGNAL(thread_quit()), tracker, SLOT(stop()));
+    QObject::connect(js_input, &JoystickInput::thread_quit, tracker, [tracker](){tracker->on_update_state(tracker_state_t::EXITING);});
     QObject::connect(tracker, SIGNAL(thread_quit()), &app, SLOT(quit()));
 
     return app.exec();

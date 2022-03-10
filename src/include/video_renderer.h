@@ -76,6 +76,7 @@ public slots:
     void on_tracker_new_frame(cv::Mat);
     void on_tracker_track_pattern(cv::Mat);
     void on_tracker_update(cv::Rect);
+    void on_tracker_valid_acq(bool);
     void on_keyboard(int key);
 
     /** Context menu actions **/
@@ -98,7 +99,7 @@ signals:
     void signal_r_filter_changed_state(bool enabled);
     void signal_g_filter_changed_state(bool enabled);
     void signal_b_filter_changed_state(bool enabled);
-    void signal_tracker_start();
+    void signal_tracker_changed_state(tracker_state_t new_tracker_state);
     void thread_quit();
 
 private:
@@ -129,6 +130,7 @@ private:
 
     /** Tracker region **/
     cv::Rect tracker_region;
+    cv::Scalar tracker_rect_col;
 
     std::vector<image_algorithm_state_t> image_algorithms =
     {

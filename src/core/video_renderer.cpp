@@ -241,7 +241,7 @@ void VideoRenderer::render_window()
     speedometer_widget->draw(&next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
 
     /** Disegno overlay tracker **/
-    cv::rectangle(next_frame, tracker_region, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
+    cv::rectangle(next_frame, tracker_region, tracker_rect_col, 2, cv::LINE_AA);
 
     /** Passo al viewer il frame con widget **/
     viewer->set_frame(next_frame);
@@ -335,6 +335,13 @@ void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)
     sem_post(&image_semaphore);
 }
 
+void VideoRenderer::on_tracker_valid_acq(bool valid)
+{
+    sem_wait(&image_semaphore);
+    tracker_rect_col = valid ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+    sem_post(&image_semaphore);
+}
+
 void VideoRenderer::on_keyboard(int key)
 {
     switch (key)
@@ -342,8 +349,6 @@ void VideoRenderer::on_keyboard(int key)
         case TOGGLE_SPEED:
             break;
         case TOGGLE_LOS:
-            break;
-        case TOGGLE_MENU:
             break;
         case TOGGLE_SS:
             break;
@@ -374,10 +379,14 @@ void VideoRenderer::on_keyboard(int key)
                 save_frame = false;
             }
             break;
-        case TRACKER_START:
+        case TRACKER_ACQUIRE:
         {
-            emit signal_tracker_start();
+            emit signal_tracker_changed_state(tracker_state_t::ACQUIRING);
             break;
+        }
+        case TRACKER_RUN:
+        {
+            emit signal_tracker_changed_state(tracker_state_t::RUNNING);
         }
         case TOGGLE_TGT:
             if (!target_widget->enabled())

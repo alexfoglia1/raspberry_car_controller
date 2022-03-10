@@ -5,6 +5,7 @@
 
 #include <QUdpSocket>
 #include <QTimer>
+#include <opencv2/opencv.hpp>
 
 class VideoInterface : public QObject
 {
@@ -14,7 +15,7 @@ public:
     VideoInterface(int timeout_millis);
 
 signals:
-    void received_video(image_msg message);
+    void received_video(cv::Mat image);
     void video_timeout();
 
 private:
