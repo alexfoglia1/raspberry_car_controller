@@ -28,7 +28,7 @@ signals:
 
 protected:
     virtual bool eventFilter(QObject *target, QEvent *event);
-
+    sem_t pixmap_semaphore;
     qreal scale;
     QTransform scaler, scalerI;
     QPixmap* pixmap = 0;

@@ -15,6 +15,7 @@
 
 GLViewer::GLViewer(QWidget *parent) : QGLWidget(parent)
 {
+    sem_init(&pixmap_semaphore, 0, 1);
     this->resize(IMAGE_COLS, IMAGE_ROWS);
 
     QObject::installEventFilter(this);
@@ -22,14 +23,18 @@ GLViewer::GLViewer(QWidget *parent) : QGLWidget(parent)
 
 cv::Mat GLViewer::get_frame()
 {
+
     cv::Mat frame(IMAGE_ROWS, IMAGE_COLS, CV_8UC3, cv::Scalar(0, 0, 0));
     if (!pixmap)
     {
         return frame;
     }
 
+    sem_wait(&pixmap_semaphore);
     int matpixelchannelit = 0;
     QImage image = pixmap->toImage();
+    sem_post(&pixmap_semaphore);
+
     for (unsigned int y = 0; y < IMAGE_ROWS; ++y)
     {
         for (unsigned int x = 0; x < IMAGE_COLS; ++x)
@@ -44,11 +49,13 @@ cv::Mat GLViewer::get_frame()
         }
     }
 
+
     return frame;
 }
 
 void GLViewer::set_frame(cv::Mat new_frame)
 {
+
     QImage image(new_frame.cols, new_frame.rows, QImage::Format_ARGB32);
     int matpixelchannelit = 0;
     for (int y = 0; y < new_frame.rows; ++y)
@@ -74,6 +81,7 @@ void GLViewer::set_frame(cv::Mat new_frame)
         }
     }
 
+    sem_wait(&pixmap_semaphore);
     if (pixmap)
     {
         delete pixmap;
@@ -81,6 +89,8 @@ void GLViewer::set_frame(cv::Mat new_frame)
 
     pixmap = new QPixmap(image.width(), image.height());
     pixmap->convertFromImage(image);
+
+    sem_post(&pixmap_semaphore);
     resizeEvent(0);
     update();
 }

@@ -77,6 +77,7 @@ void Tracker::reset_tracker()
         this->reference_image = cv::Mat(region.width, region.height, CV_8UC1, cv::Scalar(0, 0, 0));
         this->reference_image_time_s = -1.0;
         this->reset_flag = false;
+        this->reference_bounds.clear();
 
         emit region_updated(this->region);
         emit valid_acquiring_area(false);
@@ -148,50 +149,156 @@ cv::Mat Tracker::extract_roi(double* timestamp_s)
     return roi;
 }
 
+std::vector<cv::Point> Tracker::estimate_target_bounds(cv::Mat frame)
+{
+    uchar hist[256];
+    for (int i = 0; i < 256; i++)
+    {
+        hist[i] = 0;
+    }
+
+    for (int i = 0; i < frame.dataend - frame.data; i++)
+    {
+        hist[frame.data[i]] += 1;
+    }
+
+    double mean = 0.0;
+    for (int i = 0; i < 256; i++)
+    {
+        mean += (double)(hist[i]);
+    }
+    mean /= 256.0;
+
+    double sd = 0.0;
+    for (int i = 0; i < 256; i++)
+    {
+        sd += pow((double)(hist[i]) - mean, 2);
+    }
+    sd = sqrt(sd);
+
+    cv::Mat target;
+    cv::threshold(frame, target, mean + sd, 255, cv::THRESH_BINARY);
+
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(target, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+
+    cv::Mat contourImage(frame.size(), CV_8UC3, cv::Scalar(0,0,0));
+    cv::Scalar colors[3];
+    colors[0] = cv::Scalar(255, 0, 0);
+    colors[1] = cv::Scalar(0, 255, 0);
+    colors[2] = cv::Scalar(0, 0, 255);
+    for (size_t idx = 0; idx < contours.size(); idx++)
+    {
+        cv::drawContours(contourImage, contours, idx, colors[idx % 3]);
+    }
+
+    emit debugger_track_pattern(contourImage);
+
+    std::vector<cv::Point> bounds;
+    if (!contours.empty())
+    {
+        for (size_t idx = 0; idx < contours.size(); idx++)
+        {
+            for (auto& pt : contours[idx])
+            {
+                bounds.push_back(cv::Point(pt.x, pt.y));
+            }
+        }
+    }
+
+    return bounds;
+}
+
 bool Tracker::acquire_reference_frame()
 {
     double candidate_timestamp;
     cv::Mat reference_frame_candidate = extract_roi(&candidate_timestamp);
 
+    std::vector<cv::Point> bounds = estimate_target_bounds(reference_frame_candidate);
 
-    bool trackable_image = true;
-
-    if (trackable_image)
+    if (!bounds.empty())
     {
         this->reference_image_time_s = candidate_timestamp;
         this->reference_image = reference_frame_candidate;
-        if (!reset_flag)
-            emit debugger_track_pattern(reference_image);
+        for (auto& pt : bounds)
+        {
+            this->reference_bounds.push_back(pt);
+        }
         this->reset_flag = true;
-
     }
 
-    return trackable_image;
+    return !bounds.empty();
+
 }
 
-void Tracker::normalizeCV8_UC1(cv::Mat cv8_uc1, float* normalized)
+std::vector<cv::Point> extreme_points(std::vector<cv::Point> pts)
 {
-    uchar* ptr = cv8_uc1.data;
-    while (ptr < cv8_uc1.dataend)
-    {
-        float act_data = *ptr;
-        act_data /= 255.f;
-        normalized[ptr - cv8_uc1.data] = act_data;
+    cv::Point extLeft  = *std::min_element(pts.begin(), pts.end(),
+                          [](const cv::Point& lhs, const cv::Point& rhs) {
+                              return lhs.x < rhs.x;
+                      });
+    cv::Point extRight = *std::max_element(pts.begin(), pts.end(),
+                          [](const cv::Point& lhs, const cv::Point& rhs) {
+                              return lhs.x < rhs.x;
+                      });
+    cv::Point extTop   = *std::min_element(pts.begin(), pts.end(),
+                          [](const cv::Point& lhs, const cv::Point& rhs) {
+                              return lhs.y < rhs.y;
+                      });
+    cv::Point extBot   = *std::max_element(pts.begin(), pts.end(),
+                          [](const cv::Point& lhs, const cv::Point& rhs) {
+                              return lhs.y < rhs.y;
+                      });
 
-        ptr++;
-    }
+    return std::vector<cv::Point>{extLeft, extRight, extTop, extBot};
 }
 
 void Tracker::track()
 {
     double timestamp_s;
     cv::Mat act_image = extract_roi(&timestamp_s);
-    emit debugger_new_frame(act_image);
-    float normalized_reference[reference_image.dataend - reference_image.data];
-    float normalized_actual[act_image.dataend - act_image.data];
 
-    normalizeCV8_UC1(reference_image, normalized_reference);
-    normalizeCV8_UC1(act_image, normalized_actual);
+    std::vector<cv::Point> act_bounds = estimate_target_bounds(act_image);
+
+    if (act_bounds.empty())
+    {
+
+    }
+    else
+    {
+        std::vector<cv::Point> reference_extreme_points = extreme_points(reference_bounds);
+        std::vector<cv::Point> actual_extreme_points = extreme_points(act_bounds);
+
+        double extLeftDx = actual_extreme_points[0].x - reference_extreme_points[0].x;
+        double extRightDx = actual_extreme_points[1].x - reference_extreme_points[1].x;
+        double extTopDx = actual_extreme_points[2].x - reference_extreme_points[2].x;
+        double extBotDx = actual_extreme_points[3].x - reference_extreme_points[3].x;
+
+        double extLeftDy = actual_extreme_points[0].y - reference_extreme_points[0].y;
+        double extRightDy = actual_extreme_points[1].y - reference_extreme_points[1].y;
+        double extTopDy = actual_extreme_points[2].y - reference_extreme_points[2].y;
+        double extBotDy = actual_extreme_points[3].y - reference_extreme_points[3].y;
+
+        double mean_mov_x = (extLeftDx + extRightDx + extTopDx + extBotDx)/4.0;
+        double sd_mov_x =  sqrt((pow(extLeftDx - mean_mov_x, 2) + pow(extRightDx - mean_mov_x, 2) +
+                                 pow(extTopDx - mean_mov_x, 2) + pow(extTopDx - mean_mov_x, 2))/4.0);
+        double mean_mov_y = (extLeftDy + extRightDy + extTopDy + extBotDy)/4.0;
+        double sd_mov_y =  sqrt((pow(extLeftDy - mean_mov_y, 2) + pow(extRightDy - mean_mov_y, 2) +
+                                 pow(extTopDy - mean_mov_y,  2) + pow(extTopDy - mean_mov_y, 2))/4.0);
+
+        printf("mean_mov_x(%f), mean_mov_y(%f)\n", mean_mov_x, mean_mov_y);
+        printf("sd_mov_x(%f), sd_mov_y(%f)\n", sd_mov_x, sd_mov_y);
+
+        const double MOVEMENT_THRESHOLD = 25;
+        if (sd_mov_y < MOVEMENT_THRESHOLD && sd_mov_x < MOVEMENT_THRESHOLD)
+        {
+            this->region.x += mean_mov_x;
+            this->region.y += mean_mov_y;
+
+            emit region_updated(region);
+        }
+    }
+
 }
 
 void Tracker::coast()

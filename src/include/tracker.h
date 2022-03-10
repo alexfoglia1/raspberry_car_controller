@@ -59,6 +59,7 @@ private:
     cv::Mat last_camera_frame;
     cv::Mat reference_image;
     double reference_image_time_s;
+    std::vector<cv::Point> reference_bounds;
     cv::Rect region;
     cv::Rect original_region;
     bool reset_flag;
@@ -75,7 +76,7 @@ private:
 
     /** Elaboration methods **/
     cv::Mat extract_roi(double* timestamp_s);
-    void normalizeCV8_UC1(cv::Mat cv8_uc1, float* normalized);
+    std::vector<cv::Point> estimate_target_bounds(cv::Mat frame);
     bool acquire_reference_frame();
     void track();
     void coast();

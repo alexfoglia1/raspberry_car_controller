@@ -95,7 +95,7 @@ int main(int argc, char** argv)
     struct sockaddr_in addr;
     memset(&addr, 0x00, sizeof(struct sockaddr_in));
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(argv[2]);
+    addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(PORT);
 
     int width = 50;
@@ -137,6 +137,7 @@ int main(int argc, char** argv)
         }
 
         sendto(s, &outmsg, sizeof(image_msg), 0, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
+        //perror("sendto");
         usleep(dt_millis * 1000);
     }
 
