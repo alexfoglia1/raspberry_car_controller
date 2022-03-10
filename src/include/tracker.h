@@ -26,6 +26,8 @@ public slots:
 signals:
     void valid_acquiring_area(bool valid);
     void valid_state_transition(bool valid);
+    void tracker_idle();
+    void tracker_running();
     void region_updated(cv::Rect new_region);
     void thread_quit();
 

@@ -50,6 +50,7 @@ void Tracker::run()
                 emit valid_acquiring_area(acquire_reference_frame());
                 break;
             case tracker_state_t::RUNNING:
+                emit tracker_running();
                 track();
                 break;
             case tracker_state_t::COASTING:
@@ -81,6 +82,7 @@ void Tracker::reset_tracker()
 
         emit region_updated(this->region);
         emit valid_acquiring_area(false);
+        emit tracker_idle();
     }
 }
 

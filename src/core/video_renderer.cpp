@@ -160,6 +160,7 @@ VideoRenderer::VideoRenderer()
 {
     stopped = false;
     save_frame = false;
+    draw_track = false;
     last_duty_cycle = 0.0;
     width = 0;
     height = 0;
@@ -329,10 +330,22 @@ void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)
 void VideoRenderer::on_tracker_valid_acq(bool valid)
 {
     sem_wait(&image_semaphore);
-    tracker_rect_col = valid ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+    draw_track = true;
+    tracker_rect_col = valid ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
     sem_post(&image_semaphore);
 }
 
+void VideoRenderer::on_tracker_idle()
+{
+    draw_track = false;
+}
+
+void VideoRenderer::on_tracker_running()
+{
+    sem_wait(&image_semaphore);
+    tracker_rect_col = cv::Scalar(0, 255, 0);
+    sem_post(&image_semaphore);
+}
 void VideoRenderer::on_keyboard(int key)
 {
     switch (key)

@@ -75,6 +75,8 @@ public slots:
     void on_image(cv::Mat image);
     void on_tracker_update(cv::Rect);
     void on_tracker_valid_acq(bool);
+    void on_tracker_idle();
+    void on_tracker_running();
     void on_keyboard(int key);
 
     /** Context menu actions **/
@@ -116,6 +118,7 @@ private:
     bool save_frame;
     bool stopped;
     double last_duty_cycle;
+    bool draw_track;
 
     /** Widgets **/
     MenuCvMatWidget* context_menu;
