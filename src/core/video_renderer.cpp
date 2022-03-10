@@ -164,22 +164,12 @@ VideoRenderer::VideoRenderer()
     width = 0;
     height = 0;
     sem_init(&image_semaphore, 0, 1);
-    sem_init(&track_semaphore, 0, 1);
 }
 
 void VideoRenderer::init_window()
 {
 
     viewer = new GLViewer();
-    tracker_pattern = new GLViewer(viewer);
-    tracker_new_frame = new GLViewer(viewer);
-    tracker_pattern->set_frame(cv::Mat(150, 150, CV_8UC1, cv::Scalar(0xFF)));
-    tracker_new_frame->set_frame(cv::Mat(150, 150, CV_8UC1, cv::Scalar(0xAA)));
-
-    tracker_pattern->resize(200, 200);
-    tracker_new_frame->resize(200, 200);
-    tracker_pattern->move(IMAGE_COLS - 200, 200);
-    tracker_new_frame->move(IMAGE_COLS  - 200, IMAGE_ROWS - 200);
 
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
@@ -327,20 +317,6 @@ void VideoRenderer::on_image(cv::Mat frame_from_processor)
     sem_wait(&image_semaphore);
     next_frame = frame_from_processor;
     sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_tracker_new_frame(cv::Mat frame_from_tracker)
-{
-    sem_wait(&track_semaphore);
-    tracker_new_frame->set_frame(frame_from_tracker);
-    sem_post(&track_semaphore);
-}
-
-void VideoRenderer::on_tracker_track_pattern(cv::Mat track_pattern)
-{
-    sem_wait(&track_semaphore);
-    tracker_pattern->set_frame(track_pattern);
-    sem_post(&track_semaphore);
 }
 
 void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)

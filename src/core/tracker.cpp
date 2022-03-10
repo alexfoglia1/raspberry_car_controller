@@ -81,8 +81,6 @@ void Tracker::reset_tracker()
 
         emit region_updated(this->region);
         emit valid_acquiring_area(false);
-        emit debugger_track_pattern(reference_image);
-        emit debugger_new_frame(reference_image);
     }
 }
 
@@ -181,18 +179,6 @@ std::vector<cv::Point> Tracker::estimate_target_bounds(cv::Mat frame)
 
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(target, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
-
-    cv::Mat contourImage(frame.size(), CV_8UC3, cv::Scalar(0,0,0));
-    cv::Scalar colors[3];
-    colors[0] = cv::Scalar(255, 0, 0);
-    colors[1] = cv::Scalar(0, 255, 0);
-    colors[2] = cv::Scalar(0, 0, 255);
-    for (size_t idx = 0; idx < contours.size(); idx++)
-    {
-        cv::drawContours(contourImage, contours, idx, colors[idx % 3]);
-    }
-
-    emit debugger_track_pattern(contourImage);
 
     std::vector<cv::Point> bounds;
     if (!contours.empty())

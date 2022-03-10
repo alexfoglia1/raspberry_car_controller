@@ -24,8 +24,6 @@ public slots:
     void on_update_state(tracker_state_t new_state);
 
 signals:
-    void debugger_new_frame(cv::Mat frame);
-    void debugger_track_pattern(cv::Mat frame);
     void valid_acquiring_area(bool valid);
     void valid_state_transition(bool valid);
     void region_updated(cv::Rect new_region);

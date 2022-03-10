@@ -60,8 +60,6 @@ int main(int argc, char** argv)
     renderer->on_tracker_valid_acq(false);
 
     /** Connect tracker to video renderer **/
-    QObject::connect(tracker, SIGNAL(debugger_new_frame(cv::Mat)), renderer, SLOT(on_tracker_new_frame(cv::Mat)));
-    QObject::connect(tracker, SIGNAL(debugger_track_pattern(cv::Mat)), renderer, SLOT(on_tracker_track_pattern(cv::Mat)));
     QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
     QObject::connect(tracker, SIGNAL(valid_acquiring_area(bool)), renderer, SLOT(on_tracker_valid_acq(bool)));
 

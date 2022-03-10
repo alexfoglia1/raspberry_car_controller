@@ -73,8 +73,6 @@ public slots:
 
     /** Local controlled slots **/
     void on_image(cv::Mat image);
-    void on_tracker_new_frame(cv::Mat);
-    void on_tracker_track_pattern(cv::Mat);
     void on_tracker_update(cv::Rect);
     void on_tracker_valid_acq(bool);
     void on_keyboard(int key);
@@ -112,10 +110,7 @@ private:
     void b_filter_changed_state(bool enabled);
 
     sem_t image_semaphore;
-    sem_t track_semaphore;
     GLViewer* viewer;
-    GLViewer* tracker_pattern;
-    GLViewer* tracker_new_frame;
     cv::Mat next_frame;
     cv::VideoWriter* video;
     bool save_frame;
