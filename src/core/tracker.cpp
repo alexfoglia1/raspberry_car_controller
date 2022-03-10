@@ -9,6 +9,12 @@ Tracker::Tracker(cv::Rect region)
     this->region.y = region.y;
     this->region.width = region.width;
     this->region.height = region.height;
+    this->original_region.x = region.x;
+    this->original_region.y = region.y;
+    this->original_region.width = region.width;
+    this->original_region.height = region.height;
+
+    this->reset_flag = false;
 
     this->state = tracker_state_t::IDLE;
     this->last_camera_frame = cv::Mat(IMAGE_COLS, IMAGE_ROWS, CV_8UC3, cv::Scalar(0, 0 ,0));
@@ -38,6 +44,7 @@ void Tracker::run()
         switch (act_state)
         {
             case tracker_state_t::IDLE:
+                reset_tracker();
                 break;
             case tracker_state_t::ACQUIRING:
                 emit valid_acquiring_area(acquire_reference_frame());
@@ -56,6 +63,24 @@ void Tracker::run()
     }
 
     emit thread_quit();
+}
+
+void Tracker::reset_tracker()
+{
+    if (this->reset_flag)
+    {
+        this->region.x = this->original_region.x;
+        this->region.y = this->original_region.y;
+        this->region.width = this->original_region.width;
+        this->region.height = this->original_region.height;
+        this->last_camera_frame = cv::Mat(IMAGE_COLS, IMAGE_ROWS, CV_8UC3, cv::Scalar(0, 0 ,0));
+        this->reference_image = cv::Mat(region.width, region.height, CV_8UC1, cv::Scalar(0, 0, 0));
+        this->reference_image_time_s = -1.0;
+        this->reset_flag = false;
+
+        emit region_updated(this->region);
+        emit valid_acquiring_area(false);
+    }
 }
 
 void Tracker::safe_update_frame(cv::Mat frame)
@@ -131,6 +156,7 @@ bool Tracker::acquire_reference_frame()
     {
         this->reference_image_time_s = candidate_timestamp;
         this->reference_image = reference_frame_candidate;
+        this->reset_flag = true;
     }
 
     return trackable_image;

@@ -60,11 +60,13 @@ private:
     cv::Mat reference_image;
     double reference_image_time_s;
     cv::Rect region;
+    cv::Rect original_region;
+    bool reset_flag;
     sem_t frame_semaphore;
     sem_t state_semaphore;
 
-
     /** Internal tracker state methods **/
+    void reset_tracker();
     void safe_update_frame(cv::Mat frame);
     void safe_update_state(tracker_state_t new_state);
     cv::Mat safe_get_frame();

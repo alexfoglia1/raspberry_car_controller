@@ -8,8 +8,8 @@
 #define TOGGLE_LOS 76
 #define TOGGLE_TGT 77
 #define TOGGLE_SS  89
-#define TOGGLE_JS 74
 #define VIDEOREC  86
+#define TRACKER_IDLE 74
 #define TRACKER_ACQUIRE  69
 #define TRACKER_RUN 72
 #define RIGHT_ARROW 16777236

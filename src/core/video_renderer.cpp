@@ -352,8 +352,6 @@ void VideoRenderer::on_keyboard(int key)
             break;
         case TOGGLE_SS:
             break;
-        case TOGGLE_JS:
-            break;
         case VIDEOREC:
             if (!save_frame)
             {
@@ -379,6 +377,11 @@ void VideoRenderer::on_keyboard(int key)
                 save_frame = false;
             }
             break;
+        case TRACKER_IDLE:
+        {
+            emit signal_tracker_changed_state(tracker_state_t::IDLE);
+            break;
+        }
         case TRACKER_ACQUIRE:
         {
             emit signal_tracker_changed_state(tracker_state_t::ACQUIRING);
