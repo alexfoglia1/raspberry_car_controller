@@ -35,10 +35,9 @@ public:
     };
 
     JoystickInput(DataInterface* iface);
-    void call_run();
 
 public slots:
-    void stop();
+    void quit();
 
 signals:
     void js_failure();

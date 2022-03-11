@@ -13,7 +13,7 @@ JoystickInput::JoystickInput(DataInterface* iface)
     msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false, false, false, false, false, false, false};
 }
 
-void JoystickInput::stop()
+void JoystickInput::quit()
 {
     act_state = EXIT;
 }
@@ -143,7 +143,7 @@ bool JoystickInput::update_msg_out(SDL_Event event)
     return updated;
 }
 
-void JoystickInput::call_run()
+void JoystickInput::run()
 {
     while (act_state != EXIT)
     {
@@ -198,9 +198,3 @@ void JoystickInput::call_run()
 
     emit thread_quit();
 }
-
-void JoystickInput::run()
-{
-    call_run();
-}
-

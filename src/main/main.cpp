@@ -169,7 +169,7 @@ int main(int argc, char** argv)
     tracker->start();
 
     /** Launch Qt Application **/
-    QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
+    QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(quit()));
     QObject::connect(js_input, &JoystickInput::thread_quit, tracker, [tracker](){tracker->on_update_state(tracker_state_t::EXITING);});
     QObject::connect(tracker, SIGNAL(thread_quit()), &app, SLOT(quit()));
     return app.exec();

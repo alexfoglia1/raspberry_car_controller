@@ -228,6 +228,7 @@ void VideoRenderer::run()
         save_frame = false;
     }
 
+    viewer->deleteLater();
     emit thread_quit();
 }
 
