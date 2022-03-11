@@ -74,9 +74,11 @@ public slots:
     /** Local controlled slots **/
     void on_image(cv::Mat image);
     void on_tracker_update(cv::Rect);
+    void on_tracker_extreme_points(cv::Point, cv::Point, cv::Point, cv::Point);
     void on_tracker_valid_acq(bool);
     void on_tracker_idle();
     void on_tracker_running();
+    void on_tracker_coasting();
     void on_keyboard(int key);
 
     /** Context menu actions **/
@@ -118,6 +120,7 @@ private:
     bool save_frame;
     bool stopped;
     double last_duty_cycle;
+    bool have_tracker_pts;
     bool draw_track;
 
     /** Widgets **/
@@ -128,6 +131,7 @@ private:
 
     /** Tracker region **/
     cv::Rect tracker_region;
+    cv::Point tracker_left, tracker_right, tracker_top, tracker_bottom;
     cv::Scalar tracker_rect_col;
 
     std::vector<image_algorithm_state_t> image_algorithms =

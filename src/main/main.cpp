@@ -41,6 +41,7 @@ int main(int argc, char** argv)
     qRegisterMetaType<comp_t>();
     qRegisterMetaType<cv::Mat>();
     qRegisterMetaType<cv::Rect>();
+    qRegisterMetaType<cv::Point>();
     qRegisterMetaType<tracker_state_t>();
 
     /** Create cbit instance **/
@@ -58,11 +59,15 @@ int main(int argc, char** argv)
     Tracker* tracker = new Tracker(tracker_region);
     renderer->on_tracker_update(tracker_region);
     renderer->on_tracker_valid_acq(false);
+    renderer->on_tracker_idle();
 
     /** Connect tracker to video renderer **/
     QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
     QObject::connect(tracker, SIGNAL(valid_acquiring_area(bool)), renderer, SLOT(on_tracker_valid_acq(bool)));
-
+    QObject::connect(tracker, SIGNAL(extreme_points_updated(cv::Point, cv::Point, cv::Point, cv::Point)), renderer, SLOT(on_tracker_extreme_points(cv::Point, cv::Point, cv::Point, cv::Point)));
+    QObject::connect(tracker, SIGNAL(tracker_idle()), renderer, SLOT(on_tracker_idle()));
+    QObject::connect(tracker, SIGNAL(tracker_running()), renderer, SLOT(on_tracker_running()));
+    QObject::connect(tracker, SIGNAL(tracker_coasting()), renderer, SLOT(on_tracker_coasting()));
     /** Connect video renderer to tracker **/
     QObject::connect(renderer, SIGNAL(signal_tracker_changed_state(tracker_state_t)), tracker, SLOT(on_update_state(tracker_state_t)));
 
@@ -167,6 +172,5 @@ int main(int argc, char** argv)
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(stop()));
     QObject::connect(js_input, &JoystickInput::thread_quit, tracker, [tracker](){tracker->on_update_state(tracker_state_t::EXITING);});
     QObject::connect(tracker, SIGNAL(thread_quit()), &app, SLOT(quit()));
-
     return app.exec();
 }

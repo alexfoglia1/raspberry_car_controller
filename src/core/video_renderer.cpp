@@ -161,6 +161,7 @@ VideoRenderer::VideoRenderer()
     stopped = false;
     save_frame = false;
     draw_track = false;
+    have_tracker_pts = false;
     last_duty_cycle = 0.0;
     width = 0;
     height = 0;
@@ -246,11 +247,26 @@ void VideoRenderer::render_window()
     speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
 
     /** Disegno overlay tracker **/
-    int tracker_region_thickness = 3;
-    cv::Rect tracker_region_bounds(tracker_region.x - tracker_region_thickness, tracker_region.y - tracker_region_thickness,
-                                   tracker_region.width + 2 * tracker_region_thickness, tracker_region.height + 2 * tracker_region_thickness);
-    cv::rectangle(cp_next_frame, tracker_region_bounds, tracker_rect_col, tracker_region_thickness - 1, cv::LINE_AA);
+    if (draw_track)
+    {
+        int tracker_region_thickness = 3;
+        cv::Rect tracker_region_bounds(tracker_region.x - tracker_region_thickness, tracker_region.y - tracker_region_thickness,
+                                       tracker_region.width + 2 * tracker_region_thickness, tracker_region.height + 2 * tracker_region_thickness);
+        cv::rectangle(cp_next_frame, tracker_region_bounds, tracker_rect_col, tracker_region_thickness - 1, cv::LINE_AA);
 
+        if (have_tracker_pts)
+        {
+            cv::Point left(tracker_region.x + tracker_left.x, tracker_region.y + tracker_left.y);
+            cv::Point right(tracker_region.x + tracker_right.x, tracker_region.y + tracker_right.y);
+            cv::Point top(tracker_region.x + tracker_top.x, tracker_region.y + tracker_top.y);
+            cv::Point bottom(tracker_region.x + tracker_bottom.x, tracker_region.y + tracker_bottom.y);
+
+            cv::circle(cp_next_frame, left, 2, tracker_rect_col, 2);
+            cv::circle(cp_next_frame, right, 2, tracker_rect_col, 2);
+            cv::circle(cp_next_frame, top, 2, tracker_rect_col, 2);
+            cv::circle(cp_next_frame, bottom, 2, tracker_rect_col, 2);
+        }
+    }
     /** Passo al viewer il frame con widget **/
     viewer->set_frame(cp_next_frame);
 
@@ -327,10 +343,22 @@ void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)
     sem_post(&image_semaphore);
 }
 
+void VideoRenderer::on_tracker_extreme_points(cv::Point left, cv::Point right, cv::Point top, cv::Point bottom)
+{
+    sem_wait(&image_semaphore);
+    tracker_left = left;
+    tracker_right = right;
+    tracker_top = top;
+    tracker_bottom = bottom;
+    have_tracker_pts = true;
+    sem_post(&image_semaphore);
+}
+
 void VideoRenderer::on_tracker_valid_acq(bool valid)
 {
     sem_wait(&image_semaphore);
     draw_track = true;
+    have_tracker_pts = false;
     tracker_rect_col = valid ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
     sem_post(&image_semaphore);
 }
@@ -338,14 +366,25 @@ void VideoRenderer::on_tracker_valid_acq(bool valid)
 void VideoRenderer::on_tracker_idle()
 {
     draw_track = false;
+    have_tracker_pts = false;
 }
 
 void VideoRenderer::on_tracker_running()
 {
     sem_wait(&image_semaphore);
     tracker_rect_col = cv::Scalar(0, 255, 0);
+    have_tracker_pts = true;
     sem_post(&image_semaphore);
 }
+
+void VideoRenderer::on_tracker_coasting()
+{
+    sem_wait(&image_semaphore);
+    tracker_rect_col = cv::Scalar(255, 255, 0);
+    have_tracker_pts = true;
+    sem_post(&image_semaphore);
+}
+
 void VideoRenderer::on_keyboard(int key)
 {
     switch (key)

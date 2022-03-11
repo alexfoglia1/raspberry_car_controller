@@ -13,13 +13,16 @@ Tracker::Tracker(cv::Rect region)
     this->original_region.y = region.y;
     this->original_region.width = region.width;
     this->original_region.height = region.height;
-
+    this->est_speed_x = 0.0;
+    this->est_speed_y = 0.0;
+    this->coasting_t0_s = 0.0;
+    this->coasting_attempts = 0;
     this->reset_flag = false;
-
     this->state = tracker_state_t::IDLE;
     this->last_camera_frame = cv::Mat(IMAGE_COLS, IMAGE_ROWS, CV_8UC3, cv::Scalar(0, 0 ,0));
     this->reference_image = cv::Mat(region.width, region.height, CV_8UC1, cv::Scalar(0, 0, 0));
     this->reference_image_time_s = -1.0;
+
     sem_init(&frame_semaphore, 0, 1);
     sem_init(&state_semaphore, 0, 1);
 }
@@ -37,6 +40,7 @@ void Tracker::on_update_state(tracker_state_t new_state)
 void Tracker::run()
 {
     bool stopped = false;
+
     while (!stopped)
     {
         tracker_state_t act_state = safe_get_state();
@@ -44,13 +48,12 @@ void Tracker::run()
         switch (act_state)
         {
             case tracker_state_t::IDLE:
-                reset_tracker();
+                idle();
                 break;
             case tracker_state_t::ACQUIRING:
-                emit valid_acquiring_area(acquire_reference_frame());
+                acquire();
                 break;
             case tracker_state_t::RUNNING:
-                emit tracker_running();
                 track();
                 break;
             case tracker_state_t::COASTING:
@@ -60,30 +63,9 @@ void Tracker::run()
                 stopped = true;
                 break;
         }
-
     }
 
     emit thread_quit();
-}
-
-void Tracker::reset_tracker()
-{
-    if (this->reset_flag)
-    {
-        this->region.x = this->original_region.x;
-        this->region.y = this->original_region.y;
-        this->region.width = this->original_region.width;
-        this->region.height = this->original_region.height;
-        this->last_camera_frame = cv::Mat(IMAGE_COLS, IMAGE_ROWS, CV_8UC3, cv::Scalar(0, 0 ,0));
-        this->reference_image = cv::Mat(region.width, region.height, CV_8UC1, cv::Scalar(0, 0, 0));
-        this->reference_image_time_s = -1.0;
-        this->reset_flag = false;
-        this->reference_bounds.clear();
-
-        emit region_updated(this->region);
-        emit valid_acquiring_area(false);
-        emit tracker_idle();
-    }
 }
 
 void Tracker::safe_update_frame(cv::Mat frame)
@@ -131,7 +113,13 @@ bool Tracker::is_valid_state_transition(tracker_state_t from, tracker_state_t to
     {
         if (pair.first == from && pair.second == to)
         {
-            return true;
+            switch(to)
+            {
+            case tracker_state_t::RUNNING:
+                return !reference_bounds.empty();
+            default:
+                return true;
+            }
         }
     }
 
@@ -169,15 +157,8 @@ std::vector<cv::Point> Tracker::estimate_target_bounds(cv::Mat frame)
     }
     mean /= 256.0;
 
-    double sd = 0.0;
-    for (int i = 0; i < 256; i++)
-    {
-        sd += pow((double)(hist[i]) - mean, 2);
-    }
-    sd = sqrt(sd);
-
     cv::Mat target;
-    cv::threshold(frame, target, mean + sd, 255, cv::THRESH_BINARY);
+    cv::threshold(frame, target, mean, 255, cv::THRESH_BINARY);
 
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(target, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
@@ -199,6 +180,8 @@ std::vector<cv::Point> Tracker::estimate_target_bounds(cv::Mat frame)
 
 bool Tracker::acquire_reference_frame()
 {
+    this->coasting_attempts = 0;
+
     double candidate_timestamp;
     cv::Mat reference_frame_candidate = extract_roi(&candidate_timestamp);
 
@@ -219,7 +202,7 @@ bool Tracker::acquire_reference_frame()
 
 }
 
-std::vector<cv::Point> extreme_points(std::vector<cv::Point> pts)
+std::vector<cv::Point> Tracker::extreme_points(std::vector<cv::Point> pts)
 {
     cv::Point extLeft  = *std::min_element(pts.begin(), pts.end(),
                           [](const cv::Point& lhs, const cv::Point& rhs) {
@@ -238,58 +221,166 @@ std::vector<cv::Point> extreme_points(std::vector<cv::Point> pts)
                               return lhs.y < rhs.y;
                       });
 
+    emit extreme_points_updated(extLeft, extRight, extTop, extBot);
     return std::vector<cv::Point>{extLeft, extRight, extTop, extBot};
 }
 
+bool Tracker::bounds_matches(std::vector<cv::Point> act_bounds, double* mean_mov_x, double* mean_mov_y, double* sd_x, double* sd_y)
+{
+    std::vector<cv::Point> reference_extreme_points = extreme_points(reference_bounds);
+    std::vector<cv::Point> actual_extreme_points = extreme_points(act_bounds);
+
+    double extLeftDx = actual_extreme_points[0].x - reference_extreme_points[0].x;
+    double extRightDx = actual_extreme_points[1].x - reference_extreme_points[1].x;
+    double extTopDx = actual_extreme_points[2].x - reference_extreme_points[2].x;
+    double extBotDx = actual_extreme_points[3].x - reference_extreme_points[3].x;
+
+    double extLeftDy = actual_extreme_points[0].y - reference_extreme_points[0].y;
+    double extRightDy = actual_extreme_points[1].y - reference_extreme_points[1].y;
+    double extTopDy = actual_extreme_points[2].y - reference_extreme_points[2].y;
+    double extBotDy = actual_extreme_points[3].y - reference_extreme_points[3].y;
+
+    *mean_mov_x = (extLeftDx + extRightDx + extTopDx + extBotDx)/4.0;
+    double sd_mov_x =  sqrt((pow(extLeftDx - *mean_mov_x, 2) + pow(extRightDx - *mean_mov_x, 2) +
+                             pow(extTopDx - *mean_mov_x, 2) + pow(extTopDx - *mean_mov_x, 2))/4.0);
+    *mean_mov_y = (extLeftDy + extRightDy + extTopDy + extBotDy)/4.0;
+    double sd_mov_y =  sqrt((pow(extLeftDy - *mean_mov_y, 2) + pow(extRightDy - *mean_mov_y, 2) +
+                             pow(extTopDy - *mean_mov_y,  2) + pow(extTopDy - *mean_mov_y, 2))/4.0);
+
+    *sd_x = sd_mov_x;
+    *sd_y = sd_mov_y;
+
+    const double MOVEMENT_THRESHOLD = 20;
+    double fused_sd_mov = (sd_mov_x + sd_mov_y) / 2.0;
+
+    printf("fused_sd_mov(%f)\n", fused_sd_mov);
+    return fused_sd_mov <= MOVEMENT_THRESHOLD;
+}
+
+
+void Tracker::idle()
+{
+    if (this->reset_flag)
+    {
+        this->region.x = this->original_region.x;
+        this->region.y = this->original_region.y;
+        this->region.width = this->original_region.width;
+        this->region.height = this->original_region.height;
+        this->last_camera_frame = cv::Mat(IMAGE_COLS, IMAGE_ROWS, CV_8UC3, cv::Scalar(0, 0 ,0));
+        this->reference_image = cv::Mat(region.width, region.height, CV_8UC1, cv::Scalar(0, 0, 0));
+        this->reference_image_time_s = -1.0;
+        this->est_speed_x = 0.0;
+        this->est_speed_y = 0.0;
+        this->coasting_t0_s = 0.0;
+        this->coasting_attempts = 0;
+        this->reset_flag = false;
+        this->reference_bounds.clear();
+
+        emit region_updated(this->region);
+        emit valid_acquiring_area(false);
+        emit tracker_idle();
+    }
+}
+
+void Tracker::acquire()
+{
+    est_speed_x = 0.0;
+    est_speed_y = 0.0;
+
+    bool acquired = acquire_reference_frame();
+    emit valid_acquiring_area(acquired);
+}
+
+
 void Tracker::track()
 {
+    emit tracker_running();
+
     double timestamp_s;
     cv::Mat act_image = extract_roi(&timestamp_s);
-
     std::vector<cv::Point> act_bounds = estimate_target_bounds(act_image);
 
-    if (act_bounds.empty())
+    bool tgt_lost = true;
+
+    if (!act_bounds.empty())
     {
-
-    }
-    else
-    {
-        std::vector<cv::Point> reference_extreme_points = extreme_points(reference_bounds);
-        std::vector<cv::Point> actual_extreme_points = extreme_points(act_bounds);
-
-        double extLeftDx = actual_extreme_points[0].x - reference_extreme_points[0].x;
-        double extRightDx = actual_extreme_points[1].x - reference_extreme_points[1].x;
-        double extTopDx = actual_extreme_points[2].x - reference_extreme_points[2].x;
-        double extBotDx = actual_extreme_points[3].x - reference_extreme_points[3].x;
-
-        double extLeftDy = actual_extreme_points[0].y - reference_extreme_points[0].y;
-        double extRightDy = actual_extreme_points[1].y - reference_extreme_points[1].y;
-        double extTopDy = actual_extreme_points[2].y - reference_extreme_points[2].y;
-        double extBotDy = actual_extreme_points[3].y - reference_extreme_points[3].y;
-
-        double mean_mov_x = (extLeftDx + extRightDx + extTopDx + extBotDx)/4.0;
-        double sd_mov_x =  sqrt((pow(extLeftDx - mean_mov_x, 2) + pow(extRightDx - mean_mov_x, 2) +
-                                 pow(extTopDx - mean_mov_x, 2) + pow(extTopDx - mean_mov_x, 2))/4.0);
-        double mean_mov_y = (extLeftDy + extRightDy + extTopDy + extBotDy)/4.0;
-        double sd_mov_y =  sqrt((pow(extLeftDy - mean_mov_y, 2) + pow(extRightDy - mean_mov_y, 2) +
-                                 pow(extTopDy - mean_mov_y,  2) + pow(extTopDy - mean_mov_y, 2))/4.0);
-
-        printf("mean_mov_x(%f), mean_mov_y(%f)\n", mean_mov_x, mean_mov_y);
-        printf("sd_mov_x(%f), sd_mov_y(%f)\n", sd_mov_x, sd_mov_y);
-
-        const double MOVEMENT_THRESHOLD = 25;
-        if (sd_mov_y < MOVEMENT_THRESHOLD && sd_mov_x < MOVEMENT_THRESHOLD)
+        double mean_mov_x;
+        double mean_mov_y;
+        double sd_x;
+        double sd_y;
+        if (bounds_matches(act_bounds, &mean_mov_x, &mean_mov_y, &sd_x, &sd_y))
         {
             this->region.x += mean_mov_x;
             this->region.y += mean_mov_y;
 
+            double delta_t_s = (timestamp_s - reference_image_time_s);
+
+            this->est_speed_x = (mean_mov_x + sd_x) / delta_t_s;
+            this->est_speed_y = (mean_mov_y + sd_y) / delta_t_s;
+            tgt_lost = false;
             emit region_updated(region);
         }
     }
 
+    if (tgt_lost)
+    {
+        this->coasting_attempts = 0;
+        this->coasting_t0_s = micros_since_epoch() * 1e-6;
+        safe_update_state(tracker_state_t::COASTING);
+    }
 }
 
 void Tracker::coast()
 {
 
+    emit tracker_coasting();
+    printf("[%d] coasting(%f, %f))\n", coasting_attempts, est_speed_x, est_speed_y);
+
+    double t_s;
+    cv::Mat act_image = extract_roi(&t_s);
+
+    double dt =  t_s - this->coasting_t0_s;
+
+    double x_mov = dt * est_speed_x;
+    double y_mov = dt * est_speed_y;
+
+
+    const int MAX_COASTING_ATTEMPTS = 20;
+    if (this->region.x + x_mov > IMAGE_COLS ||
+        this->region.x + x_mov < 0 ||
+        this->region.y + y_mov > IMAGE_ROWS ||
+        this->region.y + y_mov < 0 ||
+        coasting_attempts > MAX_COASTING_ATTEMPTS)
+    {
+        safe_update_state(tracker_state_t::ACQUIRING);
+    }
+    else
+    {
+        double mean_mov_x;
+        double mean_mov_y;
+        double sd_x;
+        double sd_y;
+
+        std::vector<cv::Point> act_bounds = estimate_target_bounds(act_image);
+        if (!act_bounds.empty() && bounds_matches(act_bounds, &mean_mov_x, &mean_mov_y, &sd_x, &sd_y))
+        {
+            this->region.x += mean_mov_x;
+            this->region.y += mean_mov_y;
+
+            this->est_speed_x = (mean_mov_x + sd_x) / dt;
+            this->est_speed_y = (mean_mov_y + sd_y) / dt;
+
+            safe_update_state(tracker_state_t::RUNNING);
+        }
+        else
+        {
+            this->region.x += x_mov;
+            this->region.y += y_mov;
+
+            /** rimango in coasting **/
+        }
+
+        emit region_updated(region);
+        coasting_attempts += 1;
+    }
 }
