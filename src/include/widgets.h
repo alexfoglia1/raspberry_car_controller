@@ -159,7 +159,8 @@ public:
                      int arduino_index,
                      int joystick_index,
                      int motor_voltage_index,
-                     int motor_status_index
+                     int motor_status_index,
+                     int tracker_index
 
                      ) : MenuCvMatWidget(items)
     {
@@ -178,11 +179,13 @@ public:
         this->motor_voltage_index = motor_voltage_index;
         this->motor_status_index = motor_status_index;
         this->joystick_index = joystick_index;
+        this->tracker_index = tracker_index;
         this->comp_status = new bool [items.size()];
         memset(this->comp_status, 0x00, sizeof(bool) * items.size());
 
         this->voltage_in = 0;
         this->voltage_out = 0;
+        this->tracker_status = tracker_state_t::IDLE;
     };
 
 
@@ -191,6 +194,7 @@ public:
     virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
     void update_voltage(double voltage, double duty_cycle);
     void update_system_status(quint8 system_status);
+    void update_tracker_status(tracker_state_t tracker_status);
 
 private:
     int tegra_index;
@@ -200,11 +204,14 @@ private:
     int motor_status_index;
     int motor_voltage_index;
     int joystick_index;
+    int tracker_index;
 
     quint8 system_status;
     double voltage_in;
     double voltage_out;
+    tracker_state_t tracker_status;
     bool* comp_status;
+
 
     void fillCircleAt(cv::Mat* frame, cv::Point coord, cv::Size size, int index, bool status);
     void drawStringAt(cv::Mat* frame, cv::Point coord, int index, QString string);

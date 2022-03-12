@@ -62,6 +62,7 @@ private:
     tracker_state_t state;
     cv::Mat last_camera_frame;
     cv::Mat reference_image;
+    double ref_area;
     double reference_image_time_s;
     double coasting_t0_s;
     int coasting_attempts;

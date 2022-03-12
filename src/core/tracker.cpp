@@ -17,6 +17,7 @@ Tracker::Tracker(cv::Rect region)
     this->est_speed_y = 0.0;
     this->coasting_t0_s = 0.0;
     this->coasting_attempts = 0;
+    this->ref_area = 0.0;
     this->reset_flag = false;
     this->state = tracker_state_t::IDLE;
     this->last_camera_frame = cv::Mat(IMAGE_COLS, IMAGE_ROWS, CV_8UC3, cv::Scalar(0, 0 ,0));
@@ -150,12 +151,20 @@ std::vector<cv::Point> Tracker::estimate_target_bounds(cv::Mat frame)
         hist[frame.data[i]] += 1;
     }
 
+    double sum = 0.0;
+    for (int i = 0; i < 256; i++)
+    {
+        sum += hist[i];
+    }
+
     double mean = 0.0;
     for (int i = 0; i < 256; i++)
     {
-        mean += (double)(hist[i]);
+        mean += (i * (double)(hist[i]));
     }
-    mean /= 256.0;
+    mean /= sum;
+
+    mean = int(mean);
 
     cv::Mat target;
     cv::threshold(frame, target, mean, 255, cv::THRESH_BINARY);
@@ -189,6 +198,11 @@ bool Tracker::acquire_reference_frame()
 
     if (!bounds.empty())
     {
+        std::vector<cv::Point> ext_pts = extreme_points(bounds);
+        double base = ext_pts[1].x - ext_pts[0].x;
+        double height = ext_pts[3].y - ext_pts[1].y;
+        ref_area = base * height;
+
         this->reference_image_time_s = candidate_timestamp;
         this->reference_image = reference_frame_candidate;
         for (auto& pt : bounds)
@@ -204,25 +218,114 @@ bool Tracker::acquire_reference_frame()
 
 std::vector<cv::Point> Tracker::extreme_points(std::vector<cv::Point> pts)
 {
-    cv::Point extLeft  = *std::min_element(pts.begin(), pts.end(),
-                          [](const cv::Point& lhs, const cv::Point& rhs) {
-                              return lhs.x < rhs.x;
-                      });
-    cv::Point extRight = *std::max_element(pts.begin(), pts.end(),
-                          [](const cv::Point& lhs, const cv::Point& rhs) {
-                              return lhs.x < rhs.x;
-                      });
-    cv::Point extTop   = *std::min_element(pts.begin(), pts.end(),
-                          [](const cv::Point& lhs, const cv::Point& rhs) {
-                              return lhs.y < rhs.y;
-                      });
-    cv::Point extBot   = *std::max_element(pts.begin(), pts.end(),
-                          [](const cv::Point& lhs, const cv::Point& rhs) {
-                              return lhs.y < rhs.y;
-                      });
+    double min_x = region.width;
+    double max_x = 0;
+    double min_y = region.height;
+    double max_y = 0;
+    for (auto& pt : pts)
+    {
+        if (pt.x < min_x)
+        {
+            min_x = pt.x;
+        }
 
-    emit extreme_points_updated(extLeft, extRight, extTop, extBot);
-    return std::vector<cv::Point>{extLeft, extRight, extTop, extBot};
+        if (pt.x > max_x)
+        {
+            max_x = pt.x;
+        }
+
+        if (pt.y < min_y)
+        {
+            min_y = pt.y;
+        }
+
+        if (pt.y > max_y)
+        {
+            max_y = pt.y;
+        }
+    }
+
+
+    std::vector<cv::Point> leftmost;
+    std::vector<cv::Point> rightmost;
+    std::vector<cv::Point> upmost;
+    std::vector<cv::Point> downmost;
+
+    for (auto& pt : pts)
+    {
+        if (pt.x == min_x)
+        {
+            leftmost.push_back(pt);
+        }
+
+        if (pt.x == max_x)
+        {
+            rightmost.push_back(pt);
+        }
+
+        if (pt.y == min_y)
+        {
+            upmost.push_back(pt);
+        }
+
+        if (pt.y == max_y)
+        {
+            downmost.push_back(pt);
+        }
+    }
+
+    cv::Point* extLeft;
+    cv::Point* extRight;
+    cv::Point* extTop;
+    cv::Point* extBot;
+
+    int min_y_leftmost = region.height;
+    int max_x_upmost = 0;
+    int max_y_rightmost = 0;
+    int min_x_downmost = region.width;
+
+    for (auto& pt : leftmost)
+    {
+        /** Nei leftmost voglio quello più in alto **/
+        if (pt.y < min_y_leftmost)
+        {
+            min_y_leftmost = pt.y;
+            extLeft = &pt;
+        }
+    }
+
+    for (auto& pt : upmost)
+    {
+        /** Negli upmost voglio quello più a destra **/
+        if (pt.x > max_x_upmost)
+        {
+            max_x_upmost = pt.x;
+            extRight = &pt;
+        }
+    }
+
+    for (auto& pt : rightmost)
+    {
+        /** Nei rightmost voglio quello più in basso **/
+        if (pt.y > max_y_rightmost)
+        {
+            max_y_rightmost = pt.y;
+            extTop = &pt;
+        }
+    }
+
+    for (auto& pt : downmost)
+    {
+        /** Nei downmost voglio quello più a sinistra **/
+        if (pt.x < min_x_downmost)
+        {
+            min_x_downmost = pt.x;
+            extBot = &pt;
+        }
+    }
+
+    emit extreme_points_updated(*extLeft, *extRight, *extTop, *extBot);
+    return std::vector<cv::Point>{*extLeft, *extRight, *extTop, *extBot};
 }
 
 bool Tracker::bounds_matches(std::vector<cv::Point> act_bounds, double* mean_mov_x, double* mean_mov_y, double* sd_x, double* sd_y)
@@ -250,11 +353,10 @@ bool Tracker::bounds_matches(std::vector<cv::Point> act_bounds, double* mean_mov
     *sd_x = sd_mov_x;
     *sd_y = sd_mov_y;
 
-    const double MOVEMENT_THRESHOLD = 20;
-    double fused_sd_mov = (sd_mov_x + sd_mov_y) / 2.0;
 
-    printf("fused_sd_mov(%f)\n", fused_sd_mov);
-    return fused_sd_mov <= MOVEMENT_THRESHOLD;
+    double MOVEMENT_THRESHOLD = sqrt(ref_area);
+
+    return sd_mov_x <= MOVEMENT_THRESHOLD / 4 || sd_mov_y <= MOVEMENT_THRESHOLD / 4;
 }
 
 
@@ -273,6 +375,7 @@ void Tracker::idle()
         this->est_speed_y = 0.0;
         this->coasting_t0_s = 0.0;
         this->coasting_attempts = 0;
+        this->ref_area = 0.0;
         this->reset_flag = false;
         this->reference_bounds.clear();
 
@@ -343,7 +446,6 @@ void Tracker::coast()
 
     double x_mov = dt * est_speed_x;
     double y_mov = dt * est_speed_y;
-
 
     const int MAX_COASTING_ATTEMPTS = 20;
     if (this->region.x + x_mov > IMAGE_COLS ||

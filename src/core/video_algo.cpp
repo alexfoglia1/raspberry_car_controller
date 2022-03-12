@@ -99,21 +99,21 @@ void VideoProcessor::feed(cv::Mat image)
     switch(history.available_frames)
     {
     case 0:
-        history.frame_0 = image;
+        history.frame_0 = image.clone();
         history.available_frames = 1;
         break;
     case 1:
-        history.frame_1 = image;
+        history.frame_1 = image.clone();
         history.available_frames = 2;
         break;
     case 2:
-        history.frame_2 = image;
+        history.frame_2 = image.clone();
         history.available_frames = 3;
         break;
     default:
         history.frame_0 = history.frame_1;
         history.frame_1 = history.frame_2;
-        history.frame_2 = image;
+        history.frame_2 = image.clone();
 
         break;
     }
@@ -182,9 +182,8 @@ void VideoProcessor::do_denoise()
         return;
     }
 
-    cv::Mat copy = history.frame_2;
-    cv::Mat* image = new cv::Mat(copy.size(), copy.type());
-    memcpy(image->data, copy.data, copy.dataend - copy.data);
+    cv::Mat copy = history.frame_2.clone();
+    cv::Mat* image = &copy;
 
     uchar* p_frame_0_channel_1 = history.frame_0.data + 0;
     uchar* p_frame_0_channel_2 = history.frame_0.data + 1;
@@ -223,6 +222,4 @@ void VideoProcessor::do_denoise()
     }
 
     emit frame_ready(*image);
-
-    delete image;
 }

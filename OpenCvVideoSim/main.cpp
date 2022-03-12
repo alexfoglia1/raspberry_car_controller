@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 	y = y % IMAGE_ROWS;
 	x = x % IMAGE_COLS;
         filledRoundedRectangle(sim_image, cv::Point(x, y), cv::Size(width, height), cv::Scalar(255,255,255), cv::LINE_AA, 1, 0.01);
-        filledRoundedRectangle(sim_image, cv::Point(x2, y2), cv::Size(width/2, height/2), cv::Scalar(255,255,255), cv::LINE_AA, 1, 0.1);
+        filledRoundedRectangle(sim_image, cv::Point(x2, y2), cv::Size(width/2, height/2), cv::Scalar(255,255,255), cv::LINE_AA, 1, 0.5);
 
         std::vector<int> params;
         std::vector<uint8_t> buffer;

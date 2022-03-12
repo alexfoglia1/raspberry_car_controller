@@ -157,6 +157,11 @@ void SystemMenuWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
                                                    system_status == 0x00 ? "IDLE" :
                                                    system_status == 0x01 ? "RUNNING" : "VALUE ERROR");
 
+    drawStringAt(frame, coord, tracker_index, tracker_status == tracker_state_t::IDLE ? "IDLE" :
+                                              tracker_status == tracker_state_t::ACQUIRING ? "ACQUIRE" :
+                                              tracker_status == tracker_state_t::RUNNING ? "TRACK" :
+                                              tracker_status == tracker_state_t::COASTING ? "COASTING" : "OFF");
+
     float f_rounded_voltage_in = int(10 * voltage_in) / 10.f;
     float f_rounded_voltage_out = int(10 * voltage_out) / 10.f;
 
@@ -174,6 +179,11 @@ void SystemMenuWidget::update_voltage(double voltage, double duty_cycle)
 void SystemMenuWidget::update_system_status(quint8 system_status)
 {
     this->system_status = system_status;
+}
+
+void SystemMenuWidget::update_tracker_status(tracker_state_t state)
+{
+    this->tracker_status = state;
 }
 
 void SystemMenuWidget::fillCircleAt(cv::Mat *frame, cv::Point coord, cv::Size size, int index, bool status)

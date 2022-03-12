@@ -191,11 +191,12 @@ void VideoRenderer::init_window()
                                 {"JOYSTICK", true},
                                 {"VOLTAGE (V)", false},
                                 {"SYS STATUS", true},
+                                {"TRACKER: ", true}
 
                                 };
 
     context_menu = new MenuCvMatWidget(context_menu_items);
-    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6);
+    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6, 7);
     system_menu->show();
 
     speedometer_widget = new SpeedometerWidget();
@@ -236,14 +237,13 @@ void VideoRenderer::render_window()
 {
     /** Copia locale del frame **/
     sem_wait(&image_semaphore);
-    cv::Mat cp_next_frame(this->next_frame.rows, this->next_frame.cols, this->next_frame.type());
-    memcpy(cp_next_frame.data, this->next_frame.data, cp_next_frame.dataend - cp_next_frame.data);
+    cv::Mat cp_next_frame = this->next_frame.clone();
     sem_post(&image_semaphore);
 
     /** Disegno gli widget abilitati **/
     cv::Size size = next_frame.size();
     context_menu->draw(&cp_next_frame, cv::Point(size.width/30, size.height/30));
-    system_menu->draw(&cp_next_frame, cv::Point(size.width/30, 18*size.height/30));
+    system_menu->draw(&cp_next_frame, cv::Point(size.width/30, 17*size.height/30));
     target_widget->draw(&cp_next_frame);
     speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
 
@@ -361,13 +361,17 @@ void VideoRenderer::on_tracker_valid_acq(bool valid)
     draw_track = true;
     have_tracker_pts = false;
     tracker_rect_col = valid ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
+    system_menu->update_tracker_status(tracker_state_t::ACQUIRING);
     sem_post(&image_semaphore);
 }
 
 void VideoRenderer::on_tracker_idle()
 {
+    sem_wait(&image_semaphore);
     draw_track = false;
     have_tracker_pts = false;
+    system_menu->update_tracker_status(tracker_state_t::IDLE);
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::on_tracker_running()
@@ -375,6 +379,7 @@ void VideoRenderer::on_tracker_running()
     sem_wait(&image_semaphore);
     tracker_rect_col = cv::Scalar(0, 255, 0);
     have_tracker_pts = true;
+    system_menu->update_tracker_status(tracker_state_t::RUNNING);
     sem_post(&image_semaphore);
 }
 
@@ -383,6 +388,7 @@ void VideoRenderer::on_tracker_coasting()
     sem_wait(&image_semaphore);
     tracker_rect_col = cv::Scalar(255, 255, 0);
     have_tracker_pts = true;
+    system_menu->update_tracker_status(tracker_state_t::COASTING);
     sem_post(&image_semaphore);
 }
 
