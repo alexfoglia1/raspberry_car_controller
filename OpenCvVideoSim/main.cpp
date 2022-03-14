@@ -105,14 +105,14 @@ int main(int argc, char** argv)
     int dt_millis = 100;
     int t_millis = 0;
     int t = t_millis - dt_millis;
-    double vel_t = 0.0001225;
+    double vel_t = 0.0002;
 
     while (true)
     {
         cv::Mat sim_image = cv::Mat(IMAGE_ROWS, IMAGE_COLS, CV_8UC3, cv::Scalar(0,0,0));
         t += dt_millis;
         int _t = moving ? t : 0;
-        int y = y0 + 50 + 200 * sin(vel_t * _t);
+        int y = y0;// + 50 + 200 * sin(vel_t * _t);
         int x = x0 + 200 * sin((vel_t*2) * _t);
         int y2 = y;
         int x2 = x0 + 200 * cos((vel_t*2) *_t);

@@ -217,4 +217,9 @@ private:
     void drawStringAt(cv::Mat* frame, cv::Point coord, int index, QString string);
 };
 
+class PlotWidget : public CVMatWidget
+{
+
+};
+
 #endif // WIDGETS_H

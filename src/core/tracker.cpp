@@ -190,6 +190,7 @@ std::vector<cv::Point> Tracker::estimate_target_bounds(cv::Mat frame)
 bool Tracker::acquire_reference_frame()
 {
     this->coasting_attempts = 0;
+    this->reset_flag = true;
 
     double candidate_timestamp;
     cv::Mat reference_frame_candidate = extract_roi(&candidate_timestamp);
@@ -209,7 +210,6 @@ bool Tracker::acquire_reference_frame()
         {
             this->reference_bounds.push_back(pt);
         }
-        this->reset_flag = true;
     }
 
     return !bounds.empty();
@@ -413,15 +413,21 @@ void Tracker::track()
         double sd_y;
         if (bounds_matches(act_bounds, &mean_mov_x, &mean_mov_y, &sd_x, &sd_y))
         {
-            this->region.x += mean_mov_x;
-            this->region.y += mean_mov_y;
+            if (this->region.x + mean_mov_x < IMAGE_COLS &&
+                this->region.x + mean_mov_x > 0 &&
+                this->region.y + mean_mov_y < IMAGE_ROWS &&
+                this->region.y + mean_mov_y > 0)
+            {
+                this->region.x += mean_mov_x;
+                this->region.y += mean_mov_y;
 
-            double delta_t_s = (timestamp_s - reference_image_time_s);
+                double delta_t_s = (timestamp_s - reference_image_time_s);
 
-            this->est_speed_x = (mean_mov_x + sd_x) / delta_t_s;
-            this->est_speed_y = (mean_mov_y + sd_y) / delta_t_s;
-            tgt_lost = false;
-            emit region_updated(region);
+                this->est_speed_x = (mean_mov_x + sd_x) / delta_t_s;
+                this->est_speed_y = (mean_mov_y + sd_y) / delta_t_s;
+                tgt_lost = false;
+                emit region_updated(region);
+            }
         }
     }
 
@@ -466,20 +472,40 @@ void Tracker::coast()
         std::vector<cv::Point> act_bounds = estimate_target_bounds(act_image);
         if (!act_bounds.empty() && bounds_matches(act_bounds, &mean_mov_x, &mean_mov_y, &sd_x, &sd_y))
         {
-            this->region.x += mean_mov_x;
-            this->region.y += mean_mov_y;
+            if (this->region.x + mean_mov_x < IMAGE_COLS &&
+                this->region.x + mean_mov_x > 0 &&
+                this->region.y + mean_mov_y < IMAGE_ROWS &&
+                this->region.y + mean_mov_y > 0)
+            {
+                this->region.x += mean_mov_x;
+                this->region.y += mean_mov_y;
 
-            this->est_speed_x = (mean_mov_x + sd_x) / dt;
-            this->est_speed_y = (mean_mov_y + sd_y) / dt;
+                this->est_speed_x = (mean_mov_x + sd_x) / dt;
+                this->est_speed_y = (mean_mov_y + sd_y) / dt;
 
-            safe_update_state(tracker_state_t::RUNNING);
+                safe_update_state(tracker_state_t::RUNNING);
+            }
+            else
+            {
+                safe_update_state(tracker_state_t::ACQUIRING);
+            }
         }
         else
         {
-            this->region.x += x_mov;
-            this->region.y += y_mov;
+            if (this->region.x + x_mov < IMAGE_COLS &&
+                this->region.x + x_mov > 0 &&
+                this->region.y + y_mov < IMAGE_ROWS &&
+                this->region.y + y_mov > 0)
+            {
+                this->region.x += x_mov;
+                this->region.y += y_mov;
 
-            /** rimango in coasting **/
+                /** rimango in coasting **/
+            }
+            else
+            {
+                safe_update_state(tracker_state_t::ACQUIRING);
+            }
         }
 
         emit region_updated(region);
