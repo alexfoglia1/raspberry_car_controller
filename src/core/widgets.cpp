@@ -180,9 +180,10 @@ void SystemMenuWidget::drawStringAt(cv::Mat *frame, cv::Point coord, int index, 
     cv::putText(*frame, cv::String(string.toStdString()), cv::Point(coord.x + offset_x, coord.y + offset_y), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
 }
 
-int PlotWidget::create_new_serie(cv::String displayName)
+int PlotWidget::create_new_serie(cv::String displayName, cv::Scalar color)
 {
     this->values.push_back(std::pair<cv::String, std::vector<double>*>(displayName, new std::vector<double>));
+    this->colors.push_back(color);
 
     return this->values.size() - 1;
 }
@@ -206,6 +207,28 @@ void PlotWidget::update_serie(int serie, double value)
     }
 }
 
+void PlotWidget::draw_axis(cv::Mat *frame, cv::Point tl, cv::Size size, double scale_x, double scale_y)
+{
+    double dy = (y_max - y_min) / 20;
+    double y = y_max;
+    double half_screen_value = (y_max - y_min) / 2;
+    double half_screen_height = size.height / 2;
+
+    cv::line(*frame, cv::Point(tl.x, tl.y + height_of_y0), cv::Point(tl.x + size.width, tl.y + height_of_y0), fgCol, 1, cv::LINE_AA);
+
+    while (y >= y_min)
+    {
+        int x = tl.x;
+        int dx = size.width / 80;
+        while (x < size.width)
+        {
+            cv::line(*frame, cv::Point(x, tl.y + height_of_y0 - (y * scale_y)), cv::Point(x + dx, tl.y + height_of_y0 - (y * scale_y)), fgCol, 1, cv::LINE_AA);
+            x += 2 * dx;
+        }
+        y -= dy;
+    }
+}
+
 void PlotWidget::draw(cv::Mat *frame, cv::Point coord, cv::Size size)
 {
     if (visible)
@@ -213,20 +236,25 @@ void PlotWidget::draw(cv::Mat *frame, cv::Point coord, cv::Size size)
         CVMatWidget::draw(frame, coord, size);
 
         double scale_x = (double)size.width / (double)n_values;
-        double scale_y = (double)size.height / (double)6.28; //da parametrizzare, per ora lascio 2PI per debuggare attitude
+        double scale_y = (double)size.height / (y_max - y_min);
+        double y0 = y_min;
+        int height_of_y0 = y0 * scale_y;
 
-        for(auto& pair : this->values)
+        draw_axis(frame, coord, size, scale_x, scale_y);
+
+        for(int pair_idx = 0; pair_idx < int(values.size()); pair_idx++)
         {
+            auto& pair = values.at(pair_idx);
             for (int i = 1; i < n_values; i++)
             {
                 double value_prev = (i - 1) < pair.second->size() ? pair.second->at(i - 1) : 0.0;
                 double value = i < pair.second->size() ? pair.second->at(i) : 0.0;
                 int x_coord_prev = coord.x + (i - 1) * scale_x;
                 int x_coord = coord.x + i * scale_x;
-                int y_coord_prev = coord.y + size.height - value_prev * scale_y;
-                int y_coord = coord.y + size.height - value * scale_y;
+                int y_coord_prev = coord.y + height_of_y0 - value_prev * scale_y;
+                int y_coord = coord.y + height_of_y0 - value * scale_y;
 
-                cv::line(*frame, cv::Point(x_coord_prev, y_coord_prev), cv::Point(x_coord, y_coord), fgCol, 1, cv::LINE_AA);
+                cv::line(*frame, cv::Point(x_coord_prev, y_coord_prev), cv::Point(x_coord, y_coord), colors.at(pair_idx % int(colors.size())), 1, cv::LINE_AA);
             }
         }
     }

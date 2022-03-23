@@ -200,14 +200,14 @@ void VideoRenderer::init_window()
 
     target_widget = new TargetWidget();
 
-    attitude_plot = new PlotWidget(100);
-    voltage_plot = new PlotWidget(100);
-    attitude_plot->create_new_serie(cv::String("Yaw"));
-    attitude_plot->create_new_serie(cv::String("Pitch"));
-    attitude_plot->create_new_serie(cv::String("Roll"));
+    attitude_plot = new PlotWidget(100, 360.0, 0.0);
+    voltage_plot = new PlotWidget(100, 10.0, 0.0);
+    attitude_plot->create_new_serie(cv::String("Yaw"), yellow);
+    attitude_plot->create_new_serie(cv::String("Pitch"), red);
+    attitude_plot->create_new_serie(cv::String("Roll"), green);
 
-    voltage_plot->create_new_serie(cv::String("Voltage In"));
-    voltage_plot->create_new_serie(cv::String("Voltage Out"));
+    voltage_plot->create_new_serie(cv::String("Voltage In"), red);
+    voltage_plot->create_new_serie(cv::String("Voltage Out"), green);
 
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
@@ -278,9 +278,10 @@ void VideoRenderer::on_video_timeout()
 void VideoRenderer::update(attitude_msg attitude)
 {
     sem_wait(&image_semaphore);
-    attitude_plot->update_serie(0, attitude.yaw);
-    attitude_plot->update_serie(1, attitude.pitch);
-    attitude_plot->update_serie(2, attitude.roll);
+    printf("yaw(%f) pitch(%f) roll(%f)\n", attitude.yaw, attitude.pitch, attitude.roll);
+    attitude_plot->update_serie(0, normalizeAngle(attitude.yaw));
+    attitude_plot->update_serie(1, normalizeAngle(attitude.pitch));
+    attitude_plot->update_serie(2, normalizeAngle(attitude.roll));
     sem_post(&image_semaphore);
 }
 
