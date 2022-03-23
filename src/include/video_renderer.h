@@ -73,12 +73,6 @@ public slots:
 
     /** Local controlled slots **/
     void on_image(cv::Mat image);
-    void on_tracker_update(cv::Rect);
-    void on_tracker_extreme_points(cv::Point, cv::Point, cv::Point, cv::Point);
-    void on_tracker_valid_acq(bool);
-    void on_tracker_idle();
-    void on_tracker_running();
-    void on_tracker_coasting();
     void on_keyboard(int key);
 
     /** Context menu actions **/
@@ -101,7 +95,6 @@ signals:
     void signal_r_filter_changed_state(bool enabled);
     void signal_g_filter_changed_state(bool enabled);
     void signal_b_filter_changed_state(bool enabled);
-    void signal_tracker_changed_state(tracker_state_t new_tracker_state);
     void thread_quit();
 
 private:
@@ -120,7 +113,6 @@ private:
     bool save_frame;
     bool stopped;
     double last_duty_cycle;
-    bool have_tracker_pts;
     bool draw_track;
 
     /** Widgets **/
@@ -128,11 +120,8 @@ private:
     SystemMenuWidget* system_menu;
     SpeedometerWidget* speedometer_widget;
     TargetWidget* target_widget;
-
-    /** Tracker region **/
-    cv::Rect tracker_region;
-    cv::Point tracker_left, tracker_right, tracker_top, tracker_bottom;
-    cv::Scalar tracker_rect_col;
+    PlotWidget* attitude_plot;
+    PlotWidget* voltage_plot;
 
     std::vector<image_algorithm_state_t> image_algorithms =
     {

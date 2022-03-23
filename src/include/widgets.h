@@ -27,7 +27,7 @@ const int fontScale = 5;
 
 class CVMatWidget
 {
-    public:
+public:
         CVMatWidget()
         {
             visible = false;
@@ -159,9 +159,7 @@ public:
                      int arduino_index,
                      int joystick_index,
                      int motor_voltage_index,
-                     int motor_status_index,
-                     int tracker_index
-
+                     int motor_status_index
                      ) : MenuCvMatWidget(items)
     {
         vindex = 0;
@@ -179,13 +177,11 @@ public:
         this->motor_voltage_index = motor_voltage_index;
         this->motor_status_index = motor_status_index;
         this->joystick_index = joystick_index;
-        this->tracker_index = tracker_index;
         this->comp_status = new bool [items.size()];
         memset(this->comp_status, 0x00, sizeof(bool) * items.size());
 
         this->voltage_in = 0;
         this->voltage_out = 0;
-        this->tracker_status = tracker_state_t::IDLE;
     };
 
 
@@ -194,9 +190,7 @@ public:
     virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
     void update_voltage(double voltage, double duty_cycle);
     void update_system_status(quint8 system_status);
-    void update_tracker_status(tracker_state_t tracker_status);
 
-private:
     int tegra_index;
     int arduino_index;
     int imu_index;
@@ -204,12 +198,12 @@ private:
     int motor_status_index;
     int motor_voltage_index;
     int joystick_index;
-    int tracker_index;
+private:
+
 
     quint8 system_status;
     double voltage_in;
     double voltage_out;
-    tracker_state_t tracker_status;
     bool* comp_status;
 
 
@@ -219,7 +213,21 @@ private:
 
 class PlotWidget : public CVMatWidget
 {
+public:
+    PlotWidget(int n_values) : CVMatWidget()
+    {
+        this->n_values = n_values;
+    }
 
+    int create_new_serie(cv::String displayName);
+    void update_serie(int serie, double value);
+
+    virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size);
+
+private:
+
+    int n_values;
+    std::vector<std::pair<cv::String, std::vector<double>*>> values;
 };
 
 #endif // WIDGETS_H

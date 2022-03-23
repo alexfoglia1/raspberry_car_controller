@@ -161,7 +161,6 @@ VideoRenderer::VideoRenderer()
     stopped = false;
     save_frame = false;
     draw_track = false;
-    have_tracker_pts = false;
     last_duty_cycle = 0.0;
     width = 0;
     height = 0;
@@ -170,13 +169,11 @@ VideoRenderer::VideoRenderer()
 
 void VideoRenderer::init_window()
 {
-
     viewer = new GLViewer();
 
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
 
     std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
-
     for (auto &algo : image_algorithms)
     {
         context_menu_items.push_back({algo.name, false});
@@ -191,18 +188,26 @@ void VideoRenderer::init_window()
                                 {"JOYSTICK", true},
                                 {"VOLTAGE (V)", false},
                                 {"SYS STATUS", true},
-                                {"TRACKER: ", true}
 
                                 };
 
     context_menu = new MenuCvMatWidget(context_menu_items);
-    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6, 7);
+    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6);
     system_menu->show();
 
     speedometer_widget = new SpeedometerWidget();
     speedometer_widget->show();
 
     target_widget = new TargetWidget();
+
+    attitude_plot = new PlotWidget(100);
+    voltage_plot = new PlotWidget(100);
+    attitude_plot->create_new_serie(cv::String("Yaw"));
+    attitude_plot->create_new_serie(cv::String("Pitch"));
+    attitude_plot->create_new_serie(cv::String("Roll"));
+
+    voltage_plot->create_new_serie(cv::String("Voltage In"));
+    voltage_plot->create_new_serie(cv::String("Voltage Out"));
 
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
@@ -246,28 +251,8 @@ void VideoRenderer::render_window()
     system_menu->draw(&cp_next_frame, cv::Point(size.width/30, 17*size.height/30));
     target_widget->draw(&cp_next_frame);
     speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
+    attitude_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
 
-    /** Disegno overlay tracker **/
-    if (draw_track)
-    {
-        int tracker_region_thickness = 3;
-        cv::Rect tracker_region_bounds(tracker_region.x - tracker_region_thickness, tracker_region.y - tracker_region_thickness,
-                                       tracker_region.width + 2 * tracker_region_thickness, tracker_region.height + 2 * tracker_region_thickness);
-        cv::rectangle(cp_next_frame, tracker_region_bounds, tracker_rect_col, tracker_region_thickness - 1, cv::LINE_AA);
-
-        if (have_tracker_pts)
-        {
-            cv::Point left(tracker_region.x + tracker_left.x, tracker_region.y + tracker_left.y);
-            cv::Point right(tracker_region.x + tracker_right.x, tracker_region.y + tracker_right.y);
-            cv::Point top(tracker_region.x + tracker_top.x, tracker_region.y + tracker_top.y);
-            cv::Point bottom(tracker_region.x + tracker_bottom.x, tracker_region.y + tracker_bottom.y);
-
-            cv::circle(cp_next_frame, left, 2, tracker_rect_col, 2);
-            cv::circle(cp_next_frame, right, 2, tracker_rect_col, 2);
-            cv::circle(cp_next_frame, top, 2, tracker_rect_col, 2);
-            cv::circle(cp_next_frame, bottom, 2, tracker_rect_col, 2);
-        }
-    }
     /** Passo al viewer il frame con widget **/
     viewer->set_frame(cp_next_frame);
 
@@ -292,7 +277,11 @@ void VideoRenderer::on_video_timeout()
 
 void VideoRenderer::update(attitude_msg attitude)
 {
-
+    sem_wait(&image_semaphore);
+    attitude_plot->update_serie(0, attitude.yaw);
+    attitude_plot->update_serie(1, attitude.pitch);
+    attitude_plot->update_serie(2, attitude.roll);
+    sem_post(&image_semaphore);
 }
 
 void VideoRenderer::update(voltage_msg voltage)
@@ -337,63 +326,9 @@ void VideoRenderer::on_image(cv::Mat frame_from_processor)
     sem_post(&image_semaphore);
 }
 
-void VideoRenderer::on_tracker_update(cv::Rect new_tracker_region)
-{
-    sem_wait(&image_semaphore);
-    tracker_region = new_tracker_region;
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_tracker_extreme_points(cv::Point left, cv::Point right, cv::Point top, cv::Point bottom)
-{
-    sem_wait(&image_semaphore);
-    tracker_left = left;
-    tracker_right = right;
-    tracker_top = top;
-    tracker_bottom = bottom;
-    have_tracker_pts = true;
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_tracker_valid_acq(bool valid)
-{
-    sem_wait(&image_semaphore);
-    draw_track = true;
-    have_tracker_pts = false;
-    tracker_rect_col = valid ? cv::Scalar(255, 0, 0) : cv::Scalar(0, 0, 255);
-    system_menu->update_tracker_status(tracker_state_t::ACQUIRING);
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_tracker_idle()
-{
-    sem_wait(&image_semaphore);
-    draw_track = false;
-    have_tracker_pts = false;
-    system_menu->update_tracker_status(tracker_state_t::IDLE);
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_tracker_running()
-{
-    sem_wait(&image_semaphore);
-    tracker_rect_col = cv::Scalar(0, 255, 0);
-    have_tracker_pts = true;
-    system_menu->update_tracker_status(tracker_state_t::RUNNING);
-    sem_post(&image_semaphore);
-}
-
-void VideoRenderer::on_tracker_coasting()
-{
-    sem_wait(&image_semaphore);
-    tracker_rect_col = cv::Scalar(255, 255, 0);
-    have_tracker_pts = true;
-    system_menu->update_tracker_status(tracker_state_t::COASTING);
-    sem_post(&image_semaphore);
-}
-
 void VideoRenderer::on_keyboard(int key)
 {
+    printf("KEY:(%d)\n", key);
     switch (key)
         {
         case TOGGLE_SPEED:
@@ -427,20 +362,6 @@ void VideoRenderer::on_keyboard(int key)
                 save_frame = false;
             }
             break;
-        case TRACKER_IDLE:
-        {
-            emit signal_tracker_changed_state(tracker_state_t::IDLE);
-            break;
-        }
-        case TRACKER_ACQUIRE:
-        {
-            emit signal_tracker_changed_state(tracker_state_t::ACQUIRING);
-            break;
-        }
-        case TRACKER_RUN:
-        {
-            emit signal_tracker_changed_state(tracker_state_t::RUNNING);
-        }
         case TOGGLE_TGT:
             if (!target_widget->enabled())
             {
@@ -487,6 +408,9 @@ void VideoRenderer::on_keyboard(int key)
             {
                 confirm_context_menu();
             }
+            break;
+        case ENTER:
+            confirm_system_menu();
             break;
         case ESCAPE:
             stopped = true;
@@ -555,7 +479,17 @@ void VideoRenderer::confirm_system_menu()
 {
     if (!context_menu->enabled())
     {
-        //abilita il plot widget associato al current item del system menu
+        if (system_menu->getSelectedIndex() == system_menu->imu_index)
+        {
+            if (attitude_plot->enabled())
+            {
+                attitude_plot->hide();
+            }
+            else
+            {
+                attitude_plot->show();
+            }
+        }
     }
 }
 

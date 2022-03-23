@@ -21,17 +21,6 @@ void SpeedometerWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
         }
 
         cv::putText(*frame, cv::String(QString("[%1]").arg(throttle_display).toStdString()), cv::Point(coord.x + 10, coord.y + 10), cv::FONT_HERSHEY_SIMPLEX, 0.175, fgCol, 1, cv::LINE_AA);
-
-#if 0
-        int radius =  size.width / 3;
-        int min_angle = 185;
-        int max_angle = 355;
-        int angle = min_angle + (throttle_state / 255.f) * (max_angle - min_angle);
-        cv::Point needle_coord(coord.x + size.width / 2, coord.y);
-        cv::Point needle_end(needle_coord.x + (radius - 5) * cos(toRadians(angle)), needle_coord.y + (radius - 5) * sin(toRadians(angle)));
-        cv::ellipse(*frame, needle_coord, cv::Size(radius, radius), 0, min_angle, max_angle, cv::Scalar(255, 255, 0), 2, cv::LINE_AA);
-        cv::line(*frame, needle_coord, needle_end, cv::Scalar(255, 255, 0), 1, cv::LINE_AA);
-#endif
     }
 }
 
@@ -157,11 +146,6 @@ void SystemMenuWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
                                                    system_status == 0x00 ? "IDLE" :
                                                    system_status == 0x01 ? "RUNNING" : "VALUE ERROR");
 
-    drawStringAt(frame, coord, tracker_index, tracker_status == tracker_state_t::IDLE ? "IDLE" :
-                                              tracker_status == tracker_state_t::ACQUIRING ? "ACQUIRE" :
-                                              tracker_status == tracker_state_t::RUNNING ? "TRACK" :
-                                              tracker_status == tracker_state_t::COASTING ? "COASTING" : "OFF");
-
     float f_rounded_voltage_in = int(10 * voltage_in) / 10.f;
     float f_rounded_voltage_out = int(10 * voltage_out) / 10.f;
 
@@ -181,11 +165,6 @@ void SystemMenuWidget::update_system_status(quint8 system_status)
     this->system_status = system_status;
 }
 
-void SystemMenuWidget::update_tracker_status(tracker_state_t state)
-{
-    this->tracker_status = state;
-}
-
 void SystemMenuWidget::fillCircleAt(cv::Mat *frame, cv::Point coord, cv::Size size, int index, bool status)
 {
     int offset_x = 170;
@@ -199,4 +178,56 @@ void SystemMenuWidget::drawStringAt(cv::Mat *frame, cv::Point coord, int index, 
     int offset_y =  (index + 1) * lineSpacing - 1;
 
     cv::putText(*frame, cv::String(string.toStdString()), cv::Point(coord.x + offset_x, coord.y + offset_y), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
+}
+
+int PlotWidget::create_new_serie(cv::String displayName)
+{
+    this->values.push_back(std::pair<cv::String, std::vector<double>*>(displayName, new std::vector<double>));
+
+    return this->values.size() - 1;
+}
+
+void PlotWidget::update_serie(int serie, double value)
+{
+    if (serie >= 0 && serie < this->values.size())
+    {
+        if (this->values[serie].second->size() == n_values)
+        {
+            for (int i = 0; i < int(this->values[serie].second->size() - 1); i++)
+            {
+                this->values[serie].second->at(i) = this->values[serie].second->at(i + 1);
+            }
+            this->values[serie].second->at(n_values - 1) = value;
+        }
+        else
+        {
+            this->values[serie].second->push_back(value);
+        }
+    }
+}
+
+void PlotWidget::draw(cv::Mat *frame, cv::Point coord, cv::Size size)
+{
+    if (visible)
+    {
+        CVMatWidget::draw(frame, coord, size);
+
+        double scale_x = (double)size.width / (double)n_values;
+        double scale_y = (double)size.height / (double)6.28; //da parametrizzare, per ora lascio 2PI per debuggare attitude
+
+        for(auto& pair : this->values)
+        {
+            for (int i = 1; i < n_values; i++)
+            {
+                double value_prev = (i - 1) < pair.second->size() ? pair.second->at(i - 1) : 0.0;
+                double value = i < pair.second->size() ? pair.second->at(i) : 0.0;
+                int x_coord_prev = coord.x + (i - 1) * scale_x;
+                int x_coord = coord.x + i * scale_x;
+                int y_coord_prev = coord.y + size.height - value_prev * scale_y;
+                int y_coord = coord.y + size.height - value * scale_y;
+
+                cv::line(*frame, cv::Point(x_coord_prev, y_coord_prev), cv::Point(x_coord, y_coord), fgCol, 1, cv::LINE_AA);
+            }
+        }
+    }
 }

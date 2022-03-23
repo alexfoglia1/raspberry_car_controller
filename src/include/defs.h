@@ -36,15 +36,6 @@ enum class comp_t
     MOTORS = 5
 };
 
-enum class tracker_state_t
-{
-  IDLE,
-  ACQUIRING,
-  RUNNING,
-  COASTING,
-  EXITING
-};
-
 typedef struct
 {
     uint32_t msg_id;
@@ -120,7 +111,5 @@ Q_DECLARE_METATYPE(comp_t)
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::Rect)
 Q_DECLARE_METATYPE(cv::Point)
-Q_DECLARE_METATYPE(tracker_state_t);
-
 
 #endif //DEFS_H

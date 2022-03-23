@@ -11,7 +11,6 @@
 #include "video_renderer.h"
 #include "video_algo.h"
 #include "joystick.h"
-#include "tracker.h"
 
 const char* DEFAULT_RASPBY_ADDR = "192.168.1.36";
 
@@ -42,7 +41,6 @@ int main(int argc, char** argv)
     qRegisterMetaType<cv::Mat>();
     qRegisterMetaType<cv::Rect>();
     qRegisterMetaType<cv::Point>();
-    qRegisterMetaType<tracker_state_t>();
 
     /** Create cbit instance **/
     Cbit* cbit = new Cbit();
@@ -53,23 +51,6 @@ int main(int argc, char** argv)
     /** Start renerer **/
     renderer->init_window();
     renderer->start();
-
-    /** Create tracker instance **/
-    cv::Rect tracker_region(renderer->width / 2 - 50, renderer->height / 2 - 50, 100, 100);
-    Tracker* tracker = new Tracker(tracker_region);
-    renderer->on_tracker_update(tracker_region);
-    renderer->on_tracker_valid_acq(false);
-    renderer->on_tracker_idle();
-
-    /** Connect tracker to video renderer **/
-    QObject::connect(tracker, SIGNAL(region_updated(cv::Rect)), renderer, SLOT(on_tracker_update(cv::Rect)));
-    QObject::connect(tracker, SIGNAL(valid_acquiring_area(bool)), renderer, SLOT(on_tracker_valid_acq(bool)));
-    QObject::connect(tracker, SIGNAL(extreme_points_updated(cv::Point, cv::Point, cv::Point, cv::Point)), renderer, SLOT(on_tracker_extreme_points(cv::Point, cv::Point, cv::Point, cv::Point)));
-    QObject::connect(tracker, SIGNAL(tracker_idle()), renderer, SLOT(on_tracker_idle()));
-    QObject::connect(tracker, SIGNAL(tracker_running()), renderer, SLOT(on_tracker_running()));
-    QObject::connect(tracker, SIGNAL(tracker_coasting()), renderer, SLOT(on_tracker_coasting()));
-    /** Connect video renderer to tracker **/
-    QObject::connect(renderer, SIGNAL(signal_tracker_changed_state(tracker_state_t)), tracker, SLOT(on_update_state(tracker_state_t)));
 
     /** Create data interface **/
     DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);
@@ -119,9 +100,6 @@ int main(int argc, char** argv)
     /** Connecting video update to video processor **/
     QObject::connect(iface_v, SIGNAL(received_video(cv::Mat)), video_processor, SLOT(feed(cv::Mat)));
 
-    /** Connecting video update to tracker **/
-    QObject::connect(iface_v, SIGNAL(received_video(cv::Mat)), tracker, SLOT(on_camera_image(cv::Mat)));
-
     /** Connecting video processor to renderer **/
     QObject::connect(video_processor, SIGNAL(frame_ready(cv::Mat)), renderer, SLOT(on_image(cv::Mat)));
 
@@ -165,12 +143,8 @@ int main(int argc, char** argv)
     /** Start joystick **/
     js_input->start();
 
-    /** Start tracker **/
-    tracker->start();
-
     /** Launch Qt Application **/
     QObject::connect(renderer, SIGNAL(thread_quit()), js_input, SLOT(quit()));
-    QObject::connect(js_input, &JoystickInput::thread_quit, tracker, [tracker](){tracker->on_update_state(tracker_state_t::EXITING);});
-    QObject::connect(tracker, SIGNAL(thread_quit()), &app, SLOT(quit()));
+    QObject::connect(js_input, SIGNAL(thread_quit()), &app, SLOT(quit()));
     return app.exec();
 }
