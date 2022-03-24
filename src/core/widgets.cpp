@@ -209,24 +209,38 @@ void PlotWidget::update_serie(int serie, double value)
 
 void PlotWidget::draw_axis(cv::Mat *frame, cv::Point tl, cv::Size size, double scale_x, double scale_y)
 {
-    double dy = (y_max - y_min) / 20;
-    double y = y_max;
-    double half_screen_value = (y_max - y_min) / 2;
-    double half_screen_height = size.height / 2;
+    double dy = y_span / 20;
+    double offset_y = 0;
 
-    cv::line(*frame, cv::Point(tl.x, tl.y + height_of_y0), cv::Point(tl.x + size.width, tl.y + height_of_y0), fgCol, 1, cv::LINE_AA);
+    double y = dy;
+    cv::line(*frame, cv::Point(tl.x, size.height + tl.y - offset_y), cv::Point(tl.x + size.width, size.height - offset_y), fgCol, 1, cv::LINE_AA);
 
-    while (y >= y_min)
+    while (y < y_span)
     {
         int x = tl.x;
         int dx = size.width / 80;
         while (x < size.width)
         {
-            cv::line(*frame, cv::Point(x, tl.y + height_of_y0 - (y * scale_y)), cv::Point(x + dx, tl.y + height_of_y0 - (y * scale_y)), fgCol, 1, cv::LINE_AA);
+            int height_of_y = y * scale_y;
+            cv::line(*frame, cv::Point(x, size.height + tl.y - height_of_y - offset_y), cv::Point(x + dx, size.height + tl.y - height_of_y - offset_y), fgCol, 1, cv::LINE_AA);
             x += 2 * dx;
         }
-        y -= dy;
+        y += dy;
     }
+}
+
+void PlotWidget::draw_legend(cv::Mat *frame, cv::Size size, cv::Point coord)
+{
+    cv::Point legend_coord = cv::Point(coord.x + 8 * size.width / 10, coord.y + 10);
+    cv::Size legend_size = cv::Size(77, 80);
+    filledRoundedRectangle(*frame, legend_coord, legend_size, cv::Scalar(0, 0, 0), cv::LINE_AA, 1, 0.01);
+    double dy = 25;
+    for (int i = 0; i < int(values.size()); i++)
+    {
+        auto& pair = values.at(i);
+        cv::putText(*frame, pair.first, cv::Point(legend_coord.x, legend_coord.y + (i + 1) * dy), cv::FONT_HERSHEY_SIMPLEX, 0.5, colors.at(i % colors.size()), 1, cv::LINE_AA);
+    }
+
 }
 
 void PlotWidget::draw(cv::Mat *frame, cv::Point coord, cv::Size size)
@@ -234,25 +248,25 @@ void PlotWidget::draw(cv::Mat *frame, cv::Point coord, cv::Size size)
     if (visible)
     {
         CVMatWidget::draw(frame, coord, size);
-
+        double offset_y = 0;
         double scale_x = (double)size.width / (double)n_values;
-        double scale_y = (double)size.height / (y_max - y_min);
-        double y0 = y_min;
-        int height_of_y0 = y0 * scale_y;
+        double scale_y = (double)(size.height - offset_y) / (double)y_span;
+
 
         draw_axis(frame, coord, size, scale_x, scale_y);
+        draw_legend(frame, size, coord);
 
         for(int pair_idx = 0; pair_idx < int(values.size()); pair_idx++)
         {
             auto& pair = values.at(pair_idx);
-            for (int i = 1; i < n_values; i++)
+            for (int i = 1; i < int(pair.second->size()); i++)
             {
-                double value_prev = (i - 1) < pair.second->size() ? pair.second->at(i - 1) : 0.0;
-                double value = i < pair.second->size() ? pair.second->at(i) : 0.0;
+                double value_prev = (i - 1) < int(pair.second->size()) ? pair.second->at(i - 1) : 0.0;
+                double value = i < int(pair.second->size()) ? pair.second->at(i) : 0.0;
                 int x_coord_prev = coord.x + (i - 1) * scale_x;
                 int x_coord = coord.x + i * scale_x;
-                int y_coord_prev = coord.y + height_of_y0 - value_prev * scale_y;
-                int y_coord = coord.y + height_of_y0 - value * scale_y;
+                int y_coord_prev = size.height + coord.y - value_prev * scale_y - offset_y;
+                int y_coord = size.height + coord.y - value * scale_y - offset_y;
 
                 cv::line(*frame, cv::Point(x_coord_prev, y_coord_prev), cv::Point(x_coord, y_coord), colors.at(pair_idx % int(colors.size())), 1, cv::LINE_AA);
             }

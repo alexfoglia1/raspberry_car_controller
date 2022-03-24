@@ -214,11 +214,10 @@ private:
 class PlotWidget : public CVMatWidget
 {
 public:
-    PlotWidget(int n_values, double y_max, double y_min) : CVMatWidget()
+    PlotWidget(int n_values, double y_span) : CVMatWidget()
     {
         this->n_values = n_values;
-        this->y_max = y_max;
-        this->y_min = y_min;
+        this->y_span = y_span;
     }
 
     int create_new_serie(cv::String displayName, cv::Scalar color);
@@ -229,12 +228,12 @@ public:
 private:
 
     int n_values;
-    double y_max;
-    double y_min;
+    double y_span;
     std::vector<std::pair<cv::String, std::vector<double>*>> values;
     std::vector<cv::Scalar> colors;
 
     void draw_axis(cv::Mat *frame, cv::Point tl, cv::Size size, double scale_x, double scale_y);
+    void draw_legend(cv::Mat *frame, cv::Size size, cv::Point coord);
 };
 
 #endif // WIDGETS_H

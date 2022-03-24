@@ -200,14 +200,14 @@ void VideoRenderer::init_window()
 
     target_widget = new TargetWidget();
 
-    attitude_plot = new PlotWidget(100, 360.0, 0.0);
-    voltage_plot = new PlotWidget(100, 10.0, 0.0);
+    attitude_plot = new PlotWidget(1000, 360.0);
+    voltage_plot = new PlotWidget(1000, 10.0);
     attitude_plot->create_new_serie(cv::String("Yaw"), yellow);
     attitude_plot->create_new_serie(cv::String("Pitch"), red);
     attitude_plot->create_new_serie(cv::String("Roll"), green);
 
-    voltage_plot->create_new_serie(cv::String("Voltage In"), red);
-    voltage_plot->create_new_serie(cv::String("Voltage Out"), green);
+    voltage_plot->create_new_serie(cv::String("V. In"), red);
+    voltage_plot->create_new_serie(cv::String("V. Out"), green);
 
     next_frame = viewer->get_frame();
     viewer->move(0, 0);
@@ -252,6 +252,7 @@ void VideoRenderer::render_window()
     target_widget->draw(&cp_next_frame);
     speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
     attitude_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
+    voltage_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
 
     /** Passo al viewer il frame con widget **/
     viewer->set_frame(cp_next_frame);
@@ -278,10 +279,18 @@ void VideoRenderer::on_video_timeout()
 void VideoRenderer::update(attitude_msg attitude)
 {
     sem_wait(&image_semaphore);
-    printf("yaw(%f) pitch(%f) roll(%f)\n", attitude.yaw, attitude.pitch, attitude.roll);
-    attitude_plot->update_serie(0, normalizeAngle(attitude.yaw));
-    attitude_plot->update_serie(1, normalizeAngle(attitude.pitch));
-    attitude_plot->update_serie(2, normalizeAngle(attitude.roll));
+
+    double yaw_0_360 = normalizeAngle(attitude.yaw);
+    double pitch_0_360 = normalizeAngle(attitude.pitch);
+    double roll_0_360 = normalizeAngle(attitude.roll);
+
+    yaw_0_360 = yaw_0_360 >= 359 ? 0 : yaw_0_360;
+    pitch_0_360 = pitch_0_360 >= 359 ? 0 : pitch_0_360;
+    roll_0_360 = roll_0_360 >= 359 ? 0 : roll_0_360;
+
+    attitude_plot->update_serie(0, yaw_0_360);
+    attitude_plot->update_serie(1, pitch_0_360);
+    attitude_plot->update_serie(2, roll_0_360);
     sem_post(&image_semaphore);
 }
 
@@ -289,6 +298,8 @@ void VideoRenderer::update(voltage_msg voltage)
 {
     sem_wait(&image_semaphore);
     system_menu->update_voltage(voltage.motor_voltage, last_duty_cycle/255.0);
+    voltage_plot->update_serie(0, voltage.motor_voltage);
+    voltage_plot->update_serie(1, voltage.motor_voltage * last_duty_cycle/255.0);
     sem_post(&image_semaphore);
 }
 
@@ -329,7 +340,6 @@ void VideoRenderer::on_image(cv::Mat frame_from_processor)
 
 void VideoRenderer::on_keyboard(int key)
 {
-    printf("KEY:(%d)\n", key);
     switch (key)
         {
         case TOGGLE_SPEED:
@@ -491,6 +501,18 @@ void VideoRenderer::confirm_system_menu()
                 attitude_plot->show();
             }
         }
+        else if (system_menu->getSelectedIndex() == system_menu->motor_voltage_index)
+        {
+            if (voltage_plot->enabled())
+            {
+                voltage_plot->hide();
+            }
+            else
+            {
+                voltage_plot->show();
+            }
+        }
+
     }
 }
 
