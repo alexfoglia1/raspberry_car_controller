@@ -106,31 +106,20 @@ bool JoystickInput::update_msg_out(SDL_Event event)
                 updated = true;
             }
 
-            else (printf("%d\n", event.jbutton.button));
-
             break;
         }
         case SDL_JOYHATMOTION:
         {
             switch(event.jhat.value)
             {
-            case SDL_HAT_LEFTUP:  qDebug("LEFTUP"); break;
 
             case SDL_HAT_UP: emit up(); break;
 
-            case SDL_HAT_RIGHTUP: qDebug("RIGHTUP"); break;
-
             case SDL_HAT_LEFT: emit left(); break;
-
-            case SDL_HAT_CENTERED: qDebug("CENTERED"); break;
 
             case SDL_HAT_RIGHT: emit right(); break;
 
-            case SDL_HAT_LEFTDOWN: qDebug("LEFTDOWN"); break;
-
             case SDL_HAT_DOWN: emit down(); break;
-
-            case SDL_HAT_RIGHTDOWN: qDebug("RIGHTDOWN"); break;
             }
 
             break;
@@ -169,7 +158,7 @@ void JoystickInput::run()
                 SDL_Event event;
                 if (SDL_NumJoysticks() == 0)
                 {
-                    msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false};
+                    msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false, false, false, false, false, false, false};
                     data_iface->send_command(remote_stop);
                     act_state = IDLE;
                 }

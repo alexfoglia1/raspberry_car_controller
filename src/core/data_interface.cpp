@@ -7,7 +7,6 @@ DataInterface::DataInterface(QString address, int timeout_millis)
 {
     udp_socket.bind(UDP_PORT);
     remote_address = address;
-    printf("Remote address: %s\n", address.toStdString().c_str());
     voltage_timeout.setInterval(timeout_millis);
     imu_timeout.setInterval(timeout_millis);
     actuators_timeout.setInterval(timeout_millis);

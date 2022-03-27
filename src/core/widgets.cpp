@@ -67,7 +67,7 @@ void MenuCvMatWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
 
     if (visible)
     {
-        cv::Size rectSize(15 * max_strlen, items.size() * (lineSpacing + 2));
+        cv::Size rectSize(17 * max_strlen, items.size() * (lineSpacing + 2));
 
         CVMatWidget::draw(frame, coord, rectSize);
 
@@ -154,9 +154,9 @@ int PlotWidget::create_new_serie(cv::String displayName, cv::Scalar color)
 
 void PlotWidget::update_serie(int serie, double value)
 {
-    if (serie >= 0 && serie < this->values.size())
+    if (serie >= 0 && serie < int(this->values.size()))
     {
-        if (this->values[serie].second->size() == n_values)
+        if (int(this->values[serie].second->size()) == n_values)
         {
             for (int i = 0; i < int(this->values[serie].second->size() - 1); i++)
             {
@@ -173,11 +173,12 @@ void PlotWidget::update_serie(int serie, double value)
 
 void PlotWidget::draw_axis(cv::Mat *frame, cv::Point tl, cv::Size size, double scale_x, double scale_y)
 {
+    Q_UNUSED(scale_x);
+
     double dy = y_span / 20;
     double offset_y = 0;
 
-    double y = dy;
-    cv::line(*frame, cv::Point(tl.x, size.height + tl.y - offset_y), cv::Point(tl.x + size.width, size.height - offset_y), fgCol, 1, cv::LINE_AA);
+    double y = 0;
 
     while (y < y_span)
     {
@@ -189,6 +190,8 @@ void PlotWidget::draw_axis(cv::Mat *frame, cv::Point tl, cv::Size size, double s
             cv::line(*frame, cv::Point(x, size.height + tl.y - height_of_y - offset_y), cv::Point(x + dx, size.height + tl.y - height_of_y - offset_y), fgCol, 1, cv::LINE_AA);
             x += 2 * dx;
         }
+        cv::String y_str(QString("%1").arg(y).toStdString().c_str());
+        cv::putText(*frame, cv::String(y_str), cv::Point(tl.x, size.height + tl.y - y * scale_y - offset_y), cv::FONT_HERSHEY_SIMPLEX, 0.35, fgCol, 1, cv::LINE_AA);
         y += dy;
     }
 }
