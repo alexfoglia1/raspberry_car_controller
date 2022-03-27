@@ -79,18 +79,6 @@ public:
         bool visible;
 };
 
-class TargetWidget : public CVMatWidget
-{
-
-public:
-    virtual void update(char* data, quint64 data_len);
-    virtual void draw(cv::Mat* frame, cv::Point coord = cv::Point(0, 0), cv::Size size = cv::Size(0,0));
-private:
-    std::vector<cv::Rect> rectangles;
-    std::vector<cv::String> rectangle_names;
-    std::vector<float> rectangle_confidences;
-
-};
 
 class SpeedometerWidget : public CVMatWidget
 {
@@ -153,7 +141,6 @@ class SystemMenuWidget : public MenuCvMatWidget
 {
 public:
     SystemMenuWidget(std::vector<MenuItem> items,
-                     int tegra_index,
                      int imu_index,
                      int camera_index,
                      int arduino_index,
@@ -170,7 +157,6 @@ public:
             vindex = 0;
         }
 
-        this->tegra_index = tegra_index;
         this->arduino_index = arduino_index;
         this->imu_index = imu_index;
         this->camera_index = camera_index;
@@ -191,7 +177,6 @@ public:
     void update_voltage(double voltage, double duty_cycle);
     void update_system_status(quint8 system_status);
 
-    int tegra_index;
     int arduino_index;
     int imu_index;
     int camera_index;

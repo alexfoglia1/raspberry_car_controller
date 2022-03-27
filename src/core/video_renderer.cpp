@@ -181,7 +181,6 @@ void VideoRenderer::init_window()
 
     std::vector<MenuCvMatWidget::MenuItem> system_menu_items =
                                 {
-                                {"TEGRA DETECTOR", false},
                                 {"LSM9DS1 IMU", false},
                                 {"VIDEO CAMERA", true},
                                 {"ARDUINO NANO", true},
@@ -192,13 +191,11 @@ void VideoRenderer::init_window()
                                 };
 
     context_menu = new MenuCvMatWidget(context_menu_items);
-    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6);
+    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5);
     system_menu->show();
 
     speedometer_widget = new SpeedometerWidget();
     speedometer_widget->show();
-
-    target_widget = new TargetWidget();
 
     attitude_plot = new PlotWidget(1000, 360.0);
     voltage_plot = new PlotWidget(1000, 10.0);
@@ -249,7 +246,6 @@ void VideoRenderer::render_window()
     cv::Size size = next_frame.size();
     context_menu->draw(&cp_next_frame, cv::Point(size.width/30, size.height/30));
     system_menu->draw(&cp_next_frame, cv::Point(size.width/30, 17*size.height/30));
-    target_widget->draw(&cp_next_frame);
     speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
     attitude_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
     voltage_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
@@ -312,12 +308,6 @@ void VideoRenderer::update(actuators_state_msg actuators)
     sem_post(&image_semaphore);
 }
 
-void VideoRenderer::update(target_msg targets)
-{
-    sem_wait(&image_semaphore);
-    target_widget->update((char*)&targets, sizeof(target_msg));
-    sem_post(&image_semaphore);
-}
 
 void VideoRenderer::update(quint32 cbit)
 {
@@ -371,16 +361,6 @@ void VideoRenderer::on_keyboard(int key)
                 delete video;
 
                 save_frame = false;
-            }
-            break;
-        case TOGGLE_TGT:
-            if (!target_widget->enabled())
-            {
-                target_widget->show();
-            }
-            else
-            {
-                target_widget->hide();
             }
             break;
         case UP_ARROW:

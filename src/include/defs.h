@@ -15,25 +15,21 @@
 #define ACTUATORS_STATE_MSG_ID  3
 #define JS_ACC_MSG_ID           7
 #define JS_BRK_MSG_ID           8
-#define TARGET_MSG_ID           9
 
 #define MAX_IMAGESIZE 60000
 #define IMAGE_ROWS    650
 #define IMAGE_COLS    1200
-
-#define MAX_TARGETS 15
 
 #include <stdint.h>
 #include <QObject>
 
 enum class comp_t
 {
-    TEGRA = 0,
-    ATTITUDE = 1,
-    VIDEO = 2,
-    JOYSTICK = 3,
-    ARDUINO = 4,
-    MOTORS = 5
+    ATTITUDE = 0,
+    VIDEO = 1,
+    JOYSTICK = 2,
+    ARDUINO = 3,
+    MOTORS = 4
 };
 
 typedef struct
@@ -47,22 +43,6 @@ typedef struct __attribute__((packed))
     float motor_voltage;
 } voltage_msg;
 
-typedef struct __attribute__((packed))
-{
-    uint32_t x_pos;
-    uint32_t y_pos;
-    uint32_t width;
-    uint32_t height;
-    float confidence;
-    char description[100];
-} target_data;
-
-typedef struct __attribute__((packed))
-{
-    msg_header header;
-    uint8_t n_targets;
-    target_data data[MAX_TARGETS];
-} target_msg;
 
 typedef struct
 {
@@ -102,7 +82,6 @@ typedef struct __attribute__((packed))
 } actuators_state_msg;
 
 Q_DECLARE_METATYPE(attitude_msg)
-Q_DECLARE_METATYPE(target_msg)
 Q_DECLARE_METATYPE(actuators_state_msg)
 Q_DECLARE_METATYPE(joystick_msg)
 Q_DECLARE_METATYPE(voltage_msg)

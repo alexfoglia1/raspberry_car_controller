@@ -6,7 +6,6 @@
 /** Keys for local usage **/
 #define TOGGLE_SPEED 83
 #define TOGGLE_LOS 76
-#define TOGGLE_TGT 77
 #define TOGGLE_SS  89
 #define VIDEOREC  86
 #define ENTER 16777220

@@ -63,12 +63,12 @@ protected:
     void render_window();
 
 public slots:
+
     /** Remote controlled slots **/
     void on_video_timeout();
     void update(voltage_msg voltage);
     void update(attitude_msg attitude);
     void update(actuators_state_msg actuators);
-    void update(target_msg targets);
     void update(quint32 cbit);
 
     /** Local controlled slots **/
@@ -119,7 +119,6 @@ private:
     MenuCvMatWidget* context_menu;
     SystemMenuWidget* system_menu;
     SpeedometerWidget* speedometer_widget;
-    TargetWidget* target_widget;
     PlotWidget* attitude_plot;
     PlotWidget* voltage_plot;
 

@@ -25,40 +25,6 @@ void SpeedometerWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
 }
 
 
-void TargetWidget::update(char *data, quint64 data_len)
-{
-    CVMatWidget::update(data, data_len);
-
-    rectangles.clear();
-    rectangle_confidences.clear();
-    rectangle_names.clear();
-
-    target_msg targets = *(target_msg*) data;
-    for (quint8 i = 0; i < targets.n_targets; i++)
-    {
-        rectangles.push_back(cv::Rect(targets.data[i].x_pos, targets.data[i].y_pos, targets.data[i].width, targets.data[i].height));
-        rectangle_confidences.push_back(targets.data[i].confidence);
-        rectangle_names.push_back(targets.data[i].description);
-    }
-}
-
-void TargetWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
-{
-    Q_UNUSED(coord)
-    Q_UNUSED(size)
-
-    if (visible)
-    {
-        for (int i = 0; i < int(rectangles.size()); i++)
-        {
-            auto& rectangle = rectangles[i];
-            cv::rectangle(*frame, rectangle, cv::Scalar(255, 255, 0), 1, cv::LINE_AA);
-            QString text = QString("%1 (%2)").arg(rectangle_names[i].c_str()).arg(rectangle_confidences[i]);
-            cv::putText(*frame, cv::String(text.toStdString()), cv::Point(rectangle.x + 4.0 * rectangle.width/5.0, rectangle.y + 20), cv::FONT_HERSHEY_SIMPLEX, 0.4, bgCol, 1, cv::LINE_AA);
-        }
-    }
-}
-
 void MenuCvMatWidget::navigateVertical(int delta)
 {
     if (visible)
@@ -125,7 +91,6 @@ void SystemMenuWidget::update(char* data, quint64 data_len)
 
     quint32 cbit = *(quint32*)data;
     this->comp_status[arduino_index] = (cbit & ARDUINO_NODATA) == 0;
-    this->comp_status[tegra_index] = (cbit & TEGRA_NODATA) == 0;
     this->comp_status[camera_index] = (cbit & VIDEO_NODATA) == 0;
     this->comp_status[joystick_index] = (cbit & JOYSTICK_NODATA) == 0;
     this->comp_status[imu_index] = (cbit & ATTITUDE_NODATA) == 0;
@@ -137,7 +102,6 @@ void SystemMenuWidget::draw(cv::Mat* frame, cv::Point coord, cv::Size size)
     MenuCvMatWidget::draw(frame, coord, size);
 
     fillCircleAt(frame, coord, cv::Size(15,15), arduino_index, comp_status[arduino_index]);
-    fillCircleAt(frame, coord, cv::Size(15,15), tegra_index, comp_status[tegra_index]);
     fillCircleAt(frame, coord, cv::Size(15,15), imu_index, comp_status[imu_index]);
     fillCircleAt(frame, coord, cv::Size(15,15), camera_index, comp_status[camera_index]);
     fillCircleAt(frame, coord, cv::Size(15,15), joystick_index, comp_status[joystick_index]);

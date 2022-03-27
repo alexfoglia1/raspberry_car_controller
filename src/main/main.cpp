@@ -35,7 +35,6 @@ int main(int argc, char** argv)
     qRegisterMetaType<attitude_msg>();
     qRegisterMetaType<voltage_msg>();
     qRegisterMetaType<actuators_state_msg>();
-    qRegisterMetaType<target_msg>();
     qRegisterMetaType<image_msg>();
     qRegisterMetaType<comp_t>();
     qRegisterMetaType<cv::Mat>();
@@ -57,7 +56,6 @@ int main(int argc, char** argv)
     QObject::connect(iface, SIGNAL(received_attitude(attitude_msg)), renderer, SLOT(update(attitude_msg)));
     QObject::connect(iface, SIGNAL(received_voltage(voltage_msg)), renderer, SLOT(update(voltage_msg)));
     QObject::connect(iface, SIGNAL(received_actuators(actuators_state_msg)), renderer, SLOT(update(actuators_state_msg)));
-    QObject::connect(iface, SIGNAL(received_targets(target_msg)), renderer, SLOT(update(target_msg)));
 
     /** Connecting data to cbit **/
     QObject::connect(iface, &DataInterface::data_timeout, cbit, [cbit](comp_t component)
@@ -73,8 +71,6 @@ int main(int argc, char** argv)
     case comp_t::MOTORS:
         cbit->update_cbit(true, MOTORS_NODATA);
         break;
-    case comp_t::TEGRA:
-        cbit->update_cbit(true, TEGRA_NODATA);
     case comp_t::VIDEO:
         /** Handled by VideoInterface **/
         break;
@@ -86,7 +82,6 @@ int main(int argc, char** argv)
     QObject::connect(iface, &DataInterface::received_attitude, cbit, [cbit](){cbit->update_cbit(false, ATTITUDE_NODATA);});
     QObject::connect(iface, &DataInterface::received_voltage, cbit, [cbit](){cbit->update_cbit(false, ARDUINO_NODATA);});
     QObject::connect(iface, &DataInterface::received_actuators, cbit, [cbit](){cbit->update_cbit(false, MOTORS_NODATA);});
-    QObject::connect(iface, &DataInterface::received_targets, cbit, [cbit](){cbit->update_cbit(false, TEGRA_NODATA);});
 
     /** Create video interface **/
     VideoInterface* iface_v = new VideoInterface(1000);
