@@ -5,8 +5,8 @@
 #include <list>
 
 double micros_since_epoch();
-double toDegrees(double angle_deg);
-double toRadians(double angle_rad);
+double toDegrees(double angle_rad);
+double toRadians(double angle_deg);
 double normalizeAngle(double angle_rad);
 void   filledRoundedRectangle(cv::Mat& src,          //Image where rect is drawn
                       cv::Point topLeft,             //top left corner
@@ -15,7 +15,5 @@ void   filledRoundedRectangle(cv::Mat& src,          //Image where rect is drawn
                       const int lineType,            //type of line
                       const int delta,               //angle between points on the ellipse
                       const float cornerCurvatureRatio); //curvature of the corner
-float avg(std::list<float> list);
-float linearSpeed(float voltage_out);
 
 #endif // UTILS_H

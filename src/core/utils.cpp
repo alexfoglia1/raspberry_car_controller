@@ -11,14 +11,14 @@ double micros_since_epoch()
     return ((double)tv.tv_sec*1e6 + (double)tv.tv_usec);
 }
 
-double toDegrees(double angle_deg)
+double toDegrees(double angle_rad)
 {
-    return angle_deg * 180.0 / M_PI;
+    return angle_rad * 180.0 / M_PI;
 }
 
-double toRadians(double angle_rad)
+double toRadians(double angle_deg)
 {
-    return angle_rad * M_PI / 180.0;
+    return angle_deg * M_PI / 180.0;
 }
 
 double normalizeAngle(double angle_rad)
@@ -88,20 +88,4 @@ void filledRoundedRectangle(cv::Mat& src,            //Image where rect is drawn
 
     //fill polygon
     cv::fillConvexPoly(src, points, fillColor, lineType);
-}
-
-float avg(std::list<float> list)
-{
-    float sum = 0.f;
-    for(auto& val : list)
-    {
-        sum += val;
-    }
-
-    return sum / (float)list.size();
-}
-
-float linearSpeed(float voltage_out)
-{
-    return 0.000737 + 0.084763 * voltage_out;
 }

@@ -12,17 +12,10 @@
 #include "video_algo.h"
 #include "joystick.h"
 
-const char* DEFAULT_RASPBY_ADDR = "192.168.1.36";
-
 int main(int argc, char** argv)
 {
     profiler::startListen();
     printf("%s v%s.%s\n", APP_NAME, MAJOR_VERS, MINOR_VERS);
-    if (argc == 1)
-    {
-        printf("USAGE: %s [raspberry_address]\n", argv[0]);
-        printf("Trying to use %s\n\n", DEFAULT_RASPBY_ADDR);
-    }
 
     /** Init Qt Application **/
     QApplication app(argc, argv);
@@ -52,11 +45,11 @@ int main(int argc, char** argv)
     renderer->start();
 
     /** Create data interface **/
-    DataInterface* iface = new DataInterface(argc == 1 ? DEFAULT_RASPBY_ADDR : argv[1], 3000);
+    DataInterface* iface = new DataInterface(3000);
     QObject::connect(iface, SIGNAL(received_attitude(attitude_msg)), renderer, SLOT(update(attitude_msg)));
     QObject::connect(iface, SIGNAL(received_voltage(voltage_msg)), renderer, SLOT(update(voltage_msg)));
     QObject::connect(iface, SIGNAL(received_actuators(actuators_state_msg)), renderer, SLOT(update(actuators_state_msg)));
-
+    QObject::connect(iface, SIGNAL(received_addr(QString)), renderer, SLOT(update(QString)));
     /** Connecting data to cbit **/
     QObject::connect(iface, &DataInterface::data_timeout, cbit, [cbit](comp_t component)
     {

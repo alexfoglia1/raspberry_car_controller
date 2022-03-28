@@ -146,7 +146,8 @@ public:
                      int arduino_index,
                      int joystick_index,
                      int motor_voltage_index,
-                     int motor_status_index
+                     int motor_status_index,
+                     int raspi_addr_index
                      ) : MenuCvMatWidget(items)
     {
         vindex = 0;
@@ -163,11 +164,13 @@ public:
         this->motor_voltage_index = motor_voltage_index;
         this->motor_status_index = motor_status_index;
         this->joystick_index = joystick_index;
+        this->raspi_addr_index = raspi_addr_index;
         this->comp_status = new bool [items.size()];
         memset(this->comp_status, 0x00, sizeof(bool) * items.size());
 
         this->voltage_in = 0;
         this->voltage_out = 0;
+        this->board_addr = QString("UNKNOWN");
     };
 
 
@@ -176,6 +179,7 @@ public:
     virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size = cv::Size(0,0));
     void update_voltage(double voltage, double duty_cycle);
     void update_system_status(quint8 system_status);
+    void update_board_addr(QString board_addr);
 
     int arduino_index;
     int imu_index;
@@ -183,14 +187,15 @@ public:
     int motor_status_index;
     int motor_voltage_index;
     int joystick_index;
-private:
+    int raspi_addr_index;
 
+private:
 
     quint8 system_status;
     double voltage_in;
     double voltage_out;
     bool* comp_status;
-
+    QString board_addr;
 
     void fillCircleAt(cv::Mat* frame, cv::Point coord, cv::Size size, int index, bool status);
     void drawStringAt(cv::Mat* frame, cv::Point coord, int index, QString string);
@@ -219,6 +224,13 @@ private:
 
     void draw_axis(cv::Mat *frame, cv::Point tl, cv::Size size, double scale_x, double scale_y);
     void draw_legend(cv::Mat *frame, cv::Size size, cv::Point coord);
+};
+
+class LosWidget : public CVMatWidget
+{
+public:
+    virtual void update(char* data, quint64 data_len);
+    virtual void draw(cv::Mat* frame, cv::Point coord, cv::Size size);
 };
 
 #endif // WIDGETS_H

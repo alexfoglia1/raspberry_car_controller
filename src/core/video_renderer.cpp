@@ -165,6 +165,13 @@ VideoRenderer::VideoRenderer()
     width = 0;
     height = 0;
     sem_init(&image_semaphore, 0, 1);
+    sem_init(&video_semaphore, 0, 1);
+    sem_init(&ctx_menu_sem, 0, 1);
+    sem_init(&sys_menu_sem, 0, 1);
+    sem_init(&los_wgt_sem, 0, 1);
+    sem_init(&speed_wgt_sem, 0, 1);
+    sem_init(&att_plot_sem, 0, 1);
+    sem_init(&vlt_plot_sem, 0, 1);
 }
 
 void VideoRenderer::init_window()
@@ -172,12 +179,6 @@ void VideoRenderer::init_window()
     viewer = new GLViewer();
 
     connect(viewer, SIGNAL(received_keyboard(int)), this, SLOT(on_keyboard(int)));
-
-    std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
-    for (auto &algo : image_algorithms)
-    {
-        context_menu_items.push_back({algo.name, false});
-    }
 
     std::vector<MenuCvMatWidget::MenuItem> system_menu_items =
                                 {
@@ -187,15 +188,29 @@ void VideoRenderer::init_window()
                                 {"JOYSTICK", true},
                                 {"VOLTAGE (V)", false},
                                 {"SYS STATUS", true},
-
+                                {"BOARD ADDR.", true}
                                 };
 
-    context_menu = new MenuCvMatWidget(context_menu_items);
-    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5);
+    system_menu = new SystemMenuWidget(system_menu_items, 0, 1, 2, 3, 4, 5, 6);
     system_menu->show();
 
     speedometer_widget = new SpeedometerWidget();
     speedometer_widget->show();
+
+    los_widget = new LosWidget();
+    los_widget->show();
+
+    std::vector<MenuCvMatWidget::MenuItem> context_menu_items;
+    for (auto &algo : image_algorithms)
+    {
+        context_menu_items.push_back({algo.name, false});
+    }
+
+    context_menu_items.push_back({"SYSTEM MENU", false});
+    context_menu_items.push_back({"LOS WIDGET", false});
+    context_menu_items.push_back({"SPEED WIDGET", false});
+
+    context_menu = new MenuCvMatWidget(context_menu_items);
 
     attitude_plot = new PlotWidget(1000, 360.0);
     voltage_plot = new PlotWidget(1000, 10.0);
@@ -227,7 +242,6 @@ void VideoRenderer::run()
     {
         video->release();
         delete video;
-
         save_frame = false;
     }
 
@@ -244,19 +258,44 @@ void VideoRenderer::render_window()
 
     /** Disegno gli widget abilitati **/
     cv::Size size = next_frame.size();
+
+    sem_wait(&ctx_menu_sem);
     context_menu->draw(&cp_next_frame, cv::Point(size.width/30, size.height/30));
+    sem_post(&ctx_menu_sem);
+
+    sem_wait(&sys_menu_sem);
     system_menu->draw(&cp_next_frame, cv::Point(size.width/30, 17*size.height/30));
+    sem_post(&sys_menu_sem);
+
+    sem_wait(&speed_wgt_sem);
     speedometer_widget->draw(&cp_next_frame, cv::Point(size.width - 320, size.height - 30), cv::Size(300, 20));
+    sem_post(&speed_wgt_sem);
+
+    sem_wait(&los_wgt_sem);
+    los_widget->draw(&cp_next_frame, cv::Point(size.width - 300, 10), cv::Size(250, 250));
+    sem_post(&los_wgt_sem);
+
+    /** I plot li disegno dopo gli widget **/
+    sem_wait(&att_plot_sem);
     attitude_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
+    sem_post(&att_plot_sem);
+
+    sem_wait(&vlt_plot_sem);
     voltage_plot->draw(&cp_next_frame, cv::Point(10, 10), cv::Size(size.width - 20, size.height - 20));
+    sem_post(&vlt_plot_sem);
+
+    if (save_frame)
+    {
+        filledRoundedRectangle(cp_next_frame, cv::Point(size.width - size.width/30, size.height/30), cv::Size(15, 15), red, cv::LINE_AA, 1, 0.5);
+
+        sem_wait(&video_semaphore);
+        video->write(cp_next_frame);
+        sem_post(&video_semaphore);
+    }
 
     /** Passo al viewer il frame con widget **/
     viewer->set_frame(cp_next_frame);
 
-    if (save_frame)
-    {
-        video->write(cp_next_frame);
-    }
     usleep(render_timeout_micros);
 }
 
@@ -274,46 +313,66 @@ void VideoRenderer::on_video_timeout()
 
 void VideoRenderer::update(attitude_msg attitude)
 {
-    sem_wait(&image_semaphore);
+    sem_wait(&att_plot_sem);
+    sem_wait(&los_wgt_sem);
+
+    los_widget->update((char*)&attitude, sizeof(attitude_msg));
 
     double yaw_0_360 = normalizeAngle(attitude.yaw);
     double pitch_0_360 = normalizeAngle(attitude.pitch);
     double roll_0_360 = normalizeAngle(attitude.roll);
 
-    yaw_0_360 = yaw_0_360 >= 359 ? 0 : yaw_0_360;
-    pitch_0_360 = pitch_0_360 >= 359 ? 0 : pitch_0_360;
-    roll_0_360 = roll_0_360 >= 359 ? 0 : roll_0_360;
-
     attitude_plot->update_serie(0, yaw_0_360);
     attitude_plot->update_serie(1, pitch_0_360);
     attitude_plot->update_serie(2, roll_0_360);
-    sem_post(&image_semaphore);
+
+    sem_post(&att_plot_sem);
+    sem_post(&los_wgt_sem);
 }
 
 void VideoRenderer::update(voltage_msg voltage)
 {
-    sem_wait(&image_semaphore);
+    sem_wait(&vlt_plot_sem);
+    sem_wait(&sys_menu_sem);
+
     system_menu->update_voltage(voltage.motor_voltage, last_duty_cycle/255.0);
     voltage_plot->update_serie(0, voltage.motor_voltage);
     voltage_plot->update_serie(1, voltage.motor_voltage * last_duty_cycle/255.0);
-    sem_post(&image_semaphore);
+
+    sem_post(&vlt_plot_sem);
+    sem_post(&sys_menu_sem);
 }
 
 void VideoRenderer::update(actuators_state_msg actuators)
 {
-    sem_wait(&image_semaphore);
+    sem_wait(&sys_menu_sem);
+    sem_wait(&speed_wgt_sem);
+
     last_duty_cycle = actuators.throttle_state;
     system_menu->update_system_status(actuators.system_state);
     speedometer_widget->update((char*)&actuators.throttle_state, sizeof(actuators.throttle_state));
-    sem_post(&image_semaphore);
+
+    sem_post(&sys_menu_sem);
+    sem_post(&speed_wgt_sem);
 }
 
 
 void VideoRenderer::update(quint32 cbit)
 {
-    sem_wait(&image_semaphore);
+    sem_wait(&sys_menu_sem);
+
     system_menu->update((char*)&cbit, sizeof(quint32));
-    sem_post(&image_semaphore);
+
+    sem_post(&sys_menu_sem);
+}
+
+void VideoRenderer::update(QString board_addr)
+{
+    sem_wait(&sys_menu_sem);
+
+    system_menu->update_board_addr(board_addr);
+
+    sem_post(&sys_menu_sem);
 }
 
 /*****************************/
@@ -324,7 +383,9 @@ void VideoRenderer::update(quint32 cbit)
 void VideoRenderer::on_image(cv::Mat frame_from_processor)
 {
     sem_wait(&image_semaphore);
+
     next_frame = frame_from_processor;
+
     sem_post(&image_semaphore);
 }
 
@@ -350,17 +411,18 @@ void VideoRenderer::on_keyboard(int key)
                     sprintf(buf, "out_%d.avi", tok);
                 }
 
+                sem_wait(&video_semaphore);
                 video = new cv::VideoWriter((const char*)buf, cv::VideoWriter::fourcc('M','J','P','G'), 30, viewer->get_frame().size());
                 save_frame = true;
-
-                save_frame = true;
+                sem_post(&video_semaphore);
             }
             else
             {
+                sem_wait(&video_semaphore);
                 video->release();
                 delete video;
-
                 save_frame = false;
+                sem_post(&video_semaphore);
             }
             break;
         case UP_ARROW:
@@ -416,16 +478,28 @@ void VideoRenderer::on_keyboard(int key)
 
 void VideoRenderer::show_context_menu()
 {
+    sem_wait(&ctx_menu_sem);
+
     context_menu->show();
+
+    sem_post(&ctx_menu_sem);
 }
 void VideoRenderer::hide_context_menu()
 {
+    sem_wait(&ctx_menu_sem);
+
     context_menu->hide();
+
+    sem_post(&ctx_menu_sem);
 }
 
 void VideoRenderer::navigate_context_menu(int delta)
 {
+    sem_wait(&ctx_menu_sem);
+
     context_menu->navigateVertical(delta);
+
+    sem_post(&ctx_menu_sem);
 }
 
 void VideoRenderer::confirm_context_menu()
@@ -433,13 +507,62 @@ void VideoRenderer::confirm_context_menu()
     if (context_menu->enabled())
     {
         int algorithm_index = context_menu->getSelectedIndex();
-        QString algorithm_text = context_menu->getSelectedItem();
 
-        ctx_signal_emitter_t emitter = image_algorithms[algorithm_index].action;
-        image_algorithms[algorithm_index].enabled = !image_algorithms[algorithm_index].enabled;
-        bool enabled = image_algorithms[algorithm_index].enabled;
-        context_menu->setItemText(enabled ? algorithm_text + QString(": ON") : algorithm_text.replace(": ON", ""));
-        (this->*emitter)(enabled);
+        bool is_image_alg = algorithm_index < int(image_algorithms.size());
+
+        if (is_image_alg)
+        {
+            QString algorithm_text = context_menu->getSelectedItem();
+            ctx_signal_emitter_t emitter = image_algorithms[algorithm_index].action;
+            image_algorithms[algorithm_index].enabled = !image_algorithms[algorithm_index].enabled;
+            bool enabled = image_algorithms[algorithm_index].enabled;
+
+            sem_wait(&ctx_menu_sem);
+            context_menu->setItemText(enabled ? algorithm_text + QString(": ON") : algorithm_text.replace(": ON", ""));
+            sem_post(&ctx_menu_sem);
+
+            (this->*emitter)(enabled);
+        }
+        else
+        {
+            QString _widget_text = context_menu->getSelectedItem();
+            QString widget_text = _widget_text.toUpper();
+
+            CVMatWidget* widget;
+            if (widget_text.contains("LOS"))
+            {
+                widget = los_widget;
+            }
+            else if (widget_text.contains("SYSTEM"))
+            {
+                widget = system_menu;
+            }
+            else if (widget_text.contains("SPEED"))
+            {
+                widget = speedometer_widget;
+            }
+            else
+            {
+                widget = nullptr;
+            }
+
+            if (widget != nullptr)
+            {
+                bool enabled = widget->enabled();
+                if (enabled)
+                {
+                    widget->hide();
+                }
+                else
+                {
+                    widget->show();
+                }
+
+                sem_wait(&ctx_menu_sem);
+                context_menu->setItemText(enabled ? _widget_text + QString(": HIDDEN") : _widget_text.replace(": HIDDEN", ""));
+                sem_post(&ctx_menu_sem);
+            }
+        }
     }
 }
 
@@ -450,49 +573,78 @@ void VideoRenderer::confirm_context_menu()
 
 void VideoRenderer::navigate_system_menu(int delta)
 {
-    if (!context_menu->enabled())
+    if (!context_menu->enabled() && system_menu->enabled())
     {
+        sem_wait(&sys_menu_sem);
+
         system_menu->navigateVertical(delta);
+
+        sem_post(&sys_menu_sem);
     }
 }
 
 void VideoRenderer::show_system_menu()
 {
+    sem_wait(&sys_menu_sem);
+
     system_menu->show();
+
+    sem_post(&sys_menu_sem);
 }
 
 void VideoRenderer::hide_system_menu()
 {
+    sem_wait(&sys_menu_sem);
+
     system_menu->hide();
+
+    sem_post(&sys_menu_sem);
 }
 
 void VideoRenderer::confirm_system_menu()
 {
-    if (!context_menu->enabled())
+    if (!context_menu->enabled() && system_menu->enabled())
     {
+        sem_wait(&sys_menu_sem);
         if (system_menu->getSelectedIndex() == system_menu->imu_index)
         {
             if (attitude_plot->enabled())
             {
+                sem_wait(&att_plot_sem);
+
                 attitude_plot->hide();
+
+                sem_post(&att_plot_sem);
             }
             else
             {
+                sem_wait(&att_plot_sem);
+
                 attitude_plot->show();
+
+                sem_post(&att_plot_sem);
             }
         }
         else if (system_menu->getSelectedIndex() == system_menu->motor_voltage_index)
         {
             if (voltage_plot->enabled())
             {
+                sem_wait(&vlt_plot_sem);
+
                 voltage_plot->hide();
+
+                sem_post(&vlt_plot_sem);
             }
             else
             {
+                sem_wait(&vlt_plot_sem);
+
                 voltage_plot->show();
+
+                sem_post(&vlt_plot_sem);
             }
         }
-
+        sem_post(&sys_menu_sem);
     }
 }
 

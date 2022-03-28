@@ -70,6 +70,7 @@ public slots:
     void update(attitude_msg attitude);
     void update(actuators_state_msg actuators);
     void update(quint32 cbit);
+    void update(QString board_addr);
 
     /** Local controlled slots **/
     void on_image(cv::Mat image);
@@ -107,6 +108,7 @@ private:
     void b_filter_changed_state(bool enabled);
 
     sem_t image_semaphore;
+    sem_t video_semaphore;
     GLViewer* viewer;
     cv::Mat next_frame;
     cv::VideoWriter* video;
@@ -117,10 +119,17 @@ private:
 
     /** Widgets **/
     MenuCvMatWidget* context_menu;
+    sem_t ctx_menu_sem;
     SystemMenuWidget* system_menu;
+    sem_t sys_menu_sem;
     SpeedometerWidget* speedometer_widget;
+    sem_t speed_wgt_sem;
     PlotWidget* attitude_plot;
+    sem_t att_plot_sem;
     PlotWidget* voltage_plot;
+    sem_t vlt_plot_sem;
+    LosWidget* los_widget;
+    sem_t los_wgt_sem;
 
     std::vector<image_algorithm_state_t> image_algorithms =
     {
