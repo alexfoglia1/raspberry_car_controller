@@ -6,6 +6,7 @@
 #define APP_NAME    "Raspberry PI 4 Car Remote Controller"
 #define MAJOR_VERS  "02"
 #define MINOR_VERS  "00"
+#define STAGE_VERS  "R"
 
 #define UDP_PORT                8888
 #define UDP_PORT_VIDEO          2222

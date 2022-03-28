@@ -15,14 +15,14 @@
 int main(int argc, char** argv)
 {
     profiler::startListen();
-    printf("%s v%s.%s\n", APP_NAME, MAJOR_VERS, MINOR_VERS);
+    printf("%s %s.%s-%s\n", APP_NAME, MAJOR_VERS, MINOR_VERS, STAGE_VERS);
 
     /** Init Qt Application **/
     QApplication app(argc, argv);
-    app.setApplicationDisplayName(QString("%1 %2.%3").arg(APP_NAME).arg(MAJOR_VERS).arg(MINOR_VERS));
+    app.setApplicationDisplayName(QString("%1 %2.%3-%4").arg(APP_NAME).arg(MAJOR_VERS).arg(MINOR_VERS).arg(STAGE_VERS));
     app.setApplicationName(APP_NAME);
-    app.setApplicationVersion(QString("%1.%2").arg(MAJOR_VERS).arg(MINOR_VERS));
-
+    app.setApplicationVersion(QString("%1.%2-%3").arg(MAJOR_VERS).arg(MINOR_VERS).arg(STAGE_VERS));
+    
     /** Register meta types **/
     qRegisterMetaType<joystick_msg>();
     qRegisterMetaType<attitude_msg>();

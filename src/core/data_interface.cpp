@@ -52,7 +52,12 @@ void DataInterface::receive_data()
        QString str_rem_addr = remote_address.toString();
        QStringList strlist_rem_addr = str_rem_addr.split(":");
        quint64 listlen = strlist_rem_addr.size();
-       emit received_addr(strlist_rem_addr.at(listlen - 1));
+       QString str_ipv4 = strlist_rem_addr.at(listlen - 1);
+       QStringList strlist_ipv4 = str_ipv4.split(".");
+       if (strlist_ipv4.size() == 4)
+       {
+           emit received_addr(str_ipv4);
+       }
 
        msg_header* header = reinterpret_cast<msg_header*>(bytes_in);
        switch(header->msg_id)
