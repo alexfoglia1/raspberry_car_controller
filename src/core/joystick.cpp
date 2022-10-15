@@ -274,6 +274,7 @@ uint8_t JoystickInput::fun_timed_acceleration(double t)
 void JoystickInput::on_accelerator_timeout()
 {
     if (first_r2_buttondown < 0) return;
+
     double dt_millis = QDateTime::currentMSecsSinceEpoch() - first_r2_buttondown;
     sem_wait(&msg_out_semaphore);
     msg_out.header.msg_id = JS_ACC_MSG_ID;
