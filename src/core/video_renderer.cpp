@@ -164,6 +164,7 @@ VideoRenderer::VideoRenderer()
     last_duty_cycle = 0.0;
     width = 0;
     height = 0;
+    context_vindex = -1;
     sem_init(&image_semaphore, 0, 1);
     sem_init(&video_semaphore, 0, 1);
     sem_init(&ctx_menu_sem, 0, 1);
@@ -209,6 +210,7 @@ void VideoRenderer::init_window()
     context_menu_items.push_back({"SYSTEM MENU", false});
     context_menu_items.push_back({"LOS WIDGET", false});
     context_menu_items.push_back({"SPEED WIDGET", false});
+    context_menu_items.push_back({"TIMED ACCEL.", false});
 
     context_menu = new MenuCvMatWidget(context_menu_items);
 
@@ -471,6 +473,19 @@ void VideoRenderer::on_keyboard(int key)
     }
 }
 
+void VideoRenderer::on_toggle_timed_acceleration_result(bool result)
+{
+    sem_wait(&ctx_menu_sem);
+
+    if (context_vindex != -1)
+    {
+        context_menu->setItemText(result ? "TIMED ACCEL. ON" : "TIMED ACCEL.", context_vindex);
+        context_vindex = -1;
+    }
+
+    sem_post(&ctx_menu_sem);
+}
+
 /*****************************/
 
 
@@ -540,6 +555,12 @@ void VideoRenderer::confirm_context_menu()
             else if (widget_text.contains("SPEED"))
             {
                 widget = speedometer_widget;
+            }
+            else if (widget_text.contains("TIMED"))
+            {
+                widget = nullptr;
+                context_vindex = context_menu->getSelectedIndex();
+                emit signal_toggle_timed_acceleration();
             }
             else
             {

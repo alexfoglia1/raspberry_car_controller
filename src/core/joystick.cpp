@@ -2,6 +2,9 @@
 #include "joystick.h"
 #include "keymap.h"
 
+#include <QDateTime>
+#include <QApplication>
+
 JoystickInput::JoystickInput(DataInterface* iface)
 {
     js = nullptr;
@@ -9,7 +12,15 @@ JoystickInput::JoystickInput(DataInterface* iface)
     max_js_axis_value = 32767;
     data_iface = iface;
     act_state = IDLE;
-
+    timed_acceleration = false;
+    first_r2_buttondown = -1;
+    first_l2_buttondown = -1;
+    sem_init(&timed_acceleration_semaphore, 0, 1);
+    sem_init(&msg_out_semaphore, 0, 1);
+    timed_accelerator.setInterval(20);
+    timed_decelerator.setInterval(20);
+    connect(&timed_accelerator, SIGNAL(timeout()), this, SLOT(on_accelerator_timeout()));
+    connect(&timed_decelerator, SIGNAL(timeout()), this, SLOT(on_decelerator_timeout()));
     msg_out = {{JS_ACC_MSG_ID}, 0x00, 0x00, 0x00, false, false, false, false, false, false, false, false};
 }
 
@@ -48,9 +59,9 @@ bool JoystickInput::init_joystick()
 
 bool JoystickInput::update_msg_out(SDL_Event event)
 {
-
-
     bool updated = false;
+    double act_millis = 0;
+
     switch (event.type)
     {
         case SDL_JOYAXISMOTION:
@@ -59,13 +70,13 @@ bool JoystickInput::update_msg_out(SDL_Event event)
             {
                 return false;
             }
-            if (R2_AXIS == event.jaxis.axis)
+            if (R2_AXIS == event.jaxis.axis && !timed_acceleration)
             {
                 msg_out.header.msg_id = JS_ACC_MSG_ID;
                 msg_out.throttle_state = map_js_axis_value_uint8(event.jaxis.value);
                 updated = true;
             }
-            else if (L2_AXIS == event.jaxis.axis)
+            else if (L2_AXIS == event.jaxis.axis && !timed_acceleration)
             {
                 msg_out.header.msg_id = JS_BRK_MSG_ID;
                 msg_out.throttle_state = map_js_axis_value_uint8(event.jaxis.value);
@@ -81,8 +92,26 @@ bool JoystickInput::update_msg_out(SDL_Event event)
             }
             break;
         }
+        case SDL_JOYBUTTONDOWN:
+            act_millis = QDateTime::currentMSecsSinceEpoch();
+
+            sem_wait(&timed_acceleration_semaphore);
+
+            if (R2_BUTTON == event.jbutton.button && timed_acceleration)
+            {
+                first_r2_buttondown = act_millis;
+            }
+            else if (L2_BUTTON == event.jbutton.button && timed_acceleration)
+            {
+                first_l2_buttondown = act_millis;
+            }
+
+            sem_post(&timed_acceleration_semaphore);
+            break;
         case  SDL_JOYBUTTONUP:
         {
+            sem_wait(&timed_acceleration_semaphore);
+
             if (X_BUTTON == event.jbutton.button)
             {
                 emit confirm();
@@ -105,7 +134,22 @@ bool JoystickInput::update_msg_out(SDL_Event event)
                 msg_out.central_light_off = !msg_out.central_light_on;
                 updated = true;
             }
+            else if (R2_BUTTON == event.jbutton.button && timed_acceleration)
+            {
+                msg_out.header.msg_id = JS_ACC_MSG_ID;
+                msg_out.throttle_state = 0;
+                first_r2_buttondown = -1;
+                updated = true;
+            }
+            else if (L2_BUTTON == event.jbutton.button && timed_acceleration)
+            {
+                msg_out.header.msg_id = JS_BRK_MSG_ID;
+                msg_out.throttle_state = 0;
+                first_l2_buttondown = -1;
+                updated = true;
+            }
 
+            sem_post(&timed_acceleration_semaphore);
             break;
         }
         case SDL_JOYHATMOTION:
@@ -129,7 +173,28 @@ bool JoystickInput::update_msg_out(SDL_Event event)
             break;
 
     }
+
     return updated;
+}
+
+void JoystickInput::on_toggle_timed_acceleration()
+{
+    sem_wait(&timed_acceleration_semaphore);
+
+    timed_acceleration = !timed_acceleration;
+    if (timed_acceleration)
+    {
+        timed_accelerator.start();
+        timed_decelerator.start();
+    }
+    else
+    {
+        timed_accelerator.stop();
+        timed_decelerator.stop();
+    }
+    emit toggle_timed_acceleration_result(timed_acceleration);
+
+    sem_post(&timed_acceleration_semaphore);
 }
 
 void JoystickInput::run()
@@ -164,6 +229,7 @@ void JoystickInput::run()
                 }
                 else
                 {
+                    sem_wait(&msg_out_semaphore);
                     while (SDL_PollEvent(&event))
                     {
                         if (update_msg_out(event))
@@ -171,6 +237,7 @@ void JoystickInput::run()
                             data_iface->send_command(msg_out);
                         }
                     }
+                    sem_post(&msg_out_semaphore);
                 }
 
             }
@@ -186,4 +253,45 @@ void JoystickInput::run()
     printf("Joystick thread exit\n");
 
     emit thread_quit();
+}
+
+uint8_t JoystickInput::fun_timed_acceleration(double t)
+{
+    double dt_s = t/1000.0;
+    const double Q = 0;
+    const double M = 750 * dt_s + Q;
+    const double f = M*dt_s + Q;
+    if (f >= 255)
+    {
+        return uint8_t(0xFF);
+    }
+    else
+    {
+        return uint8_t(f);
+    }
+}
+
+void JoystickInput::on_accelerator_timeout()
+{
+    if (first_r2_buttondown < 0) return;
+    double dt_millis = QDateTime::currentMSecsSinceEpoch() - first_r2_buttondown;
+    sem_wait(&msg_out_semaphore);
+    msg_out.header.msg_id = JS_ACC_MSG_ID;
+    msg_out.throttle_state = fun_timed_acceleration(dt_millis);
+    data_iface->send_command(msg_out);
+
+    sem_post(&msg_out_semaphore);
+}
+
+void JoystickInput::on_decelerator_timeout()
+{
+    if (first_l2_buttondown < 0) return;
+
+    double dt_millis = QDateTime::currentMSecsSinceEpoch() - first_l2_buttondown;
+    sem_wait(&msg_out_semaphore);
+    msg_out.header.msg_id = JS_BRK_MSG_ID;
+    msg_out.throttle_state = fun_timed_acceleration(dt_millis);
+    data_iface->send_command(msg_out);
+
+    sem_post(&msg_out_semaphore);
 }

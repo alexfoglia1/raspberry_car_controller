@@ -129,6 +129,10 @@ int main(int argc, char** argv)
     QObject::connect(js_input, &JoystickInput::up, renderer, [renderer](){renderer->navigate_system_menu(-1);});
     QObject::connect(js_input, &JoystickInput::down, renderer, [renderer](){renderer->navigate_system_menu(1);});
 
+    /** Connecting video renderer to joystick **/
+    QObject::connect(renderer, SIGNAL(signal_toggle_timed_acceleration()), js_input, SLOT(on_toggle_timed_acceleration()));
+    QObject::connect(js_input, SIGNAL(toggle_timed_acceleration_result(bool)), renderer, SLOT(on_toggle_timed_acceleration_result(bool)));
+
     /** Start joystick **/
     js_input->start();
 

@@ -75,6 +75,7 @@ public slots:
     /** Local controlled slots **/
     void on_image(cv::Mat image);
     void on_keyboard(int key);
+    void on_toggle_timed_acceleration_result(bool result);
 
     /** Context menu actions **/
     void show_context_menu();
@@ -96,6 +97,7 @@ signals:
     void signal_r_filter_changed_state(bool enabled);
     void signal_g_filter_changed_state(bool enabled);
     void signal_b_filter_changed_state(bool enabled);
+    void signal_toggle_timed_acceleration();
     void thread_quit();
 
 private:
@@ -116,6 +118,7 @@ private:
     bool stopped;
     double last_duty_cycle;
     bool draw_track;
+    int context_vindex;
 
     /** Widgets **/
     MenuCvMatWidget* context_menu;
